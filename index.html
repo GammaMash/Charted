@@ -204,6 +204,23 @@ const cv = document.getElementById("chart");
 const ctx = cv.getContext("2d");
 let animT = 1, hoverI = -1, geo = null;   // geo: {X,Y,n,padL,padR,W,H,priced,ser}
 
+// reveal art: loaded ONLY after the round ends (no spoilers, not even in network requests)
+let artCache = {};
+function loadArt(){
+  if(!done) return;
+  const tk = answer();
+  if(artCache.tk === tk) return;
+  artCache = {tk};
+  const s = new Image(); s.onload = ()=>{ artCache.scene = s; drawChart(); }; s.src = "bg/"+tk+".jpg";
+  const l = new Image(); l.onload = ()=>{ artCache.logo  = l; drawChart(); }; l.src = "bg/"+tk+"_logo.png";
+}
+function tinted(im, color){
+  const c = document.createElement("canvas"); c.width = im.width; c.height = im.height;
+  const x = c.getContext("2d"); x.drawImage(im,0,0);
+  x.globalCompositeOperation = "source-in"; x.fillStyle = color; x.fillRect(0,0,c.width,c.height);
+  return c;
+}
+
 function drawChart(){
   const t = T(), p = puzzle(), ys = p.closes, ds = p.dates, n = ys.length;
   const W = cv.clientWidth || 530, H = Math.round(W * (W < 460 ? 0.8 : 0.62));
@@ -220,6 +237,19 @@ function drawChart(){
   const Y=v=>padT+(H-padT-padB)*(1-(v-lo)/(hi-lo));
   geo = {X,Y,n,padL,padR,W,H,priced,ser,ds};
   ctx.fillStyle=t.panel; ctx.fillRect(0,0,W,H);
+  if(done && artCache.tk===answer()){
+    if(artCache.scene){
+      const im=artCache.scene, s=Math.max(W/im.width,H/im.height), iw=im.width*s, ih=im.height*s;
+      ctx.drawImage(im,(W-iw)/2,(H-ih)/2,iw,ih);
+      ctx.fillStyle = themeName==="dark" ? "rgba(12,14,20,.52)" : "rgba(245,246,250,.68)";
+      ctx.fillRect(0,0,W,H);
+    }
+    if(artCache.logo){
+      const im = themeName==="light" ? tinted(artCache.logo,"#2b2f42") : artCache.logo;
+      const lw=96, lh=lw*im.height/im.width;
+      ctx.globalAlpha=.85; ctx.drawImage(im, padL+10, H-padB-lh-10, lw, lh); ctx.globalAlpha=1;
+    }
+  }
   // recessive grid, labels right
   ctx.font="10.5px SF Mono, Menlo, monospace"; ctx.textAlign="left";
   for(let g=0; g<=4; g++){
@@ -477,6 +507,7 @@ function setDay(d){
   if(done) reveal();
 }
 function renderAll(animLast){
+  loadArt();
   inp.disabled = done;
   inp.placeholder = done ? "Round over — next chart tomorrow" : "Type a ticker or company…";
   document.getElementById("daytag").textContent="#"+puzzle().id+" · "+new Date().toLocaleString("en",{month:"short",day:"numeric"});
