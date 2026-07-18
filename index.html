@@ -44,6 +44,9 @@
   #howtohead .chev{color:var(--muted); transition:transform .2s;}
   #howto.closed #howtobody{display:none;}
   #howto.closed #howtohead .chev{transform:rotate(-90deg);}
+  .cluechips{display:flex; gap:8px; margin:9px 0 8px;}
+  .cluechips span{border:1px solid var(--border); background:var(--panel2); border-radius:16px;
+    padding:5px 12px; font-size:12.5px; font-weight:700; color:var(--ink);}
   #howto b{color:var(--ink);}
   #howto .dim{color:var(--muted);}
   #devbar{display:flex; gap:6px; flex-wrap:wrap; align-items:center; font-size:10.5px; color:var(--muted);
@@ -87,6 +90,9 @@
   .cell.warm{border-color:var(--yellow); color:var(--yellow); background:var(--chip-warm);}
   .cell.bad{color:var(--txt); opacity:.8;}
   .row.empty .cell{background:transparent; opacity:.5; min-height:34px; border-style:dashed;}
+  .row.hdr{margin-bottom:-1px;}
+  .hcell{font-size:10px; letter-spacing:1.5px; color:var(--muted); font-weight:700; text-align:center; padding:0 8px 2px;}
+  .row.hdr .hcell:first-child{text-align:left;}
   #reveal{display:none; background:var(--panel); border:1.5px solid var(--accent); border-radius:14px;
     padding:16px 17px; margin-top:14px; font-size:14.5px; line-height:1.6; box-shadow:var(--shadow);
     animation:pop .4s ease;}
@@ -127,11 +133,10 @@
     <div id="headmeta"><div id="daytag"></div><div id="streak"></div></div>
     <button id="themebtn" title="Toggle light/dark">◐</button>
   </header>
-  <div id="howto"><div id="howtohead"><b>One chart a day. Guess the ticker.</b><span class="chev">▾</span></div>
-    <div id="howtobody">It's the stock's last 12 months. 6 tries — every miss unlocks a clue. Feedback per guess:
-    <span class="dim">sector ✓/✗ · market-cap ⬆⬇ · 🔥 shape match (how similar your guess's chart looks to the answer's).</span>
-    Guess any of <b>534 stocks</b> (S&amp;P 500 + the names this app actually trades) —
-    the answer is always a <b>stock people talk about</b>, never an obscure one.</div></div>
+  <div id="howto"><div id="howtohead"><b>Six guesses. One chart. What stock is it?</b><span class="chev">▾</span></div>
+    <div id="howtobody"><div class="cluechips"><span>🏷 sector</span><span>⚖️ size</span><span>🔥 shape match</span></div>
+    Every guess earns three clues · every miss unlocks a hint · new chart at midnight.
+    <span class="dim">Answers are always big-name stocks — never obscure ones.</span></div></div>
   <div id="devbar"><b>TEST&nbsp;MODE</b></div>
   <div id="chartwrap"><canvas id="chart"></canvas></div>
   <div id="hints"></div>
@@ -331,9 +336,14 @@ function judge(tk){
   return { tk, correct: tk===answer(), sector: g.sector, sectorOk: g.sector===a.sector,
     capDir: ORD[a.cap]===ORD[g.cap] ? "same" : (ORD[a.cap]>ORD[g.cap] ? "up":"down"), corr };
 }
-function corrTag(c){ return c>=0.75?["🔥 "+c.toFixed(2),"warm"]:(c>=0.55?["🌤 "+c.toFixed(2),"warm"]:["❄️ "+c.toFixed(2),"bad"]); }
+function corrTag(c){ const p=Math.round(Math.max(0,c)*100)+"%"; return c>=0.75?["🔥 "+p,"warm"]:(c>=0.55?["🌤 "+p,"warm"]:["❄️ "+p,"bad"]); }
 function renderRows(animLast){
   const el=document.getElementById("rows"); el.innerHTML="";
+  if(guesses.length){
+    const h=document.createElement("div"); h.className="row hdr";
+    h.innerHTML='<div class="hcell">GUESS</div><div class="hcell">SECTOR</div><div class="hcell">SIZE</div><div class="hcell">SHAPE</div>';
+    el.appendChild(h);
+  }
   for(let i=0;i<MAXG;i++){
     const r=document.createElement("div");
     if(i<guesses.length){
@@ -477,7 +487,7 @@ function renderAll(animLast){
 function buildDevBar(){
   const bar=document.getElementById("devbar");
   if(!DEV){ bar.style.display="none"; return; }
-  PUZ.forEach((p,i)=>{ const b=document.createElement("button"); b.dataset.d=i;
+  PUZ.slice(0,7).forEach((p,i)=>{ const b=document.createElement("button"); b.dataset.d=i;
     b.textContent="Day "+(i+1); b.addEventListener("click",()=>setDay(i)); bar.appendChild(b); });
   const r=document.createElement("button"); r.textContent="↺ reset all";
   r.addEventListener("click",()=>{ for(let i=0;i<PUZ.length;i++) store.set("d"+i,null); setDay(0); });
