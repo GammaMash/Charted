@@ -1,0 +1,36 @@
+name: nightly-rebuild
+# Refetch 12-month prices for the whole universe and rebake index.html, so every
+# day's puzzle shows a genuinely current "last 12 months" chart.
+# If the price fetch fails badly, fetch_data.py exits non-zero and nothing is
+# committed — the site simply keeps yesterday's build.
+on:
+  schedule:
+    - cron: "30 5 * * *"   # 05:30 UTC ≈ 1:30am ET, after US close + data settle
+  workflow_dispatch: {}     # allow manual runs from the Actions tab
+permissions:
+  contents: write
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Fetch fresh prices
+        run: python3 fetch_data.py
+      - name: Build puzzles
+        run: python3 build_puzzles.py
+      - name: Bake index.html
+        run: python3 build_index.py
+      - name: Commit if changed
+        run: |
+          git config user.name "charted-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add prices_raw.json index.html
+          if ! git diff --cached --quiet; then
+            git commit -m "nightly data refresh"
+            git push
+          else
+            echo "no changes"
+          fi

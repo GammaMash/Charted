@@ -1,13 +1,16 @@
-"""Build gamedata.json from the two-tier universe (universe2.json + prices_raw.json).
-Guess space = everything; answers = the curated story-stock pool (answer flag)."""
+"""Build gamedata.json from universe2.json + prices_raw.json.
+Runs nightly via GitHub Actions, so every number is recomputed from the fresh
+12-month window. Hand-written story narratives carry a validity condition on the
+12-mo return — if the market drifts until a narrative no longer holds, that puzzle
+falls back to the auto story instead of shipping a stale claim.
+"""
 import json, math, os
-from universe import UNIVERSE as OLD
 from company_cards import CO
 
 D = os.path.dirname(os.path.abspath(__file__))
-prices = json.load(open(f"{D}/prices_raw.json")); prices.pop("SPCX", None)
+prices = json.load(open(f"{D}/prices_raw.json"))
 uni = json.load(open(f"{D}/universe2.json"))
-uni = {t: v for t, v in uni.items() if t in prices}   # drop anything we couldn't fetch (e.g. FDXF)
+uni = {t: v for t, v in uni.items() if t in prices}
 
 # Refine cap bucket for non-S&P (cult) names: last close × approx shares (millions)
 SHARES_M = { tk: m for tk, m in {
@@ -42,49 +45,56 @@ def shape_sim(a, b):
     rmse = math.sqrt(sum((x-y)**2 for x, y in zip(xa, xb))/len(xa))
     return round(max(-1.0, 1 - 2*rmse), 3)
 
-# 30-day launch queue. Hand-written stories where we have verified context; the rest get
-# data-driven stories computed from the price series (safe: no unverifiable narrative claims).
-HAND_STORIES = {
- "MU":   "Micron rode the AI memory supercycle +663% in a year to a trillion-dollar cap — then gave back ~20% in three weeks after the late-June earnings peak.",
- "MSTR": "Bitcoin was cut in half from its October '25 all-time high — Strategy, the leveraged BTC proxy, fell 77%.",
- "INTC": "+359% in 12 months. The comeback almost nobody on this app believed in.",
- "GME":  "GameStop: multiple squeezes, zero trend — a year of violent round trips to finish roughly flat.",
- "MSFT": "A rare down year (−23%) for the market's favorite safe-haven mega cap — while memory and moonshot names tripled.",
- "NKE":  "Nike's slow bleed: −43% with no crash and no headline week — just 52 weeks of lower highs.",
- "CAT":  "Caterpillar quietly doubled (+103%) — the kind of chart nobody screenshots and everybody wishes they owned.",
- "SNDK": "SanDisk, the other memory stock: +3,089% in 12 months — the single most vertical chart in the whole universe.",
- "NVDA": "The most talked-about stock on earth had the least dramatic chart in the game: +17%, all chop. Hard mode.",
+def stats(ys):
+    tot = (ys[-1]/ys[0]-1)*100
+    peak = ys[0]; dd = 0.0
+    for y in ys:
+        peak = max(peak, y); dd = min(dd, y/peak-1)
+    wr = [ys[j]/ys[j-1]-1 for j in range(1, len(ys))]
+    big = max(wr, key=abs)*100
+    return tot, big, dd*100
+
+# Hand narratives: (condition on 12-mo total %, narrative). Numbers are NEVER
+# hand-written — the computed stat line is appended to every story, so it can't go stale.
+HAND = {
+ "MU":   (lambda t: t > 50,        "Micron rode the AI memory supercycle to a trillion-dollar market cap — then gave a chunk back after the late-June '26 earnings peak."),
+ "MSTR": (lambda t: t < 0,         "Bitcoin was cut in half from its October '25 all-time high — Strategy, the leveraged Bitcoin proxy, fell even harder."),
+ "INTC": (lambda t: t > 50,        "Intel: the comeback almost nobody on this app believed in."),
+ "GME":  (lambda t: abs(t) < 60,   "GameStop: multiple squeezes, zero trend — a year of violent round trips."),
+ "MSFT": (lambda t: t < 0,         "A rare down year for the market's favorite safe-haven mega cap — while memory and moonshot names tripled."),
+ "NKE":  (lambda t: t < -15,       "Nike's slow bleed: no crash, no headline week — just 52 weeks of lower highs."),
+ "CAT":  (lambda t: t > 40,        "Caterpillar quietly compounded — the kind of chart nobody screenshots and everybody wishes they owned."),
+ "SNDK": (lambda t: t > 300,       "SanDisk, the other memory stock — the single most vertical chart in the whole universe."),
+ "NVDA": (lambda t: abs(t) < 40,   "The most talked-about stock on earth, with one of the least dramatic charts in the game. Hard mode."),
 }
+
 QUEUE = ["MU","GME","CRCL","CAT","MSTR","AAPL","SNDK","NKE","PLTR","INTC",
          "DIS","COIN","MSFT","AMD","NFLX","HOOD","LULU","DELL","BA","TSLA",
          "GEMI","SBUX","MRVL","IBM","RIVN","KO","SMCI","AVGO","CVNA","NVDA"]
 
-def auto_story(tk, ys):
-    tot=(ys[-1]/ys[0]-1)*100
-    peak=ys[0]; dd=0
-    for y in ys:
-        peak=max(peak,y); dd=min(dd, y/peak-1)
-    wr=[ys[j]/ys[j-1]-1 for j in range(1,len(ys))]
-    big=max(wr,key=abs)*100
-    name=uni[tk]["name"]
-    return (f"{name}: {tot:+.0f}% over the 12 months — biggest single week {big:+.0f}%, "
-            f"deepest drawdown {dd*100:.0f}% from its high. Now you'll recognize it next time.")
+def story(tk, ys):
+    tot, big, dd = stats(ys)
+    nums = f" The numbers: {tot:+.0f}% in 12 months · biggest week {big:+.0f}% · worst drawdown {dd:.0f}%."
+    cond, narr = HAND.get(tk, (None, None))
+    if narr and cond(tot):
+        return narr + nums
+    return f"{uni[tk]['name']} — now you'll recognize this chart next time." + nums
 
 out = []
-for i,tk in enumerate(QUEUE):
+for i, tk in enumerate(QUEUE):
     assert uni[tk]["answer"], f"{tk} not answer-eligible"
-    pts = prices[tk]; ys=[c for _,c in pts]; ds=[d for d,_ in pts]
-    wr = [(ds[j], ys[j]/ys[j-1]-1) for j in range(1,len(ys))]
+    assert tk in CO, f"{tk} missing a company_cards.CO entry"
+    pts = prices[tk]; ys = [c for _, c in pts]; ds = [d for d, _ in pts]
+    wr = [(ds[j], ys[j]/ys[j-1]-1) for j in range(1, len(ys))]
     big = max(wr, key=lambda x: abs(x[1]))
     out.append({
-      "id": i+1, "answer": tk, "story": HAND_STORIES.get(tk) or auto_story(tk, ys),
-      "co": CO[tk],
-      "dates": ds, "closes": [round(y,2) for y in ys],
+      "id": i+1, "answer": tk, "story": story(tk, ys), "co": CO[tk],
+      "dates": ds, "closes": [round(y, 2) for y in ys],
       "annot": {"i": ds.index(big[0]), "label": f"biggest week of the year: {big[1]*100:+.0f}%"},
-      "corr": {t: shape_sim(tk,t) for t in uni if t != tk},
+      "corr": {t: shape_sim(tk, t) for t in uni if t != tk},
     })
 
-json.dump({"universe":uni,"bucketOrder":BUCKET_ORDER,"puzzles":out}, open(f"{D}/gamedata.json","w"))
+json.dump({"universe": uni, "bucketOrder": BUCKET_ORDER, "puzzles": out},
+          open(f"{D}/gamedata.json", "w"), separators=(",", ":"))
 n_ans = sum(v["answer"] for v in uni.values())
 print(f"universe {len(uni)} · answers {n_ans} · gamedata {os.path.getsize(f'{D}/gamedata.json')//1024} KB")
-print("MU corr spot-checks — SNDK:", out[0]["corr"]["SNDK"], "AMAT:", out[0]["corr"].get("AMAT"), "KO:", out[0]["corr"]["KO"])
