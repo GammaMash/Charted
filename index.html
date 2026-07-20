@@ -142,7 +142,7 @@
   .wordsrow{margin:0 0 12px; font-size:12.5px;}
   .wordsrow .infotap{color:var(--accent);}
   #toast{position:fixed; bottom:26px; left:50%; transform:translateX(-50%); background:var(--accent);
-    color:var(--accent-ink); font-weight:bold; padding:9px 18px; border-radius:22px; font-size:13px;
+    color:var(--accent-ink); font-weight:bold; padding:9px 18px; border-radius:22px; font-size:13px; white-space:nowrap; max-width:92vw;
     opacity:0; transition:opacity .25s; pointer-events:none; box-shadow:var(--shadow);}
   footer{margin-top:20px; font-size:12px; color:var(--muted); text-align:center;}
   @media (max-width:480px){
@@ -540,7 +540,7 @@ function reveal(){
       `you'd have <b class="${puzzle().closes.at(-1)>=puzzle().closes[0]?"up":"dn"}">${k1000()}</b> today.</div></div>` : "")+
     `<div class="wordsrow"><span class="infotap" data-info="words">📖 chart words — what do these terms mean?</span></div>`+
     `<div class="grid">CHARTED #${p.id} <span class="res">${res}</span><br>${emojiGrid()}</div>`+
-    `<button id="sharebtn">Copy share grid</button>`+
+    `<button id="sharebtn">Share</button>`+
     (DEV && day<PUZ.length-1 ? `<button id="nextbtn">Next test day →</button>`:"")+
     (!DEV ? `<div id="countdown" style="margin-top:12px;color:var(--muted);font-size:12px"></div>`:"");
   if(!DEV){
@@ -553,17 +553,29 @@ function reveal(){
     };
     tick(); clearInterval(window._cdTimer); window._cdTimer=setInterval(tick,1000);
   }
-  document.getElementById("sharebtn").addEventListener("click",()=>{
-    const txt=`CHARTED #${p.id} ${res}\n${emojiGrid()}\n\n${SHARE_URL} · a daily game by @chartillect`;
-    (navigator.clipboard?.writeText(txt)||Promise.reject()).then(showToast,()=>{
-      const ta=document.createElement("textarea"); ta.value=txt; document.body.appendChild(ta);
-      ta.select(); document.execCommand("copy"); ta.remove(); showToast();
+  const shareTxt=`CHARTED #${p.id} ${res}\n${emojiGrid()}\n\n${SHARE_URL} · a daily game by @chartillect`;
+  const QUIPS = won
+    ? ["Charted and departed. 📈","Alpha leaked. 😏","Buy low, share high.","Certified chart nerd. 🧠","Now make them guess. 👀"]
+    : ["Uncharted… happens to the best. 📉","Even Buffett has red days.","The chart won this round. 🫡","Bought the top, missed the ticker.","Tomorrow's a new candle. 🕯️"];
+  const quip=()=>QUIPS[Math.floor(Math.random()*QUIPS.length)];
+  function copyShare(){
+    (navigator.clipboard?.writeText(shareTxt)||Promise.reject()).then(()=>showToast("Copied! "+quip()),()=>{
+      const ta=document.createElement("textarea"); ta.value=shareTxt; document.body.appendChild(ta);
+      ta.select(); document.execCommand("copy"); ta.remove(); showToast("Copied! "+quip());
     });
+  }
+  document.getElementById("sharebtn").addEventListener("click",()=>{
+    if(navigator.share){
+      navigator.share({text:shareTxt}).then(()=>showToast(quip())).catch(err=>{
+        if(err && err.name==="AbortError") return;   // player closed the share sheet — say nothing
+        copyShare();                                  // share unavailable for this target → copy instead
+      });
+    } else { copyShare(); }                            // desktop browsers without the share sheet
   });
   document.getElementById("nextbtn")?.addEventListener("click",()=>setDay(day+1));
   updateStreak();
 }
-function showToast(){ const t=document.getElementById("toast"); t.style.opacity=1; setTimeout(()=>t.style.opacity=0,1400); }
+function showToast(msg){ const t=document.getElementById("toast"); if(msg) t.textContent=msg; t.style.opacity=1; setTimeout(()=>t.style.opacity=0,2200); }
 
 // ---------- state, streaks, dev bar ----------
 function stateKey(){ return DEV ? "dev"+day : "day_"+todayKey(); }
