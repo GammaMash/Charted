@@ -127,6 +127,20 @@
   #sheetcard .irow span{color:var(--txt);}
   #sheetclose{margin-top:14px; font:inherit; font-size:13px; background:var(--panel2); color:var(--txt);
     border:1px solid var(--border); border-radius:10px; padding:9px 16px; cursor:pointer; width:100%;}
+  .hintnext{font-size:12px; color:var(--muted); padding:7px 4px; font-weight:500;}
+  .gleft{text-align:right; font-size:11.5px; color:var(--muted); padding:3px 6px;}
+  #stamp{display:none; position:fixed; inset:0; z-index:60; align-items:center; justify-content:center;
+    background:rgba(8,10,16,.78);}
+  #stamp.show{display:flex;}
+  #stamptxt{font-size:42px; font-weight:800; letter-spacing:5px; color:var(--green); text-align:center;
+    border:4px solid var(--green); border-radius:14px; padding:18px 30px; transform:rotate(-5deg);
+    background:var(--panel); box-shadow:var(--shadow); animation:stampin .4s cubic-bezier(.2,1.6,.4,1);}
+  #stamp.lose #stamptxt{color:var(--red); border-color:var(--red);}
+  @keyframes stampin{0%{transform:rotate(-5deg) scale(2.2); opacity:0;} 100%{transform:rotate(-5deg) scale(1); opacity:1;}}
+  .rowstoggle{font-size:12.5px; color:var(--muted); cursor:pointer; padding:9px 6px; user-select:none; font-weight:600;}
+  .rowstoggle:hover{color:var(--txt);}
+  .wordsrow{margin:0 0 12px; font-size:12.5px;}
+  .wordsrow .infotap{color:var(--accent);}
   #toast{position:fixed; bottom:26px; left:50%; transform:translateX(-50%); background:var(--accent);
     color:var(--accent-ink); font-weight:bold; padding:9px 18px; border-radius:22px; font-size:13px;
     opacity:0; transition:opacity .25s; pointer-events:none; box-shadow:var(--shadow);}
@@ -166,6 +180,7 @@
   <div id="rows"></div>
   <div id="reveal"></div>
   <div id="sheet"><div id="sheetcard"></div></div>
+  <div id="stamp"><div id="stamptxt"></div></div>
   <div id="toast">Copied!</div>
   <footer>CHARTED · a daily game by @chartillect · beta</footer>
 </div>
@@ -243,7 +258,7 @@ function tinted(im, color){
 
 function drawChart(){
   const t = T(), p = puzzle(), ys = p.closes, ds = p.dates, n = ys.length;
-  const W = cv.clientWidth || 530, H = Math.round(W * (W < 460 ? 0.8 : 0.62));
+  const W = cv.clientWidth || 530, H = Math.round(W * (W < 460 ? 0.95 : 0.72));
   const dpr = window.devicePixelRatio||1;
   cv.width = W*dpr; cv.height = H*dpr; cv.style.height = H+"px";
   ctx.setTransform(dpr,0,0,dpr,0,0);
@@ -296,7 +311,7 @@ function drawChart(){
   ctx.lineTo(X(m-1),H-padB); ctx.lineTo(X(0),H-padB); ctx.closePath();
   ctx.fillStyle=grad; ctx.fill();
   if(t.glow){ ctx.shadowColor="rgba(53,224,232,.35)"; ctx.shadowBlur=8; }
-  ctx.strokeStyle=t.line; ctx.lineWidth=2.2; ctx.lineJoin="round"; ctx.lineCap="round";
+  ctx.strokeStyle=t.line; ctx.lineWidth=2.6; ctx.lineJoin="round"; ctx.lineCap="round";
   ctx.beginPath();
   for(let i=0;i<m;i++){ i?ctx.lineTo(X(i),Y(ser[i])):ctx.moveTo(X(i),Y(ser[i])); }
   ctx.stroke(); ctx.shadowBlur=0;
@@ -380,12 +395,18 @@ function hintText(k){
 }
 function renderHints(){
   const el=document.getElementById("hints"); el.innerHTML="";
+  if(done) return;                              // post-game: hints are spent — clean screen
   for(let k=1;k<MAXG;k++){
+    if(stage()<k) break;                       // locked hints stay invisible — calm screen
     const d=document.createElement("div");
-    const unlocked = stage()>=k;
-    d.className="hint "+(unlocked?(stage()===k&&!done?"new":""):"locked");
-    d.textContent = unlocked ? hintText(k) : "🔒 miss "+k+" → "+HINTNAMES[k];
+    d.className="hint "+(stage()===k&&!done?"new":"");
+    d.textContent = hintText(k);
     el.appendChild(d);
+  }
+  if(!done && stage()<MAXG-1){
+    const nx=document.createElement("div"); nx.className="hintnext";
+    nx.textContent = stage()===0 ? "hints unlock as you miss" : "next hint: "+HINTNAMES[stage()+1].toLowerCase();
+    el.appendChild(nx);
   }
 }
 
@@ -397,30 +418,51 @@ function judge(tk){
     capDir: ORD[a.cap]===ORD[g.cap] ? "same" : (ORD[a.cap]>ORD[g.cap] ? "up":"down"), corr };
 }
 function corrTag(c){ const p=Math.round(Math.max(0,c)*100)+"%"; return c>=0.75?["🔥 "+p,"warm"]:(c>=0.55?["🌤 "+p,"warm"]:["❄️ "+p,"bad"]); }
+let _rowsOpen = false;
+function buildRow(i, animLast){
+  const r=document.createElement("div");
+  if(i<guesses.length){
+    const j=judge(guesses[i]);
+    r.className="row"+(animLast && i===guesses.length-1 ? " animin":"");
+    if(j.correct){
+      r.innerHTML=`<div class="cell tk good">$${j.tk}</div><div class="cell good" style="grid-column:2/5">🎯 THAT'S THE CHART</div>`;
+    } else {
+      const [ct,cc]=corrTag(j.corr);
+      r.innerHTML=
+       `<div class="cell tk">$${j.tk}<small>${U[j.tk].name}</small></div>`+
+       `<div class="cell ${j.sectorOk?"good":"bad"}">${j.sectorOk?"✓":"✗"} ${secL(j.sector)}</div>`+
+       `<div class="cell ${j.capDir==="same"?"good":"bad"}">${j.capDir==="same"?"✓ "+SIZE_LABEL[U[j.tk].cap]:(j.capDir==="up"?"⬆ bigger":"⬇ smaller")}</div>`+
+       `<div class="cell ${cc}">${ct}</div>`;
+    }
+  } else { r.className="row empty"; r.innerHTML='<div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>'; }
+  return r;
+}
+function buildHdr(){
+  const h=document.createElement("div"); h.className="row hdr";
+  h.innerHTML='<div class="hcell">GUESS</div><div class="hcell infotap" data-info="sector">SECTOR ⓘ</div><div class="hcell infotap" data-info="size">SIZE ⓘ</div><div class="hcell">SHAPE</div>';
+  return h;
+}
 function renderRows(animLast){
   const el=document.getElementById("rows"); el.innerHTML="";
-  if(guesses.length){
-    const h=document.createElement("div"); h.className="row hdr";
-    h.innerHTML='<div class="hcell">GUESS</div><div class="hcell infotap" data-info="sector">SECTOR ⓘ</div><div class="hcell infotap" data-info="size">SIZE ⓘ</div><div class="hcell">SHAPE</div>';
-    el.appendChild(h);
+  if(done){
+    if(!guesses.length) return;
+    const tog=document.createElement("div"); tog.className="rowstoggle";
+    tog.textContent="review your "+guesses.length+(guesses.length===1?" guess ":" guesses ")+(_rowsOpen?"▴":"▾");
+    tog.addEventListener("click",()=>{ _rowsOpen=!_rowsOpen; renderRows(); });
+    el.appendChild(tog);
+    if(_rowsOpen){
+      el.appendChild(buildHdr());
+      for(let i=0;i<guesses.length;i++) el.appendChild(buildRow(i,false));
+    }
+    return;
   }
-  for(let i=0;i<MAXG;i++){
-    const r=document.createElement("div");
-    if(i<guesses.length){
-      const j=judge(guesses[i]);
-      r.className="row"+(animLast && i===guesses.length-1 ? " animin":"");
-      if(j.correct){
-        r.innerHTML=`<div class="cell tk good">$${j.tk}</div><div class="cell good" style="grid-column:2/5">🎯 THAT'S THE CHART</div>`;
-      } else {
-        const [ct,cc]=corrTag(j.corr);
-        r.innerHTML=
-         `<div class="cell tk">$${j.tk}<small>${U[j.tk].name}</small></div>`+
-         `<div class="cell ${j.sectorOk?"good":"bad"}">${j.sectorOk?"✓":"✗"} ${secL(j.sector)}</div>`+
-         `<div class="cell ${j.capDir==="same"?"good":"bad"}">${j.capDir==="same"?"✓ "+SIZE_LABEL[U[j.tk].cap]:(j.capDir==="up"?"⬆ bigger":"⬇ smaller")}</div>`+
-         `<div class="cell ${cc}">${ct}</div>`;
-      }
-    } else { r.className="row empty"; r.innerHTML='<div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>'; }
-    el.appendChild(r);
+  if(guesses.length) el.appendChild(buildHdr());
+  const showN = Math.min(guesses.length+1, MAXG);
+  for(let i=0;i<showN;i++) el.appendChild(buildRow(i,animLast));
+  if(guesses.length){
+    const g=document.createElement("div"); g.className="gleft";
+    g.textContent=(MAXG-guesses.length)+(MAXG-guesses.length===1?" guess":" guesses")+" left";
+    el.appendChild(g);
   }
 }
 
@@ -467,7 +509,13 @@ function submit(tk){
   if(tk===answer()){ done=true; won=true; recordWin(); }
   else if(guesses.length>=MAXG){ done=true; won=false; }
   saveState(); renderAll(true);
-  if(done) reveal();
+  if(done){
+    const st=document.getElementById("stamp");
+    document.getElementById("stamptxt").textContent = won ? "CHARTED IN "+guesses.length : "UNCHARTED…";
+    st.classList.toggle("lose", !won); st.classList.add("show");
+    setTimeout(()=>st.classList.remove("show"), 1600);
+    reveal();
+  }
 }
 function emojiGrid(){
   return guesses.map(t=>{
@@ -490,6 +538,7 @@ function reveal(){
     (p.co ? `<div class="cocard"><b class="lbl">WHO THEY ARE</b>${p.co.what}`+
       `<div class="k1000"><b class="lbl">IF YOU'D PUT IN $1,000 A YEAR AGO</b>`+
       `you'd have <b class="${puzzle().closes.at(-1)>=puzzle().closes[0]?"up":"dn"}">${k1000()}</b> today.</div></div>` : "")+
+    `<div class="wordsrow"><span class="infotap" data-info="words">📖 chart words — what do these terms mean?</span></div>`+
     `<div class="grid">CHARTED #${p.id} <span class="res">${res}</span><br>${emojiGrid()}</div>`+
     `<button id="sharebtn">Copy share grid</button>`+
     (DEV && day<PUZ.length-1 ? `<button id="nextbtn">Next test day →</button>`:"")+
@@ -585,8 +634,17 @@ const INFO = {
   <div class="irow"><b>Real Estate</b><span>property owners and landlords</span></div>
   <div class="irow"><b>Utilities</b><span>power, water — the monthly-bill companies</span></div>
   <div class="irow"><b>Crypto</b><span>exchanges, stablecoins and Bitcoin plays</span></div>`,
+ words: `<h3>📖 Chart words, in plain English</h3>
+  <div class="sub">The terms this game (and finance Twitter) throws around.</div>
+  <div class="irow"><b>12-mo return</b><span>how much the price changed in a year — +50% means $1,000 became $1,500</span></div>
+  <div class="irow"><b>Drawdown</b><span>the deepest fall from a peak — "−40% drawdown" means it lost 40% from its high at the worst point</span></div>
+  <div class="irow"><b>Biggest week</b><span>the single wildest week of the year, up or down</span></div>
+  <div class="irow"><b>Weekly closes</b><span>each bend in the line is one week's final price — 52 of them draw the chart</span></div>
+  <div class="irow"><b>Shape match</b><span>how similar your guess's chart LOOKS to the mystery chart — pattern, not price</span></div>
+  <div class="irow"><b>Market value</b><span>one share's price × every share — what the whole company is "worth"</span></div>`,
 };
 const sheet=document.getElementById("sheet"), sheetcard=document.getElementById("sheetcard");
+document.getElementById("stamp").addEventListener("click",e=>e.currentTarget.classList.remove("show"));
 function showInfo(k){ sheetcard.innerHTML = INFO[k] + '<button id="sheetclose">Got it</button>'; sheet.classList.add("open"); }
 document.addEventListener("click",e=>{
   const tap=e.target.closest(".infotap"); if(tap){ showInfo(tap.dataset.info); return; }
