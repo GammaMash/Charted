@@ -142,7 +142,7 @@
   .wordsrow{margin:0 0 12px; font-size:12.5px;}
   .wordsrow .infotap{color:var(--accent);}
   #toast{position:fixed; bottom:40px; left:50%; transform:translateX(-50%) translateY(14px) scale(.92); background:var(--accent);
-    color:var(--accent-ink); font-weight:bold; padding:16px 30px; border-radius:28px; font-size:19px; letter-spacing:.2px; white-space:nowrap; max-width:94vw;
+    color:var(--accent-ink); font-weight:bold; padding:15px 28px; border-radius:24px; font-size:19px; letter-spacing:.2px; white-space:normal; text-align:center; line-height:1.3; width:max-content; max-width:min(90vw,460px);
     opacity:0; transition:opacity .22s ease, transform .28s cubic-bezier(.2,1.5,.4,1); pointer-events:none;
     box-shadow:0 12px 40px rgba(0,0,0,.5), 0 0 0 4px rgba(255,255,255,.14); z-index:60;}
   #toast.show{opacity:1; transform:translateX(-50%) translateY(0) scale(1);}
@@ -557,8 +557,8 @@ function reveal(){
   }
   const shareTxt=`CHARTED #${p.id} ${res}\n${emojiGrid()}\n\nWho charted? 👀 ${SHARE_URL} · @chartillect`;
   const QUIPS = won
-    ? ["Charted and departed. 📈","Alpha leaked. 😏","Buy low, share high.","Certified chart nerd. 🧠","Now make them guess. 👀"]
-    : ["Uncharted… happens to the best. 📉","Even Buffett has red days.","The chart won this round. 🫡","Bought the top, missed the ticker.","Tomorrow's a new candle. 🕯️"];
+    ? ["Charted and departed. 📈","Zero doubt. Full port. 💰","Warren and Charlie would nod.","Undefeated vs the chart.","Certified chart nerd. 🧠","Line only goes up. 📈","Touch charts, not grass. 📈"]
+    : ["Diamond hands, paper eyes. 💎🧻","Not financial advice. CLEARLY.","Even Buffett has red days.","Bought the top, missed the ticker.","L on the chart, W on the vibes. 🫡","The chart won this round. 🫡","Stopped out. Run it back tomorrow."];
   const quip=()=>QUIPS[Math.floor(Math.random()*QUIPS.length)];
   function copyShare(){
     (navigator.clipboard?.writeText(shareTxt)||Promise.reject()).then(()=>showToast("Copied! "+quip()),()=>{
