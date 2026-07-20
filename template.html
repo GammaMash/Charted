@@ -112,6 +112,21 @@
     padding:10px 16px; cursor:pointer; transition:transform .1s;}
   #sharebtn:hover,#nextbtn:hover{transform:translateY(-1px);}
   #nextbtn{background:var(--panel2); color:var(--txt); border:1px solid var(--border);}
+  .infotap{cursor:pointer; text-decoration:underline dotted; text-underline-offset:3px;}
+  #sheet{display:none; position:fixed; inset:0; z-index:50; background:rgba(0,0,0,.5);
+    align-items:flex-end; justify-content:center;}
+  #sheet.open{display:flex;}
+  #sheetcard{background:var(--panel); border:1px solid var(--border); border-radius:16px 16px 0 0;
+    max-width:560px; width:100%; max-height:72vh; overflow-y:auto; padding:18px 18px 26px;
+    font-size:13.5px; line-height:1.6; box-shadow:var(--shadow); animation:sheetup .25s ease;}
+  @keyframes sheetup{0%{transform:translateY(24px); opacity:0;} 100%{transform:translateY(0); opacity:1;}}
+  #sheetcard h3{margin:0 0 4px; font-size:15px; color:var(--ink);}
+  #sheetcard .sub{color:var(--muted); margin-bottom:12px;}
+  #sheetcard .irow{display:flex; gap:10px; padding:7px 0; border-top:1px solid var(--border);}
+  #sheetcard .irow b{flex:none; width:118px; color:var(--ink);}
+  #sheetcard .irow span{color:var(--txt);}
+  #sheetclose{margin-top:14px; font:inherit; font-size:13px; background:var(--panel2); color:var(--txt);
+    border:1px solid var(--border); border-radius:10px; padding:9px 16px; cursor:pointer; width:100%;}
   #toast{position:fixed; bottom:26px; left:50%; transform:translateX(-50%); background:var(--accent);
     color:var(--accent-ink); font-weight:bold; padding:9px 18px; border-radius:22px; font-size:13px;
     opacity:0; transition:opacity .25s; pointer-events:none; box-shadow:var(--shadow);}
@@ -139,7 +154,7 @@
     <button id="themebtn" title="Toggle light/dark">◐</button>
   </header>
   <div id="howto"><div id="howtohead"><b>Six guesses. One chart. What stock is it?</b><span class="chev">▾</span></div>
-    <div id="howtobody"><div class="cluechips"><span>🏷 sector</span><span>⚖️ size</span><span>🔥 shape match</span></div>
+    <div id="howtobody"><div class="cluechips"><span class="infotap" data-info="sector">🏷 sector ⓘ</span><span class="infotap" data-info="size">⚖️ size ⓘ</span><span>🔥 shape match</span></div>
     Every guess earns three clues · every miss unlocks a hint · new chart at midnight.</div></div>
   <div id="devbar"><b>TEST&nbsp;MODE</b></div>
   <div id="chartwrap"><canvas id="chart"></canvas></div>
@@ -150,6 +165,7 @@
   </div>
   <div id="rows"></div>
   <div id="reveal"></div>
+  <div id="sheet"><div id="sheetcard"></div></div>
   <div id="toast">Copied!</div>
   <footer>CHARTED · a daily game by @chartillect · beta</footer>
 </div>
@@ -385,7 +401,7 @@ function renderRows(animLast){
   const el=document.getElementById("rows"); el.innerHTML="";
   if(guesses.length){
     const h=document.createElement("div"); h.className="row hdr";
-    h.innerHTML='<div class="hcell">GUESS</div><div class="hcell">SECTOR</div><div class="hcell">SIZE</div><div class="hcell">SHAPE</div>';
+    h.innerHTML='<div class="hcell">GUESS</div><div class="hcell infotap" data-info="sector">SECTOR ⓘ</div><div class="hcell infotap" data-info="size">SIZE ⓘ</div><div class="hcell">SHAPE</div>';
     el.appendChild(h);
   }
   for(let i=0;i<MAXG;i++){
@@ -541,6 +557,36 @@ function buildDevBar(){
   r.addEventListener("click",()=>{ for(let i=0;i<PUZ.length;i++) store.set("d"+i,null); setDay(0); });
   bar.appendChild(r);
 }
+// ---------- info sheets ----------
+const INFO = {
+ size: `<h3>⚖️ What "size" means</h3>
+  <div class="sub">Size = market value — the price of every share, added up. ⬆ bigger means the mystery company is worth more than your guess.</div>
+  <div class="irow"><b>Giant</b><span>$200B+ — the Apple / Microsoft tier</span></div>
+  <div class="irow"><b>Big</b><span>$20–200B — household names</span></div>
+  <div class="irow"><b>Mid</b><span>$2–20B — established, but not giants</span></div>
+  <div class="irow"><b>Small</b><span>under $2B — niche players</span></div>`,
+ sector: `<h3>🏷 What the sectors mean</h3>
+  <div class="sub">Sector = the industry a company lives in. ✓ means your guess is in the same industry as the answer.</div>
+  <div class="irow"><b>Tech</b><span>software, hardware, the internet's plumbing</span></div>
+  <div class="irow"><b>Chips</b><span>semiconductors — the stuff AI runs on</span></div>
+  <div class="irow"><b>Media & Web</b><span>streaming, social, search, entertainment</span></div>
+  <div class="irow"><b>Shopping</b><span>retail, brands, cars, travel — stuff you buy</span></div>
+  <div class="irow"><b>Everyday Goods</b><span>food, drinks, household basics</span></div>
+  <div class="irow"><b>Finance</b><span>banks, cards, insurance, investing</span></div>
+  <div class="irow"><b>Healthcare</b><span>pharma, hospitals, medical devices</span></div>
+  <div class="irow"><b>Industrial</b><span>machinery, airlines, shipping, defense</span></div>
+  <div class="irow"><b>Energy</b><span>oil, gas and the companies that move it</span></div>
+  <div class="irow"><b>Materials</b><span>chemicals, metals, mining</span></div>
+  <div class="irow"><b>Real Estate</b><span>property owners and landlords</span></div>
+  <div class="irow"><b>Utilities</b><span>power, water — the monthly-bill companies</span></div>
+  <div class="irow"><b>Crypto</b><span>exchanges, stablecoins and Bitcoin plays</span></div>`,
+};
+const sheet=document.getElementById("sheet"), sheetcard=document.getElementById("sheetcard");
+function showInfo(k){ sheetcard.innerHTML = INFO[k] + '<button id="sheetclose">Got it</button>'; sheet.classList.add("open"); }
+document.addEventListener("click",e=>{
+  const tap=e.target.closest(".infotap"); if(tap){ showInfo(tap.dataset.info); return; }
+  if(sheet.classList.contains("open") && (e.target===sheet || e.target.closest("#sheetclose"))) sheet.classList.remove("open");
+});
 const howto=document.getElementById("howto");
 if(store.get("played",false)) howto.classList.add("closed");
 document.getElementById("howtohead").addEventListener("click",()=>howto.classList.toggle("closed"));
