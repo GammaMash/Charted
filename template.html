@@ -141,9 +141,11 @@
   .rowstoggle:hover{color:var(--txt);}
   .wordsrow{margin:0 0 12px; font-size:12.5px;}
   .wordsrow .infotap{color:var(--accent);}
-  #toast{position:fixed; bottom:26px; left:50%; transform:translateX(-50%); background:var(--accent);
-    color:var(--accent-ink); font-weight:bold; padding:9px 18px; border-radius:22px; font-size:13px; white-space:nowrap; max-width:92vw;
-    opacity:0; transition:opacity .25s; pointer-events:none; box-shadow:var(--shadow);}
+  #toast{position:fixed; bottom:40px; left:50%; transform:translateX(-50%) translateY(14px) scale(.92); background:var(--accent);
+    color:var(--accent-ink); font-weight:bold; padding:16px 30px; border-radius:28px; font-size:19px; letter-spacing:.2px; white-space:nowrap; max-width:94vw;
+    opacity:0; transition:opacity .22s ease, transform .28s cubic-bezier(.2,1.5,.4,1); pointer-events:none;
+    box-shadow:0 12px 40px rgba(0,0,0,.5), 0 0 0 4px rgba(255,255,255,.14); z-index:60;}
+  #toast.show{opacity:1; transform:translateX(-50%) translateY(0) scale(1);}
   footer{margin-top:20px; font-size:12px; color:var(--muted); text-align:center;}
   @media (max-width:480px){
     #app{padding:10px 9px 36px;}
@@ -553,7 +555,7 @@ function reveal(){
     };
     tick(); clearInterval(window._cdTimer); window._cdTimer=setInterval(tick,1000);
   }
-  const shareTxt=`CHARTED #${p.id} ${res}\n${emojiGrid()}\n\n${SHARE_URL} · a daily game by @chartillect`;
+  const shareTxt=`CHARTED #${p.id} ${res}\n${emojiGrid()}\n\nWho charted? 👀 ${SHARE_URL} · @chartillect`;
   const QUIPS = won
     ? ["Charted and departed. 📈","Alpha leaked. 😏","Buy low, share high.","Certified chart nerd. 🧠","Now make them guess. 👀"]
     : ["Uncharted… happens to the best. 📉","Even Buffett has red days.","The chart won this round. 🫡","Bought the top, missed the ticker.","Tomorrow's a new candle. 🕯️"];
@@ -575,7 +577,7 @@ function reveal(){
   document.getElementById("nextbtn")?.addEventListener("click",()=>setDay(day+1));
   updateStreak();
 }
-function showToast(msg){ const t=document.getElementById("toast"); if(msg) t.textContent=msg; t.style.opacity=1; setTimeout(()=>t.style.opacity=0,2200); }
+function showToast(msg){ const t=document.getElementById("toast"); if(msg) t.textContent=msg; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),3600); }
 
 // ---------- state, streaks, dev bar ----------
 function stateKey(){ return DEV ? "dev"+day : "day_"+todayKey(); }
