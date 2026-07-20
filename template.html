@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>CHARTED — the daily stock chart game</title>
+<meta property="og:title" content="CHARTED — the daily stock chart game">
+<meta property="og:description" content="Guess the ticker from its last 12 months. New chart every day.">
+<style>
+  :root{
+    --bg:#0c0e14; --bg2:#12141d; --panel:#161927; --panel2:#1c2033;
+    --grid:#464a60; --border:#343850; --txt:#dde0ea; --muted:#aaaec4; --ink:#ffffff;
+    --accent:#35e0e8; --accent-ink:#062a2e; --green:#3ddc84; --red:#ff5964; --yellow:#ffd166;
+    --chip-good:rgba(61,220,132,.12); --chip-warm:rgba(255,209,102,.12); --chip-accent:rgba(53,224,232,.10);
+    --shadow:0 10px 30px rgba(0,0,0,.45);
+    --glowline:#ffffff;
+  }
+  [data-theme="light"]{
+    --bg:#eef0f5; --bg2:#e6e9f0; --panel:#ffffff; --panel2:#f2f4f9;
+    --grid:#c9ccd9; --border:#d3d6e2; --txt:#33374a; --muted:#5d6178; --ink:#101219;
+    --accent:#0891b2; --accent-ink:#ffffff; --green:#15803d; --red:#dc2626; --yellow:#a16207;
+    --chip-good:rgba(21,128,61,.10); --chip-warm:rgba(161,98,7,.10); --chip-accent:rgba(8,145,178,.08);
+    --shadow:0 10px 30px rgba(30,35,60,.12);
+    --glowline:#14161e;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;}
+  body{background:radial-gradient(1200px 500px at 50% -100px, var(--bg2), var(--bg)) fixed, var(--bg);
+    color:var(--txt);
+    font-family:"SF Mono",SFMono-Regular,ui-monospace,Menlo,Consolas,monospace;
+    display:flex; justify-content:center; min-height:100vh; transition:background .25s,color .25s;}
+  #app{width:100%; max-width:560px; padding:16px 14px 44px;}
+  header{display:flex; align-items:center; gap:10px; margin-bottom:10px;}
+  #logo{flex:none; width:34px; height:34px;}
+  h1{font-size:23px; letter-spacing:5px; color:var(--ink); margin:0; font-weight:800;}
+  h1 span{background:linear-gradient(90deg,var(--accent),var(--green)); -webkit-background-clip:text; background-clip:text; color:transparent;}
+  #headmeta{margin-left:auto; text-align:right; font-size:12.5px; font-weight:600; line-height:1.6; color:var(--muted);}
+  #themebtn{flex:none; font:inherit; font-size:15px; width:34px; height:34px; border-radius:50%;
+    border:1px solid var(--border); background:var(--panel); color:var(--txt); cursor:pointer;}
+  #themebtn:hover{border-color:var(--accent);}
+  #howto{font-size:13px; line-height:1.6; font-weight:500; background:var(--panel); border:1px solid var(--border);
+    border-radius:12px; padding:10px 13px; margin:10px 0; box-shadow:var(--shadow);}
+  #howtohead{cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:8px; user-select:none;}
+  #howtohead .chev{color:var(--muted); transition:transform .2s;}
+  #howto.closed #howtobody{display:none;}
+  #howto.closed #howtohead .chev{transform:rotate(-90deg);}
+  .cluechips{display:flex; gap:8px; margin:9px 0 8px;}
+  .cluechips span{border:1px solid var(--border); background:var(--panel2); border-radius:16px;
+    padding:5px 12px; font-size:12.5px; font-weight:700; color:var(--ink);}
+  #howto b{color:var(--ink);}
+  #howto .dim{color:var(--muted);}
+  #devbar{display:flex; gap:6px; flex-wrap:wrap; align-items:center; font-size:10.5px; color:var(--muted);
+    border:1px dashed var(--border); border-radius:10px; padding:6px 9px; margin:10px 0;}
+  #devbar button{font:inherit; background:var(--panel2); color:var(--txt); border:1px solid var(--border);
+    border-radius:7px; padding:3px 8px; cursor:pointer; transition:all .15s;}
+  #devbar button:hover{border-color:var(--accent);}
+  #devbar button.on{background:var(--accent); color:var(--accent-ink); border-color:var(--accent); font-weight:bold;}
+  #chartwrap{background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:8px;
+    margin:10px 0; box-shadow:var(--shadow);}
+  canvas{width:100%; display:block; border-radius:8px; cursor:crosshair;}
+  #hints{display:flex; gap:6px; flex-wrap:wrap; margin:10px 0;}
+  .hint{font-size:12.5px; font-weight:600; border:1px solid var(--border); border-radius:20px; padding:6px 12px;
+    background:var(--panel); transition:all .2s;}
+  .hint.locked{opacity:.6;}
+  .hint.new{border-color:var(--accent); color:var(--accent); background:var(--chip-accent);
+    animation:pop .35s ease;}
+  @keyframes pop{0%{transform:scale(.85); opacity:0;} 100%{transform:scale(1); opacity:1;}}
+  #guessarea{position:relative; margin:12px 0 6px;}
+  #guessinput{width:100%; font:inherit; font-size:16px; font-weight:600; background:var(--panel); color:var(--ink);
+    border:1.5px solid var(--border); border-radius:11px; padding:12px 13px; outline:none;
+    box-shadow:var(--shadow); transition:border-color .15s;}
+  #guessinput:focus{border-color:var(--accent);}
+  #guessinput::placeholder{color:var(--muted);}
+  #guessinput:disabled{opacity:.6;}
+  #ac{position:absolute; left:0; right:0; top:100%; z-index:10; background:var(--panel);
+    border:1px solid var(--border); border-radius:10px; margin-top:4px; overflow:hidden;
+    display:none; box-shadow:var(--shadow);}
+  .acrow{padding:10px 13px; font-size:14.5px; cursor:pointer; display:flex; justify-content:space-between; color:var(--ink);}
+  .acrow.sel,.acrow:hover{background:var(--chip-accent);}
+  .acrow .nm{color:var(--muted); font-size:11.5px; margin-left:10px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  #rows{display:flex; flex-direction:column; gap:6px; margin-top:10px;}
+  .row{display:grid; grid-template-columns:92px 1fr 1fr 1fr; gap:6px; font-size:13px;}
+  .row.animin{animation:slidein .3s ease;}
+  @keyframes slidein{0%{transform:translateY(-6px); opacity:0;} 100%{transform:translateY(0); opacity:1;}}
+  .cell{background:var(--panel); border:1.5px solid var(--border); border-radius:9px; padding:9px 8px; font-weight:600;
+    text-align:center; white-space:nowrap; overflow:hidden;}
+  .cell.tk{color:var(--ink); font-weight:bold; text-align:left;}
+  .cell.tk small{display:block; font-weight:500; font-size:10.5px; color:var(--muted);}
+  .cell.good{border-color:var(--green); color:var(--green); background:var(--chip-good);}
+  .cell.warm{border-color:var(--yellow); color:var(--yellow); background:var(--chip-warm);}
+  .cell.bad{color:var(--txt); opacity:.8;}
+  .row.empty .cell{background:transparent; opacity:.5; min-height:34px; border-style:dashed;}
+  .row.hdr{margin-bottom:-1px;}
+  .hcell{font-size:10px; letter-spacing:1.5px; color:var(--muted); font-weight:700; text-align:center; padding:0 8px 2px;}
+  .row.hdr .hcell:first-child{text-align:left;}
+  #reveal{display:none; background:var(--panel); border:1.5px solid var(--accent); border-radius:14px;
+    padding:16px 17px; margin-top:14px; font-size:14.5px; line-height:1.6; box-shadow:var(--shadow);
+    animation:pop .4s ease;}
+  #reveal h2{margin:0 0 4px; font-size:16px; color:var(--ink);}
+  #reveal h2 .co{color:var(--muted); font-weight:normal;}
+  #reveal .story{margin:6px 0 12px;}
+  #reveal .cocard{background:var(--panel2); border:1px solid var(--border); border-radius:10px;
+    padding:11px 13px; margin:0 0 12px; font-size:13.5px; line-height:1.55;}
+  #reveal .cocard b.lbl{display:block; font-size:10px; letter-spacing:1.5px; color:var(--muted); margin-bottom:2px;}
+  #reveal .cocard .k1000{margin-top:9px;}
+  #reveal .cocard .up{color:var(--green);} #reveal .cocard .dn{color:var(--red);}
+  #reveal .grid{font-size:16.5px; letter-spacing:2px; color:var(--ink);}
+  #reveal .res{color:var(--accent); font-weight:bold;}
+  #sharebtn,#nextbtn{font:inherit; font-size:13px; margin-top:12px; margin-right:8px;
+    background:linear-gradient(135deg,var(--accent), color-mix(in oklab, var(--accent), var(--green) 45%));
+    color:var(--accent-ink); font-weight:bold; border:none; border-radius:10px;
+    padding:10px 16px; cursor:pointer; transition:transform .1s;}
+  #sharebtn:hover,#nextbtn:hover{transform:translateY(-1px);}
+  #nextbtn{background:var(--panel2); color:var(--txt); border:1px solid var(--border);}
+  #toast{position:fixed; bottom:26px; left:50%; transform:translateX(-50%); background:var(--accent);
+    color:var(--accent-ink); font-weight:bold; padding:9px 18px; border-radius:22px; font-size:13px;
+    opacity:0; transition:opacity .25s; pointer-events:none; box-shadow:var(--shadow);}
+  footer{margin-top:20px; font-size:12px; color:var(--muted); text-align:center;}
+  @media (max-width:480px){
+    #app{padding:10px 9px 36px;}
+    header{gap:8px;}
+    h1{font-size:21px; letter-spacing:4px;}
+    #chartwrap{padding:5px; margin:8px 0; border-radius:12px;}
+    .row{gap:5px; grid-template-columns:84px 1fr 1fr 1fr;}
+    #hints{gap:5px;}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <svg id="logo" viewBox="0 0 34 34" fill="none">
+      <rect x="1" y="1" width="32" height="32" rx="8" stroke="var(--accent)" stroke-width="1.6"/>
+      <path d="M6 23 L11 17 L15 20 L20 10 L24 14 L28 8" stroke="var(--green)" stroke-width="2.2"
+        stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <h1>CHART<span>ED</span></h1>
+    <div id="headmeta"><div id="daytag"></div><div id="streak"></div></div>
+    <button id="themebtn" title="Toggle light/dark">◐</button>
+  </header>
+  <div id="howto"><div id="howtohead"><b>Six guesses. One chart. What stock is it?</b><span class="chev">▾</span></div>
+    <div id="howtobody"><div class="cluechips"><span>🏷 sector</span><span>⚖️ size</span><span>🔥 shape match</span></div>
+    Every guess earns three clues · every miss unlocks a hint · new chart at midnight.</div></div>
+  <div id="devbar"><b>TEST&nbsp;MODE</b></div>
+  <div id="chartwrap"><canvas id="chart"></canvas></div>
+  <div id="hints"></div>
+  <div id="guessarea">
+    <input id="guessinput" type="text" name="ticker-search" placeholder="Type a ticker or company…" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" enterkeyhint="go" role="combobox">
+    <div id="ac"></div>
+  </div>
+  <div id="rows"></div>
+  <div id="reveal"></div>
+  <div id="toast">Copied!</div>
+  <footer>CHARTED · a daily game by @chartillect · beta</footer>
+</div>
+<script>
+const DATA = /*__GAMEDATA__*/;
+const DEV = new URLSearchParams(location.search).has("dev");   // ?dev=1 unlocks the day selector
+const SHARE_URL = "chartedgame.com";
+const MAXG = 6;
+const EPOCH = "2026-07-18";   // launch day = puzzle #1; one puzzle per LOCAL calendar day
+const U = DATA.universe, ORD = DATA.bucketOrder, PUZ = DATA.puzzles;
+const TKS = Object.keys(U).sort();
+
+function dateKey(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function todayKey(){ return dateKey(new Date()); }
+function daysSinceEpoch(){
+  const [y,m,dd]=EPOCH.split("-").map(Number);
+  const e=new Date(y,m-1,dd), t=new Date(); t.setHours(0,0,0,0);
+  return Math.max(0, Math.round((t-e)/86400000));
+}
+function todaysPuzzleIndex(){ return daysSinceEpoch() % PUZ.length; }
+
+const store = {
+  get(k,d){ try{ const v = localStorage.getItem("ch_"+k); return v===null?d:JSON.parse(v);}catch(e){return this.m?.[k]??d;} },
+  set(k,v){ try{ localStorage.setItem("ch_"+k, JSON.stringify(v)); }catch(e){ (this.m??={})[k]=v; } }
+};
+
+// ---------- theme ----------
+const THEMES = {
+  dark:{ panel:"#161927", grid:"#3c3f52", txt:"#c8cad7", muted:"#8b8ea3", ink:"#ffffff",
+         line:"#ffffff", accent:"#35e0e8", green:"#3ddc84", red:"#ff5964",
+         fillTop:"rgba(53,224,232,.18)", fillBot:"rgba(53,224,232,0)", glow:true,
+         tipbg:"rgba(12,14,20,.92)" },
+  light:{ panel:"#ffffff", grid:"#e2e4ec", txt:"#4a4e60", muted:"#7b7f93", ink:"#14161e",
+         line:"#14161e", accent:"#0891b2", green:"#15803d", red:"#dc2626",
+         fillTop:"rgba(8,145,178,.14)", fillBot:"rgba(8,145,178,0)", glow:false,
+         tipbg:"rgba(255,255,255,.95)" },
+};
+let themeName = store.get("theme", "dark");   // brand default: dark; users can switch
+function T(){ return THEMES[themeName]; }
+function applyTheme(){
+  document.documentElement.setAttribute("data-theme", themeName);
+  document.getElementById("themebtn").textContent = themeName==="dark" ? "☀️" : "🌙";
+  drawChart();
+}
+document.getElementById("themebtn").addEventListener("click",()=>{
+  themeName = themeName==="dark" ? "light":"dark"; store.set("theme",themeName); applyTheme();
+});
+
+let day = 0, guesses = [], done = false, won = false;
+function puzzle(){ return PUZ[day]; }
+function answer(){ return puzzle().answer; }
+function stage(){ return done ? 99 : guesses.length; }
+
+// ---------- chart ----------
+const cv = document.getElementById("chart");
+const ctx = cv.getContext("2d");
+let animT = 1, hoverI = -1, geo = null;   // geo: {X,Y,n,padL,padR,W,H,priced,ser}
+
+// reveal art: loaded ONLY after the round ends (no spoilers, not even in network requests)
+let artCache = {};
+function loadArt(){
+  if(!done) return;
+  const tk = answer();
+  if(artCache.tk === tk) return;
+  artCache = {tk};
+  const s = new Image(); s.onload = ()=>{ artCache.scene = s; drawChart(); }; s.src = "bg/"+tk+".jpg";
+  const l = new Image(); l.onload = ()=>{ artCache.logo  = l; drawChart(); }; l.src = "bg/"+tk+"_logo.png";
+}
+function tinted(im, color){
+  const c = document.createElement("canvas"); c.width = im.width; c.height = im.height;
+  const x = c.getContext("2d"); x.drawImage(im,0,0);
+  x.globalCompositeOperation = "source-in"; x.fillStyle = color; x.fillRect(0,0,c.width,c.height);
+  return c;
+}
+
+function drawChart(){
+  const t = T(), p = puzzle(), ys = p.closes, ds = p.dates, n = ys.length;
+  const W = cv.clientWidth || 530, H = Math.round(W * (W < 460 ? 0.8 : 0.62));
+  const dpr = window.devicePixelRatio||1;
+  cv.width = W*dpr; cv.height = H*dpr; cv.style.height = H+"px";
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  const priced = stage()>=4;
+  const base = ys[0];
+  const ser = priced ? ys : ys.map(y=>(y/base-1)*100);
+  const padL=10, padR=72, padT=28, padB=26;
+  let lo=Math.min(...ser), hi=Math.max(...ser);
+  const range=(hi-lo)||1; lo-=range*.07; hi+=range*.07;
+  const X=i=>padL+(W-padL-padR)*i/(n-1);
+  const Y=v=>padT+(H-padT-padB)*(1-(v-lo)/(hi-lo));
+  geo = {X,Y,n,padL,padR,W,H,priced,ser,ds};
+  ctx.fillStyle=t.panel; ctx.fillRect(0,0,W,H);
+  if(done && artCache.tk===answer()){
+    if(artCache.scene){
+      const im=artCache.scene, s=Math.max(W/im.width,H/im.height), iw=im.width*s, ih=im.height*s;
+      ctx.drawImage(im,(W-iw)/2,(H-ih)/2,iw,ih);
+      ctx.fillStyle = themeName==="dark" ? "rgba(12,14,20,.52)" : "rgba(245,246,250,.68)";
+      ctx.fillRect(0,0,W,H);
+    }
+    if(artCache.logo){
+      const im = themeName==="light" ? tinted(artCache.logo,"#2b2f42") : artCache.logo;
+      const lw=96, lh=lw*im.height/im.width;
+      ctx.globalAlpha=.85; ctx.drawImage(im, padL+10, H-padB-lh-10, lw, lh); ctx.globalAlpha=1;
+    }
+  }
+  // recessive grid, labels right
+  ctx.font="10.5px SF Mono, Menlo, monospace"; ctx.textAlign="left";
+  for(let g=0; g<=4; g++){
+    const v=lo+(hi-lo)*g/4, y=Y(v);
+    ctx.strokeStyle=t.grid; ctx.lineWidth=.6;
+    ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(W-padR+4,y); ctx.stroke();
+    ctx.fillStyle=t.muted;
+    ctx.fillText(priced ? "$"+fmtP(v) : (v>0?"+":"")+v.toFixed(0)+"%", W-padR+8, y+3.5);
+  }
+  // month ticks
+  ctx.fillStyle=t.muted; ctx.textAlign="center";
+  let lastM=-1;
+  for(let i=0;i<n;i++){
+    const d=new Date(ds[i]+"T12:00:00"), m=d.getMonth();
+    if(m!==lastM){ lastM=m;
+      if(m%2===0){ ctx.fillText(d.toLocaleString("en",{month:"short"}), X(i), H-9); } }
+  }
+  // area fill + the squiggle (clipped by animT)
+  const m = Math.max(2, Math.round(n*animT));
+  const grad = ctx.createLinearGradient(0,padT,0,H-padB);
+  grad.addColorStop(0,t.fillTop); grad.addColorStop(1,t.fillBot);
+  ctx.beginPath(); ctx.moveTo(X(0),Y(ser[0]));
+  for(let i=1;i<m;i++) ctx.lineTo(X(i),Y(ser[i]));
+  ctx.lineTo(X(m-1),H-padB); ctx.lineTo(X(0),H-padB); ctx.closePath();
+  ctx.fillStyle=grad; ctx.fill();
+  if(t.glow){ ctx.shadowColor="rgba(53,224,232,.35)"; ctx.shadowBlur=8; }
+  ctx.strokeStyle=t.line; ctx.lineWidth=2.2; ctx.lineJoin="round"; ctx.lineCap="round";
+  ctx.beginPath();
+  for(let i=0;i<m;i++){ i?ctx.lineTo(X(i),Y(ser[i])):ctx.moveTo(X(i),Y(ser[i])); }
+  ctx.stroke(); ctx.shadowBlur=0;
+  // 12-mo total badge (inside plot, collision-free)
+  const totalPct=(ys[n-1]/base-1)*100;
+  if(animT>=1){
+    const btxt="12mo "+(totalPct>0?"+":"")+totalPct.toFixed(0)+"%";
+    ctx.font="bold 11px SF Mono, Menlo, monospace";
+    const bw=ctx.measureText(btxt).width+12, bx=W-padR-bw-6, by=Math.min(Math.max(Y(ser[n-1])-24,padT+4),H-padB-18);
+    ctx.fillStyle=t.tipbg; ctx.fillRect(bx,by,bw,16);
+    ctx.strokeStyle=t.grid; ctx.lineWidth=.8; ctx.strokeRect(bx,by,bw,16);
+    ctx.fillStyle = totalPct>=0 ? t.green : t.red; ctx.textAlign="left";
+    ctx.fillText(btxt, bx+6, by+12);
+  }
+  // hint 3: annotation
+  if(stage()>=3 && animT>=1){
+    const a=p.annot, ax=X(a.i), ay=Y(ser[a.i]);
+    ctx.fillStyle=t.accent; ctx.beginPath(); ctx.arc(ax,ay,3.5,0,7); ctx.fill();
+    ctx.font="10px SF Mono, Menlo, monospace"; ctx.textAlign = a.i>n/2 ? "right":"left";
+    ctx.fillText(a.label, a.i>n/2 ? ax-8 : ax+8, ay + (ay<H/2 ? 16 : -10));
+  }
+  // hover crosshair + tooltip
+  if(hoverI>=0 && hoverI<m && animT>=1){
+    const hx=X(hoverI), hy=Y(ser[hoverI]);
+    ctx.strokeStyle=t.grid; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+    ctx.beginPath(); ctx.moveTo(hx,padT); ctx.lineTo(hx,H-padB); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle=t.accent; ctx.beginPath(); ctx.arc(hx,hy,4,0,7); ctx.fill();
+    ctx.strokeStyle=t.panel; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(hx,hy,4,0,7); ctx.stroke();
+    const d=new Date(ds[hoverI]+"T12:00:00");
+    const val = priced ? "$"+fmtP(ys[hoverI]) : ((ys[hoverI]/base-1)*100).toFixed(0)+"% vs start";
+    const txt = d.toLocaleString("en",{month:"short",day:"numeric"})+" · "+val;
+    ctx.font="10.5px SF Mono, Menlo, monospace";
+    const tw=ctx.measureText(txt).width+14;
+    let tx=Math.min(Math.max(hx-tw/2,padL+2),W-padR-tw+40), ty = hy>H/2 ? hy-34 : hy+14;
+    ctx.fillStyle=t.tipbg; ctx.fillRect(tx,ty,tw,20);
+    ctx.strokeStyle=t.grid; ctx.lineWidth=.8; ctx.strokeRect(tx,ty,tw,20);
+    ctx.fillStyle=t.ink; ctx.textAlign="left"; ctx.fillText(txt, tx+7, ty+13.5);
+  }
+  // title
+  ctx.textAlign="left"; ctx.font="bold 13px SF Mono, Menlo, monospace";
+  if(done){ ctx.fillStyle=t.ink; ctx.fillText("$"+answer()+" — "+U[answer()].name, padL+6, 17); }
+  else { ctx.fillStyle=t.muted; ctx.fillText("$????", padL+6, 17); }
+  ctx.fillStyle=t.muted; ctx.font="9.5px SF Mono, Menlo, monospace";
+  ctx.textAlign="right"; ctx.fillText("last 12 months · weekly", W-padR+64, 17);
+}
+function fmtP(v){ return v>=1000 ? (v/1000).toFixed(1)+"k" : v.toFixed(v<20?2:0); }
+function animateDraw(){
+  animT=0; const t0=performance.now(), DUR=650;
+  (function step(now){ animT=Math.min(1,(now-t0)/DUR); drawChart(); if(animT<1) requestAnimationFrame(step); })(t0);
+}
+cv.addEventListener("mousemove",e=>{
+  if(!geo) return;
+  const r=cv.getBoundingClientRect(), x=e.clientX-r.left;
+  const i=Math.round((x-geo.padL)/(geo.W-geo.padL-geo.padR)*(geo.n-1));
+  const ni=Math.max(0,Math.min(geo.n-1,i));
+  if(ni!==hoverI){ hoverI=ni; drawChart(); }
+});
+cv.addEventListener("mouseleave",()=>{ hoverI=-1; drawChart(); });
+
+// ---------- friendly labels ----------
+const SECTOR_LABEL = {"Tech":"Tech","Semis":"Chips","Crypto":"Crypto","Comm/Media":"Media & Web",
+  "Consumer Disc":"Shopping","Cons Staples":"Everyday Goods","Financials":"Finance","Healthcare":"Healthcare",
+  "Industrials":"Industrial","Energy":"Energy","Materials":"Materials","Real Estate":"Real Estate","Utilities":"Utilities"};
+const SIZE_LABEL = {"MEGA":"Giant","LARGE":"Big","MID":"Mid","SMALL":"Small"};
+const SIZE_DESC  = {"MEGA":"$200B+ \u2014 Apple tier","LARGE":"$20\u2013200B","MID":"$2\u201320B","SMALL":"under $2B"};
+function secL(s){ return SECTOR_LABEL[s]||s; }
+function k1000(){ const ys=puzzle().closes; const v=Math.round(ys[ys.length-1]/ys[0]*1000/10)*10;
+  return "$"+v.toLocaleString("en-US"); }
+
+// ---------- hints ----------
+const HINTNAMES = ["","Sector","Know them?","Event","Price axis","First letter"];
+function hintText(k){
+  const a=U[answer()], p=puzzle();
+  switch(k){
+    case 1: return "Sector: "+secL(a.sector);
+    case 2: return p.co ? "You might know them from: "+p.co.hint : "Size: "+SIZE_LABEL[a.cap]+" ("+SIZE_DESC[a.cap]+")";
+    case 3: return "📍 event marked on chart";
+    case 4: return "Price axis revealed";
+    case 5: return "Starts with “"+answer()[0]+"” · "+answer().length+" letters";
+  }
+}
+function renderHints(){
+  const el=document.getElementById("hints"); el.innerHTML="";
+  for(let k=1;k<MAXG;k++){
+    const d=document.createElement("div");
+    const unlocked = stage()>=k;
+    d.className="hint "+(unlocked?(stage()===k&&!done?"new":""):"locked");
+    d.textContent = unlocked ? hintText(k) : "🔒 miss "+k+" → "+HINTNAMES[k];
+    el.appendChild(d);
+  }
+}
+
+// ---------- guess feedback ----------
+function judge(tk){
+  const a=U[answer()], g=U[tk], p=puzzle();
+  const corr = tk===answer() ? 1 : (p.corr[tk] ?? 0);
+  return { tk, correct: tk===answer(), sector: g.sector, sectorOk: g.sector===a.sector,
+    capDir: ORD[a.cap]===ORD[g.cap] ? "same" : (ORD[a.cap]>ORD[g.cap] ? "up":"down"), corr };
+}
+function corrTag(c){ const p=Math.round(Math.max(0,c)*100)+"%"; return c>=0.75?["🔥 "+p,"warm"]:(c>=0.55?["🌤 "+p,"warm"]:["❄️ "+p,"bad"]); }
+function renderRows(animLast){
+  const el=document.getElementById("rows"); el.innerHTML="";
+  if(guesses.length){
+    const h=document.createElement("div"); h.className="row hdr";
+    h.innerHTML='<div class="hcell">GUESS</div><div class="hcell">SECTOR</div><div class="hcell">SIZE</div><div class="hcell">SHAPE</div>';
+    el.appendChild(h);
+  }
+  for(let i=0;i<MAXG;i++){
+    const r=document.createElement("div");
+    if(i<guesses.length){
+      const j=judge(guesses[i]);
+      r.className="row"+(animLast && i===guesses.length-1 ? " animin":"");
+      if(j.correct){
+        r.innerHTML=`<div class="cell tk good">$${j.tk}</div><div class="cell good" style="grid-column:2/5">🎯 THAT'S THE CHART</div>`;
+      } else {
+        const [ct,cc]=corrTag(j.corr);
+        r.innerHTML=
+         `<div class="cell tk">$${j.tk}<small>${U[j.tk].name}</small></div>`+
+         `<div class="cell ${j.sectorOk?"good":"bad"}">${j.sectorOk?"✓":"✗"} ${secL(j.sector)}</div>`+
+         `<div class="cell ${j.capDir==="same"?"good":"bad"}">${j.capDir==="same"?"✓ "+SIZE_LABEL[U[j.tk].cap]:(j.capDir==="up"?"⬆ bigger":"⬇ smaller")}</div>`+
+         `<div class="cell ${cc}">${ct}</div>`;
+      }
+    } else { r.className="row empty"; r.innerHTML='<div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>'; }
+    el.appendChild(r);
+  }
+}
+
+// ---------- autocomplete ----------
+const inp=document.getElementById("guessinput"), ac=document.getElementById("ac");
+let acItems=[], acSel=0;
+function acFilter(q){
+  q=q.trim().toUpperCase(); if(!q) return [];
+  const used=new Set(guesses);
+  const pref=TKS.filter(t=>!used.has(t)&&t.startsWith(q));
+  const name=TKS.filter(t=>!used.has(t)&&!t.startsWith(q)&&U[t].name.toUpperCase().includes(q));
+  return pref.concat(name).slice(0,8);
+}
+function acRender(){
+  const q=inp.value.trim();
+  if(!acItems.length){
+    if(q.length>=2){  // typed something real, no match → say so explicitly
+      ac.style.display="block";
+      ac.innerHTML=`<div class="acrow" style="cursor:default"><span class="nm" style="margin:0">“${q.toUpperCase().replace(/[^A-Z0-9.$ -]/g,"")}” isn't in the universe — the answer is always one of the ${TKS.length} listed stocks</span></div>`;
+    } else ac.style.display="none";
+    return;
+  }
+  ac.style.display="block";
+  ac.innerHTML=acItems.map((t,i)=>`<div class="acrow ${i===acSel?"sel":""}" data-t="${t}"><b>$${t}</b><span class="nm">${U[t].name}</span></div>`).join("");
+  ac.querySelectorAll(".acrow").forEach(r=>r.addEventListener("mousedown",e=>{e.preventDefault();submit(r.dataset.t);}));
+}
+inp.addEventListener("input",()=>{ acItems=acFilter(inp.value); acSel=0; acRender(); });
+inp.addEventListener("keydown",e=>{
+  if(e.key==="ArrowDown"){ acSel=Math.min(acSel+1,acItems.length-1); acRender(); e.preventDefault(); }
+  else if(e.key==="ArrowUp"){ acSel=Math.max(acSel-1,0); acRender(); e.preventDefault(); }
+  else if(e.key==="Enter"){
+    const q=inp.value.trim().toUpperCase();
+    if(acItems.length) submit(acItems[acSel]);
+    else if(TKS.includes(q)&&!guesses.includes(q)) submit(q);
+  } else if(e.key==="Escape"){ ac.style.display="none"; }
+});
+document.addEventListener("click",e=>{ if(!e.target.closest("#guessarea")) ac.style.display="none"; });
+
+// ---------- game flow ----------
+function submit(tk){
+  if(done||!U[tk]||guesses.includes(tk)) return;
+  guesses.push(tk); inp.value=""; acItems=[]; ac.style.display="none";
+  store.set("played",true);
+  if(tk===answer()){ done=true; won=true; recordWin(); }
+  else if(guesses.length>=MAXG){ done=true; won=false; }
+  saveState(); renderAll(true);
+  if(done) reveal();
+}
+function emojiGrid(){
+  return guesses.map(t=>{
+    if(t===answer()) return "🟩";
+    const j=judge(t); return (j.sectorOk||j.corr>=0.6)?"🟨":"🟥";
+  }).join("");
+}
+function reveal(){
+  const el=document.getElementById("reveal"), p=puzzle();
+  const res = won ? guesses.length+"/6" : "X/6";
+  el.style.display="block";
+  el.innerHTML =
+    `<h2>${won?"🎯 Charted!":"📉 Uncharted…"} — $${answer()} <span class="co">(${U[answer()].name})</span></h2>`+
+    `<div class="story">${p.story}</div>`+
+    (p.co ? `<div class="cocard"><b class="lbl">WHO THEY ARE</b>${p.co.what}`+
+      `<div class="k1000"><b class="lbl">IF YOU'D PUT IN $1,000 A YEAR AGO</b>`+
+      `you'd have <b class="${puzzle().closes.at(-1)>=puzzle().closes[0]?"up":"dn"}">${k1000()}</b> today.</div></div>` : "")+
+    `<div class="grid">CHARTED #${p.id} <span class="res">${res}</span><br>${emojiGrid()}</div>`+
+    `<button id="sharebtn">Copy share grid</button>`+
+    (DEV && day<PUZ.length-1 ? `<button id="nextbtn">Next test day →</button>`:"")+
+    (!DEV ? `<div id="countdown" style="margin-top:12px;color:var(--muted);font-size:12px"></div>`:"");
+  if(!DEV){
+    const cd=document.getElementById("countdown");
+    const tick=()=>{ const now=new Date(), mid=new Date(now); mid.setHours(24,0,0,0);
+      let s=Math.floor((mid-now)/1000);
+      const h=String(Math.floor(s/3600)).padStart(2,"0"); s%=3600;
+      const m=String(Math.floor(s/60)).padStart(2,"0");
+      cd.textContent=`Next chart in ${h}:${m}:${String(s%60).padStart(2,"0")} — come back tomorrow.`;
+    };
+    tick(); clearInterval(window._cdTimer); window._cdTimer=setInterval(tick,1000);
+  }
+  document.getElementById("sharebtn").addEventListener("click",()=>{
+    const txt=`CHARTED #${p.id} ${res}\n${emojiGrid()}\n\n${SHARE_URL} · a daily game by @chartillect`;
+    (navigator.clipboard?.writeText(txt)||Promise.reject()).then(showToast,()=>{
+      const ta=document.createElement("textarea"); ta.value=txt; document.body.appendChild(ta);
+      ta.select(); document.execCommand("copy"); ta.remove(); showToast();
+    });
+  });
+  document.getElementById("nextbtn")?.addEventListener("click",()=>setDay(day+1));
+  updateStreak();
+}
+function showToast(){ const t=document.getElementById("toast"); t.style.opacity=1; setTimeout(()=>t.style.opacity=0,1400); }
+
+// ---------- state, streaks, dev bar ----------
+function stateKey(){ return DEV ? "dev"+day : "day_"+todayKey(); }
+function saveState(){ store.set(stateKey(),{guesses,done,won}); }
+function loadState(){
+  const s=store.get(stateKey(),null);
+  if(s){ guesses=s.guesses; done=s.done; won=s.won; } else { guesses=[]; done=false; won=false; }
+}
+function recordWin(){          // calendar streak: consecutive local days with a solve
+  if(DEV) return;
+  const t=todayKey();
+  if(store.get("lastWin","")===t) return;
+  const y=new Date(); y.setDate(y.getDate()-1);
+  const streak = store.get("lastWin","")===dateKey(y) ? store.get("streak",0)+1 : 1;
+  store.set("streak",streak); store.set("lastWin",t);
+  store.set("maxStreak", Math.max(streak, store.get("maxStreak",0)));
+}
+function updateStreak(){
+  if(DEV){ document.getElementById("streak").textContent="DEV MODE"; return; }
+  const s=store.get("streak",0), t=todayKey();
+  const y=new Date(); y.setDate(y.getDate()-1);
+  const live = store.get("lastWin","")===t || store.get("lastWin","")===dateKey(y);
+  document.getElementById("streak").textContent = "🔥 "+(live?s:0)+" day streak";
+}
+function setDay(d){
+  day=d; loadState(); renderAll(); animateDraw();
+  document.getElementById("reveal").style.display = done?"block":"none";
+  if(done) reveal();
+}
+function renderAll(animLast){
+  loadArt();
+  inp.disabled = done;
+  inp.placeholder = done ? "Round over — next chart tomorrow" : "Type a ticker or company…";
+  document.getElementById("daytag").textContent="#"+puzzle().id+" · "+new Date().toLocaleString("en",{month:"short",day:"numeric"});
+  drawChart(); renderHints(); renderRows(animLast); updateStreak();
+  document.querySelectorAll("#devbar button[data-d]").forEach(b=>b.classList.toggle("on",+b.dataset.d===day));
+  if(!done) document.getElementById("reveal").style.display="none";
+}
+function buildDevBar(){
+  const bar=document.getElementById("devbar");
+  if(!DEV){ bar.style.display="none"; return; }
+  PUZ.slice(0,7).forEach((p,i)=>{ const b=document.createElement("button"); b.dataset.d=i;
+    b.textContent="Day "+(i+1); b.addEventListener("click",()=>setDay(i)); bar.appendChild(b); });
+  const r=document.createElement("button"); r.textContent="↺ reset all";
+  r.addEventListener("click",()=>{ for(let i=0;i<PUZ.length;i++) store.set("d"+i,null); setDay(0); });
+  bar.appendChild(r);
+}
+const howto=document.getElementById("howto");
+if(store.get("played",false)) howto.classList.add("closed");
+document.getElementById("howtohead").addEventListener("click",()=>howto.classList.toggle("closed"));
+window.addEventListener("resize",()=>drawChart());
+applyTheme(); buildDevBar(); setDay(DEV ? 0 : todaysPuzzleIndex());
+</script>
+</body>
+</html>
