@@ -174,7 +174,7 @@ const DATA = /*__GAMEDATA__*/;
 const DEV = new URLSearchParams(location.search).has("dev");   // ?dev=1 unlocks the day selector
 const SHARE_URL = "chartedgame.com";
 const MAXG = 6;
-const EPOCH = "2026-07-18";   // launch day = puzzle #1; one puzzle per LOCAL calendar day
+const EPOCH = "2026-07-20";   // public launch day = puzzle #1; one puzzle per LOCAL calendar day
 const U = DATA.universe, ORD = DATA.bucketOrder, PUZ = DATA.puzzles;
 const TKS = Object.keys(U).sort();
 
@@ -478,6 +478,11 @@ function emojiGrid(){
 function reveal(){
   const el=document.getElementById("reveal"), p=puzzle();
   const res = won ? guesses.length+"/6" : "X/6";
+  if(!DEV && !store.get("counted_"+stateKey(),false)){
+    store.set("counted_"+stateKey(),true);
+    const send=()=>{ if(window.goatcounter&&goatcounter.count) goatcounter.count({path:"solve-"+(won?guesses.length:"X"),title:"CHARTED #"+p.id,event:true}); };
+    window.goatcounter ? send() : setTimeout(send, 3000);
+  }
   el.style.display="block";
   el.innerHTML =
     `<h2>${won?"🎯 Charted!":"📉 Uncharted…"} — $${answer()} <span class="co">(${U[answer()].name})</span></h2>`+
@@ -591,7 +596,22 @@ const howto=document.getElementById("howto");
 if(store.get("played",false)) howto.classList.add("closed");
 document.getElementById("howtohead").addEventListener("click",()=>howto.classList.toggle("closed"));
 window.addEventListener("resize",()=>drawChart());
+// New-day watchdog: tabs left open overnight / restored from cache roll to the new
+// puzzle automatically. Online we hard-reload (also picks up the nightly data refresh);
+// offline we at least switch to the right day locally.
+function checkNewDay(){
+  if(DEV) return;
+  const d = todaysPuzzleIndex();
+  if(d === day) return;
+  if(navigator.onLine === false){ setDay(d); return; }
+  location.reload();
+}
+document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) checkNewDay(); });
+window.addEventListener("focus", checkNewDay);
+setInterval(checkNewDay, 30000);
+
 applyTheme(); buildDevBar(); setDay(DEV ? 0 : todaysPuzzleIndex());
 </script>
+<script data-goatcounter="https://chartedgame.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </body>
 </html>

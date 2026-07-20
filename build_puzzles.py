@@ -68,9 +68,9 @@ HAND = {
  "NVDA": (lambda t: abs(t) < 40,   "The most talked-about stock on earth, with one of the least dramatic charts in the game. Hard mode."),
 }
 
-QUEUE = ["MU","GME","CRCL","CAT","MSTR","AAPL","SNDK","NKE","PLTR","INTC",
-         "DIS","COIN","MSFT","AMD","NFLX","HOOD","LULU","DELL","BA","TSLA",
-         "GEMI","SBUX","MRVL","IBM","RIVN","KO","SMCI","AVGO","CVNA","NVDA"]
+QUEUE = ["GME","AAPL","TSLA","NFLX","MU","SBUX","KO","DIS","INTC","NKE",
+         "MSFT","CAT","AMD","HOOD","COIN","LULU","BA","IBM","RIVN","DELL",
+         "MRVL","PLTR","SMCI","AVGO","CVNA","MSTR","CRCL","GEMI","SNDK","NVDA"]
 
 def story(tk, ys):
     tot, big, dd = stats(ys)
