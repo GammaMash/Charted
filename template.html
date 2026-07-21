@@ -192,6 +192,7 @@ const DEV = new URLSearchParams(location.search).has("dev");   // ?dev=1 unlocks
 const SHARE_URL = "chartedgame.com";
 const MAXG = 6;
 const EPOCH = "2026-07-20";   // public launch day = puzzle #1; one puzzle per LOCAL calendar day
+const VERSION = "2026-07-21a";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
 const U = DATA.universe, ORD = DATA.bucketOrder, PUZ = DATA.puzzles;
 const TKS = Object.keys(U).sort();
 
@@ -678,11 +679,24 @@ function checkNewDay(){
   if(navigator.onLine === false){ setDay(d); return; }
   location.reload();
 }
-document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) checkNewDay(); });
+// Version watchdog: after a code change, a returning player still holding a cached copy
+// of an older index.html gets ONE fresh reload so they run current game logic.
+// Never touches game storage — streaks and progress survive the reload.
+function checkVersion(){
+  if(DEV) return;
+  fetch("version.txt", {cache:"no-store"}).then(r=>r.ok?r.text():null).then(v=>{
+    if(!v) return; v=v.trim();
+    if(v===VERSION || sessionStorage.getItem("ch_vr")===v) return;  // current, or already retried — never loop
+    sessionStorage.setItem("ch_vr", v);
+    location.reload();
+  }).catch(()=>{});
+}
+document.addEventListener("visibilitychange", ()=>{ if(!document.hidden){ checkNewDay(); checkVersion(); } });
 window.addEventListener("focus", checkNewDay);
 setInterval(checkNewDay, 30000);
 
 applyTheme(); buildDevBar(); setDay(DEV ? 0 : todaysPuzzleIndex());
+checkVersion();
 </script>
 <script data-goatcounter="https://chartedgame.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </body>
