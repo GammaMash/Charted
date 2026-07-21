@@ -264,7 +264,7 @@ function drawChart(){
   const dpr = window.devicePixelRatio||1;
   cv.width = W*dpr; cv.height = H*dpr; cv.style.height = H+"px";
   ctx.setTransform(dpr,0,0,dpr,0,0);
-  const priced = stage()>=4;
+  const priced = stage()>=3;
   const base = ys[0];
   const ser = priced ? ys : ys.map(y=>(y/base-1)*100);
   const padL=10, padR=72, padT=28, padB=26;
@@ -328,8 +328,8 @@ function drawChart(){
     ctx.fillStyle = totalPct>=0 ? t.green : t.red; ctx.textAlign="left";
     ctx.fillText(btxt, bx+6, by+12);
   }
-  // hint 3: annotation
-  if(stage()>=3 && animT>=1){
+  // hint 2: annotation
+  if(stage()>=2 && animT>=1){
     const a=p.annot, ax=X(a.i), ay=Y(ser[a.i]);
     ctx.fillStyle=t.accent; ctx.beginPath(); ctx.arc(ax,ay,3.5,0,7); ctx.fill();
     ctx.font="10px SF Mono, Menlo, monospace"; ctx.textAlign = a.i>n/2 ? "right":"left";
@@ -384,14 +384,14 @@ function k1000(){ const ys=puzzle().closes; const v=Math.round(ys[ys.length-1]/y
   return "$"+v.toLocaleString("en-US"); }
 
 // ---------- hints ----------
-const HINTNAMES = ["","Sector","Know them?","Event","Price axis","First letter"];
+const HINTNAMES = ["","Sector","Event","Price axis","Know them?","First letter"];
 function hintText(k){
   const a=U[answer()], p=puzzle();
   switch(k){
     case 1: return "Sector: "+secL(a.sector);
-    case 2: return p.co ? "You might know them from: "+p.co.hint : "Size: "+SIZE_LABEL[a.cap]+" ("+SIZE_DESC[a.cap]+")";
-    case 3: return "📍 event marked on chart";
-    case 4: return "Price axis revealed";
+    case 2: return "📍 event marked on chart";
+    case 3: return "Price axis revealed";
+    case 4: return p.co ? "You might know them from: "+p.co.hint : "Size: "+SIZE_LABEL[a.cap]+" ("+SIZE_DESC[a.cap]+")";
     case 5: return "Starts with “"+answer()[0]+"” · "+answer().length+" letters";
   }
 }
