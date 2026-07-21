@@ -531,7 +531,7 @@ function reveal(){
   const res = won ? guesses.length+"/6" : "X/6";
   if(!DEV && !store.get("counted_"+stateKey(),false)){
     store.set("counted_"+stateKey(),true);
-    const send=()=>{ if(window.goatcounter&&goatcounter.count) goatcounter.count({path:"solve-"+(won?guesses.length:"X"),title:"CHARTED #"+p.id,event:true}); };
+    const send=()=>{ if(window.goatcounter&&goatcounter.count){ goatcounter.count({path:"solve-"+(won?guesses.length:"X"),title:"CHARTED #"+p.id,event:true}); if(won) goatcounter.count({path:"streak-"+store.get("streak",0),title:"CHARTED streak",event:true}); } };
     window.goatcounter ? send() : setTimeout(send, 3000);
   }
   el.style.display="block";
