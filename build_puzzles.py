@@ -11,6 +11,7 @@ D = os.path.dirname(os.path.abspath(__file__))
 prices = json.load(open(f"{D}/prices_raw.json"))
 uni = json.load(open(f"{D}/universe2.json"))
 uni = {t: v for t, v in uni.items() if t in prices}
+LONG = json.load(open(f"{D}/longterm.json"))
 
 # Refine cap bucket for non-S&P (cult) names: last close × approx shares (millions)
 SHARES_M = { tk: m for tk, m in {
@@ -26,24 +27,12 @@ def bucket(cap_b):
     if cap_b >= 2:   return "MID"
     return "SMALL"
 for tk, v in uni.items():
+    v["price"] = round(prices[tk][-1][1], 2)
     if not v.get("sp500") and tk in SHARES_M:
         cap_b = prices[tk][-1][1] * SHARES_M[tk] / 1000.0
         v["cap"] = bucket(cap_b); v["capB"] = round(cap_b, 1)
 
 BUCKET_ORDER = {"SMALL":0,"MID":1,"LARGE":2,"MEGA":3}
-
-# "Shape match" = what the player's eyes compare on an auto-scaled chart:
-# min-max-normalized paths, similarity = 1 - 2*RMSE.
-def shape_sim(a, b):
-    da = dict(prices[a]); db = dict(prices[b])
-    common = sorted(set(da) & set(db))
-    if len(common) < 10: return 0.0
-    def norm(d2c):
-        ys = [d2c[d] for d in common]; lo, hi = min(ys), max(ys)
-        return [(y-lo)/(hi-lo) if hi > lo else 0.5 for y in ys]
-    xa, xb = norm(da), norm(db)
-    rmse = math.sqrt(sum((x-y)**2 for x, y in zip(xa, xb))/len(xa))
-    return round(max(-1.0, 1 - 2*rmse), 3)
 
 def stats(ys):
     tot = (ys[-1]/ys[0]-1)*100
@@ -91,7 +80,7 @@ for i, tk in enumerate(QUEUE):
       "id": i+1, "answer": tk, "story": story(tk, ys), "co": CO[tk],
       "dates": ds, "closes": [round(y, 2) for y in ys],
       "annot": {"i": ds.index(big[0]), "label": f"biggest week of the year: {big[1]*100:+.0f}%"},
-      "corr": {t: shape_sim(tk, t) for t in uni if t != tk},
+      "long": LONG.get(tk),
     })
 
 json.dump({"universe": uni, "bucketOrder": BUCKET_ORDER, "puzzles": out},

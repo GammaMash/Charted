@@ -170,7 +170,7 @@
     <button id="themebtn" title="Toggle light/dark">◐</button>
   </header>
   <div id="howto"><div id="howtohead"><b>Six guesses. One chart. What stock is it?</b><span class="chev">▾</span></div>
-    <div id="howtobody"><div class="cluechips"><span class="infotap" data-info="sector">🏷 sector ⓘ</span><span class="infotap" data-info="size">⚖️ size ⓘ</span><span>🔥 shape match</span></div>
+    <div id="howtobody"><div class="cluechips"><span class="infotap" data-info="sector">🏷 sector ⓘ</span><span class="infotap" data-info="size">⚖️ size ⓘ</span><span>💲 price hi/lo</span></div>
     Every guess earns three clues · every miss unlocks a hint · new chart at midnight.</div></div>
   <div id="devbar"><b>TEST&nbsp;MODE</b></div>
   <div id="chartwrap"><canvas id="chart"></canvas></div>
@@ -392,7 +392,7 @@ function hintText(k){
     case 1: return "Sector: "+secL(a.sector);
     case 2: return "📍 event marked on chart";
     case 3: return "Price axis revealed";
-    case 4: return p.co ? "You might know them from: "+p.co.hint : "Size: "+SIZE_LABEL[a.cap]+" ("+SIZE_DESC[a.cap]+")";
+    case 4: return p.co ? (p.co.emoji?p.co.emoji+"  ":"")+"You might know them from: "+p.co.hint : "Size: "+SIZE_LABEL[a.cap]+" ("+SIZE_DESC[a.cap]+")";
     case 5: return "Starts with “"+answer()[0]+"” · "+answer().length+" letters";
   }
 }
@@ -416,11 +416,12 @@ function renderHints(){
 // ---------- guess feedback ----------
 function judge(tk){
   const a=U[answer()], g=U[tk], p=puzzle();
-  const corr = tk===answer() ? 1 : (p.corr[tk] ?? 0);
+  const ap=a.price||0, gp=g.price||0;
+  const priceDir = (tk===answer()||!ap||!gp) ? "same" : (Math.abs(gp/ap-1)<0.05 ? "same" : (ap>gp?"up":"down"));
+  const priceClose = (ap&&gp) ? Math.abs(gp/ap-1)<0.15 : false;
   return { tk, correct: tk===answer(), sector: g.sector, sectorOk: g.sector===a.sector,
-    capDir: ORD[a.cap]===ORD[g.cap] ? "same" : (ORD[a.cap]>ORD[g.cap] ? "up":"down"), corr };
+    capDir: ORD[a.cap]===ORD[g.cap] ? "same" : (ORD[a.cap]>ORD[g.cap] ? "up":"down"), priceDir, priceClose };
 }
-function corrTag(c){ const p=Math.round(Math.max(0,c)*100)+"%"; return c>=0.75?["🔥 "+p,"warm"]:(c>=0.55?["🌤 "+p,"warm"]:["❄️ "+p,"bad"]); }
 let _rowsOpen = false;
 function buildRow(i, animLast){
   const r=document.createElement("div");
@@ -430,19 +431,18 @@ function buildRow(i, animLast){
     if(j.correct){
       r.innerHTML=`<div class="cell tk good">$${j.tk}</div><div class="cell good" style="grid-column:2/5">🎯 THAT'S THE CHART</div>`;
     } else {
-      const [ct,cc]=corrTag(j.corr);
       r.innerHTML=
        `<div class="cell tk">$${j.tk}<small>${U[j.tk].name}</small></div>`+
        `<div class="cell ${j.sectorOk?"good":"bad"}">${j.sectorOk?"✓":"✗"} ${secL(j.sector)}</div>`+
        `<div class="cell ${j.capDir==="same"?"good":"bad"}">${j.capDir==="same"?"✓ "+SIZE_LABEL[U[j.tk].cap]:(j.capDir==="up"?"⬆ bigger":"⬇ smaller")}</div>`+
-       `<div class="cell ${cc}">${ct}</div>`;
+       `<div class="cell ${j.priceDir==="same"?"good":"bad"}">${j.priceDir==="same"?"✓ similar":(j.priceDir==="up"?"⬆ higher":"⬇ lower")}</div>`;
     }
   } else { r.className="row empty"; r.innerHTML='<div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>'; }
   return r;
 }
 function buildHdr(){
   const h=document.createElement("div"); h.className="row hdr";
-  h.innerHTML='<div class="hcell">GUESS</div><div class="hcell infotap" data-info="sector">SECTOR ⓘ</div><div class="hcell infotap" data-info="size">SIZE ⓘ</div><div class="hcell">SHAPE</div>';
+  h.innerHTML='<div class="hcell">GUESS</div><div class="hcell infotap" data-info="sector">SECTOR ⓘ</div><div class="hcell infotap" data-info="size">SIZE ⓘ</div><div class="hcell">PRICE</div>';
   return h;
 }
 function renderRows(animLast){
@@ -523,7 +523,7 @@ function submit(tk){
 function emojiGrid(){
   return guesses.map(t=>{
     if(t===answer()) return "🟩";
-    const j=judge(t); return (j.sectorOk||j.corr>=0.6)?"🟨":"🟥";
+    const j=judge(t); return (j.sectorOk||j.priceClose)?"🟨":"🟥";
   }).join("");
 }
 function reveal(){
@@ -540,7 +540,9 @@ function reveal(){
     `<div class="story">${p.story}</div>`+
     (p.co ? `<div class="cocard"><b class="lbl">WHO THEY ARE</b>${p.co.what}`+
       `<div class="k1000"><b class="lbl">IF YOU'D PUT IN $1,000 A YEAR AGO</b>`+
-      `you'd have <b class="${puzzle().closes.at(-1)>=puzzle().closes[0]?"up":"dn"}">${k1000()}</b> today.</div></div>` : "")+
+      `you'd have <b class="${puzzle().closes.at(-1)>=puzzle().closes[0]?"up":"dn"}">${k1000()}</b> today.</div>`+
+      (p.long ? `<div class="k1000"><b class="lbl">${p.long.older?"$1,000 TEN YEARS AGO":"$1,000 IN "+p.long.year}</b>you'd have <b class="${p.long.amt>=1000?"up":"dn"}">$${p.long.amt.toLocaleString()}</b> today.</div>`:"")+
+      `</div>` : "")+
     `<div class="wordsrow"><span class="infotap" data-info="words">📖 chart words — what do these terms mean?</span></div>`+
     `<div class="grid">CHARTED #${p.id} <span class="res">${res}</span><br>${emojiGrid()}</div>`+
     `<button id="sharebtn">Share</button>`+
@@ -655,7 +657,7 @@ const INFO = {
   <div class="irow"><b>Drawdown</b><span>the deepest fall from a peak — "−40% drawdown" means it lost 40% from its high at the worst point</span></div>
   <div class="irow"><b>Biggest week</b><span>the single wildest week of the year, up or down</span></div>
   <div class="irow"><b>Weekly closes</b><span>each bend in the line is one week's final price — 52 of them draw the chart</span></div>
-  <div class="irow"><b>Shape match</b><span>how similar your guess's chart LOOKS to the mystery chart — pattern, not price</span></div>
+  <div class="irow"><b>Price</b><span>is the mystery stock's share price higher or lower than your guess's</span></div>
   <div class="irow"><b>Market value</b><span>one share's price × every share — what the whole company is "worth"</span></div>`,
 };
 const sheet=document.getElementById("sheet"), sheetcard=document.getElementById("sheetcard");
