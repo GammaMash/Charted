@@ -146,6 +146,27 @@
     opacity:0; transition:opacity .22s ease, transform .28s cubic-bezier(.2,1.5,.4,1); pointer-events:none;
     box-shadow:0 12px 40px rgba(0,0,0,.5), 0 0 0 4px rgba(255,255,255,.14); z-index:60;}
   #toast.show{opacity:1; transform:translateX(-50%) translateY(0) scale(1);}
+  #endcard{display:none; position:fixed; inset:0; z-index:58; align-items:center; justify-content:center;
+    background:rgba(8,10,16,.82); padding:20px;}
+  #endcard.show{display:flex;}
+  #endcardbox{background:var(--panel); border:1.5px solid var(--accent); border-radius:16px; max-width:420px;
+    width:100%; padding:24px 22px 20px; text-align:center; box-shadow:var(--shadow);
+    animation:endpop .34s cubic-bezier(.2,1.5,.4,1);}
+  @keyframes endpop{0%{transform:scale(.9); opacity:0;} 100%{transform:scale(1); opacity:1;}}
+  #endcardbox .ehead{font-size:27px; font-weight:800; letter-spacing:3px; color:var(--green);}
+  #endcard.lose #endcardbox .ehead{color:var(--red);}
+  #endcardbox .eans{font-size:15px; color:var(--txt); margin-top:4px;}
+  #endcardbox .eans b{color:var(--ink);}
+  #endcardbox .egrid{font-size:26px; letter-spacing:4px; margin:16px 0 4px;}
+  #endcardbox .emeta{font-size:12.5px; color:var(--muted); letter-spacing:1.5px;}
+  #endcardbox .equip{font-size:14px; color:var(--txt); margin:14px 0 2px; min-height:18px;}
+  #endshare{font:inherit; font-size:16px; font-weight:bold; width:100%; margin-top:14px;
+    background:linear-gradient(135deg,var(--accent), color-mix(in oklab, var(--accent), var(--green) 45%));
+    color:var(--accent-ink); border:none; border-radius:12px; padding:14px; cursor:pointer; transition:transform .1s;}
+  #endshare:hover{transform:translateY(-1px);}
+  #endstreak{font-size:13px; color:var(--muted); margin-top:12px;}
+  #enddismiss{display:block; margin:14px auto 0; font:inherit; font-size:13px; color:var(--muted);
+    background:none; border:none; cursor:pointer; text-decoration:underline dotted; text-underline-offset:3px;}
   footer{margin-top:20px; font-size:12px; color:var(--muted); text-align:center;}
   @media (max-width:480px){
     #app{padding:10px 9px 36px;}
@@ -183,6 +204,7 @@
   <div id="reveal"></div>
   <div id="sheet"><div id="sheetcard"></div></div>
   <div id="stamp"><div id="stamptxt"></div></div>
+  <div id="endcard"><div id="endcardbox"></div></div>
   <div id="toast">Copied!</div>
   <footer>CHARTED · a daily game by @chartillect · beta</footer>
 </div>
@@ -192,7 +214,7 @@ const DEV = new URLSearchParams(location.search).has("dev");   // ?dev=1 unlocks
 const SHARE_URL = "chartedgame.com";
 const MAXG = 6;
 const EPOCH = "2026-07-20";   // public launch day = puzzle #1; one puzzle per LOCAL calendar day
-const VERSION = "2026-07-22a";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
+const VERSION = "2026-07-22b";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
 const U = DATA.universe, ORD = DATA.bucketOrder, PUZ = DATA.puzzles;
 const TKS = Object.keys(U).sort();
 
@@ -517,7 +539,7 @@ function submit(tk){
     document.getElementById("stamptxt").textContent = won ? "CHARTED IN "+guesses.length : "UNCHARTED…";
     st.classList.toggle("lose", !won); st.classList.add("show");
     setTimeout(()=>st.classList.remove("show"), 1600);
-    reveal();
+    reveal(true);
   }
 }
 function emojiGrid(){
@@ -526,7 +548,7 @@ function emojiGrid(){
     const j=judge(t); return (j.sectorOk||j.priceClose)?"🟨":"🟥";
   }).join("");
 }
-function reveal(){
+function reveal(fresh){
   const el=document.getElementById("reveal"), p=puzzle();
   const res = won ? guesses.length+"/6" : "X/6";
   if(!DEV && !store.get("counted_"+stateKey(),false)){
@@ -569,15 +591,33 @@ function reveal(){
       ta.select(); document.execCommand("copy"); ta.remove(); showToast("Copied! "+quip());
     });
   }
-  document.getElementById("sharebtn").addEventListener("click",()=>{
+  function doShare(){
+    document.getElementById("endcard")?.classList.remove("show");   // close the popup if it's open
     if(navigator.share){
       navigator.share({text:shareTxt}).then(()=>showToast(quip())).catch(err=>{
         if(err && err.name==="AbortError") return;   // player closed the share sheet — say nothing
         copyShare();                                  // share unavailable for this target → copy instead
       });
     } else { copyShare(); }                            // desktop browsers without the share sheet
-  });
+  }
+  document.getElementById("sharebtn").addEventListener("click", doShare);
   document.getElementById("nextbtn")?.addEventListener("click",()=>setDay(day+1));
+
+  // end-of-game share popup — the share moment, caught at peak emotion
+  const ec=document.getElementById("endcard"), ecb=document.getElementById("endcardbox");
+  ec.classList.toggle("lose", !won);
+  ecb.innerHTML =
+    `<div class="ehead">${won?"CHARTED IN "+guesses.length:"UNCHARTED"}</div>`+
+    `<div class="eans">it was <b>$${answer()}</b> · ${U[answer()].name}</div>`+
+    `<div class="egrid">${emojiGrid()}</div>`+
+    `<div class="emeta">CHARTED #${p.id} · ${res}</div>`+
+    `<div class="equip">${quip()}</div>`+
+    `<button id="endshare">Share result</button>`+
+    (won?`<div id="endstreak">🔥 ${store.get("streak",0)} day streak</div>`:``)+
+    `<button id="enddismiss">see the breakdown ↓</button>`;
+  document.getElementById("endshare").addEventListener("click", doShare);
+  document.getElementById("enddismiss").addEventListener("click", ()=>ec.classList.remove("show"));
+  if(fresh) setTimeout(()=>ec.classList.add("show"), 1500);   // only auto-pop on a fresh finish, not on revisits
   updateStreak();
 }
 function showToast(msg){ const t=document.getElementById("toast"); if(msg) t.textContent=msg; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),3600); }
