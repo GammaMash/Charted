@@ -192,7 +192,7 @@ const DEV = new URLSearchParams(location.search).has("dev");   // ?dev=1 unlocks
 const SHARE_URL = "chartedgame.com";
 const MAXG = 6;
 const EPOCH = "2026-07-20";   // public launch day = puzzle #1; one puzzle per LOCAL calendar day
-const VERSION = "2026-07-21a";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
+const VERSION = "2026-07-22a";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
 const U = DATA.universe, ORD = DATA.bucketOrder, PUZ = DATA.puzzles;
 const TKS = Object.keys(U).sort();
 
@@ -376,7 +376,7 @@ cv.addEventListener("mouseleave",()=>{ hoverI=-1; drawChart(); });
 
 // ---------- friendly labels ----------
 const SECTOR_LABEL = {"Tech":"Tech","Semis":"Chips","Crypto":"Crypto","Comm/Media":"Media & Web",
-  "Consumer Disc":"Shopping","Cons Staples":"Everyday Goods","Financials":"Finance","Healthcare":"Healthcare",
+  "Consumer Disc":"Shopping","Autos/EV":"Autos & EV","Cons Staples":"Everyday Goods","Financials":"Finance","Healthcare":"Healthcare",
   "Industrials":"Industrial","Energy":"Energy","Materials":"Materials","Real Estate":"Real Estate","Utilities":"Utilities"};
 const SIZE_LABEL = {"MEGA":"Giant","LARGE":"Big","MID":"Mid","SMALL":"Small"};
 const SIZE_DESC  = {"MEGA":"$200B+ \u2014 Apple tier","LARGE":"$20\u2013200B","MID":"$2\u201320B","SMALL":"under $2B"};
@@ -641,7 +641,8 @@ const INFO = {
   <div class="irow"><b>Tech</b><span>software, hardware, the internet's plumbing</span></div>
   <div class="irow"><b>Chips</b><span>semiconductors — the stuff AI runs on</span></div>
   <div class="irow"><b>Media & Web</b><span>streaming, social, search, entertainment</span></div>
-  <div class="irow"><b>Shopping</b><span>retail, brands, cars, travel — stuff you buy</span></div>
+  <div class="irow"><b>Shopping</b><span>retail, brands, restaurants, travel — stuff you buy</span></div>
+  <div class="irow"><b>Autos & EV</b><span>carmakers and EV startups</span></div>
   <div class="irow"><b>Everyday Goods</b><span>food, drinks, household basics</span></div>
   <div class="irow"><b>Finance</b><span>banks, cards, insurance, investing</span></div>
   <div class="irow"><b>Healthcare</b><span>pharma, hospitals, medical devices</span></div>

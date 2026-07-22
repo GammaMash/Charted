@@ -51,8 +51,11 @@ OLD_SECTOR_MAP = {   # translate original custom sectors to the new vocabulary
  "Consumer":"Consumer Disc","Financials":"Financials","Crypto/Fintech":"Financials","Healthcare":"Healthcare",
  "Industrials":"Industrials","Energy":"Energy","Space":"Industrials",
 }
-CULT_FIX = {"GOOGL":"Comm/Media","META":"Comm/Media","NFLX":"Comm/Media","TSLA":"Consumer Disc",
+CULT_FIX = {"GOOGL":"Comm/Media","META":"Comm/Media","NFLX":"Comm/Media",
             "WMT":"Cons Staples","COST":"Cons Staples","KO":"Cons Staples","PEP":"Cons Staples"}
+# Autos/EV is its own tribe (like Semis) — GICS files them under Consumer Discretionary,
+# but "Shopping" is a misleading hint for a carmaker. Applied last, overrides everything above.
+AUTOS = {"TSLA","GM","F","RIVN","LCID","NIO","APTV"}
 cult_added = []
 for tk,(name,sec,_b) in OLD.items():
     if tk in uni or tk == "SPCX": continue
@@ -65,6 +68,8 @@ for tk,(name,sec) in EXTRA.items():
     cult_added.append(tk)
 for tk,sec in CULT_FIX.items():
     if tk in uni and uni[tk]["sector"] not in ("Semis","Crypto"): uni[tk]["sector"]=sec
+for tk in AUTOS:
+    if tk in uni: uni[tk]["sector"]="Autos/EV"
 
 # --- answer pool: every original curated name + recognizable S&P household brands ---
 HOUSEHOLD = """F GM HD LOW JNJ PG MMM FDX UPS DAL UAL LUV MAR EA TTWO KHC HSY K CL KMB CMG DPZ YUM
