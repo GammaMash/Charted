@@ -271,7 +271,7 @@ const DEV = new URLSearchParams(location.search).has("dev");   // ?dev=1 unlocks
 const SHARE_URL = "chartedgame.com";
 const MAXG = 6;
 const EPOCH = "2026-07-20";   // public launch day = puzzle #1; one puzzle per LOCAL calendar day
-const VERSION = "2026-07-27d";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
+const VERSION = "2026-07-27e";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
 const U = DATA.universe, ORD = DATA.bucketOrder, PUZ = DATA.puzzles;
 const TKS = Object.keys(U).sort();
 
@@ -496,8 +496,14 @@ function relPrice(){
   return p<20?"a couple coffees":p<75?"a nice lunch":p<200?"a nice dinner out":p<500?"a fancy dinner for two":p<1500?"a weekend getaway":"a used car";
 }
 function emojiStr(){ const p=puzzle(); return p.co&&p.co.emoji?p.co.emoji:""; }
+const SIZE_CLUE = {
+  MEGA:"one of the biggest companies in the world 🌍",
+  LARGE:"a big, well-known company",
+  MID:"a mid-sized company — solid, not a household giant",
+  SMALL:"a smaller, more niche company"
+};
 const LADDERS = {
-  casual: ["","Sector","Event","Price","Emoji","Reveal"],
+  casual: ["","Sector","How big","Price","Emoji","Reveal"],
   degen:  ["","Sector","Event","Price","Shape","Emoji"],
 };
 function rungName(k){ return (LADDERS[mode==="degen"?"degen":"casual"][k]||""); }
@@ -506,7 +512,7 @@ function hintText(k){
   if(k===1) return degen ? "Sector · "+secL(a.sector)
                          : "Sector: "+secL(a.sector)+(SECTOR_PLAIN[a.sector]?" — "+SECTOR_PLAIN[a.sector]:"");
   if(k===2) return degen ? "📍 event marked on the chart"
-                         : "📍 See the marked week — that was its biggest move of the year.";
+                         : "How big? "+(SIZE_CLUE[a.cap]||"a well-known company");
   if(k===3) return degen ? "Price axis · "+pctOffHigh()+"% below its 52-week high"
                          : "Price axis revealed · one share ≈ "+relPrice();
   if(degen){
