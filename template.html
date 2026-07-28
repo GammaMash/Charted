@@ -162,8 +162,11 @@
     background:rgba(8,10,16,.82); padding:20px;}
   #endcard.show{display:flex;}
   #endcardbox{background:var(--panel); border:1.5px solid var(--accent); border-radius:16px; max-width:420px;
-    width:100%; padding:24px 22px 20px; text-align:center; box-shadow:var(--shadow);
+    width:100%; max-height:90vh; overflow-y:auto; padding:24px 22px 20px; text-align:center; box-shadow:var(--shadow);
     animation:endpop .34s cubic-bezier(.2,1.5,.4,1);}
+  #feedback{min-height:38px; display:flex; align-items:center; justify-content:center; margin:2px 0 2px;}
+  #feedback .fpill{background:var(--panel2); border:1px solid var(--border); color:var(--txt); font-weight:700;
+    font-size:13.5px; padding:8px 18px; border-radius:22px; animation:endpop .28s cubic-bezier(.2,1.5,.4,1);}
   @keyframes endpop{0%{transform:scale(.9); opacity:0;} 100%{transform:scale(1); opacity:1;}}
   #endcardbox .ehead{font-size:27px; font-weight:800; letter-spacing:3px; color:var(--green);}
   #endcard.lose #endcardbox .ehead{color:var(--red);}
@@ -201,8 +204,11 @@
   footer{margin-top:20px; font-size:12px; color:var(--muted); text-align:center;}
   @media (max-width:480px){
     #app{padding:10px 9px 36px;}
-    header{gap:8px;}
-    h1{font-size:21px; letter-spacing:4px;}
+    header{gap:6px;}
+    h1{font-size:17px; letter-spacing:1.5px;}
+    #headmeta{font-size:10.5px; line-height:1.3; white-space:nowrap;}
+    #modebtn{font-size:11px; padding:4px 9px;}
+    #soundbtn{font-size:15px; padding:2px;}
     #chartwrap{padding:5px; margin:8px 0; border-radius:12px;}
     .row{gap:5px; grid-template-columns:84px 1fr 1fr 1fr;}
     #hints{gap:5px;}
@@ -233,6 +239,7 @@
     <input id="guessinput" type="text" name="ticker-search" placeholder="Type a ticker or company…" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" enterkeyhint="go" role="combobox">
     <div id="ac"></div>
   </div>
+  <div id="feedback"></div>
   <div id="rows"></div>
   <div id="reveal"></div>
   <div id="sheet"><div id="sheetcard"></div></div>
@@ -258,7 +265,7 @@ const DEV = new URLSearchParams(location.search).has("dev");   // ?dev=1 unlocks
 const SHARE_URL = "chartedgame.com";
 const MAXG = 6;
 const EPOCH = "2026-07-20";   // public launch day = puzzle #1; one puzzle per LOCAL calendar day
-const VERSION = "2026-07-27a";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
+const VERSION = "2026-07-27b";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
 const U = DATA.universe, ORD = DATA.bucketOrder, PUZ = DATA.puzzles;
 const TKS = Object.keys(U).sort();
 
@@ -600,7 +607,7 @@ function acRender(){
   ac.innerHTML=acItems.map((t,i)=>`<div class="acrow ${i===acSel?"sel":""}" data-t="${t}"><b>$${t}</b><span class="nm">${U[t].name}</span></div>`).join("");
   ac.querySelectorAll(".acrow").forEach(r=>r.addEventListener("mousedown",e=>{e.preventDefault();submit(r.dataset.t);}));
 }
-inp.addEventListener("input",()=>{ acItems=acFilter(inp.value); acSel=0; acRender(); });
+inp.addEventListener("input",()=>{ acItems=acFilter(inp.value); acSel=0; acRender(); showFeedback(""); });
 inp.addEventListener("keydown",e=>{
   if(e.key==="ArrowDown"){ acSel=Math.min(acSel+1,acItems.length-1); acRender(); e.preventDefault(); }
   else if(e.key==="ArrowUp"){ acSel=Math.max(acSel-1,0); acRender(); e.preventDefault(); }
@@ -623,7 +630,7 @@ function rankTitle(m){ const t=RANKS[m==="degen"?"degen":"casual"]; let r=t[0][1
 function rankUpMsg(m, before){ const t=RANKS[m==="degen"?"degen":"casual"]; let b=t[0][1], a=t[0][1];
   for(const e of t){ if(before>=e[0]) b=e[1]; if(winCount(m)>=e[0]) a=e[1]; } return a!==b ? a : ""; }
 
-let soundOn = store.get("sound", false);
+let soundOn = store.get("sound", true);        // sound ON by default (Vlad's call)
 let _actx=null;
 function actx(){ if(!_actx){ try{ _actx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return _actx; }
 function beep(f,start,dur,type,gain){ const c=actx(); if(!c) return;
@@ -667,7 +674,7 @@ function submit(tk){
   }
   else if(guesses.length>=MAXG){ done=true; won=false; }
   saveState(); renderAll(true);
-  if(!done){ sfx("blip"); showToast(reactTo(tk)); }        // hotter/colder + cheeky reactions
+  if(!done){ sfx("blip"); showFeedback(reactTo(tk)); }      // hotter/colder + cheeky reactions (inline, never overlaps)
   if(done){
     const first = won && guesses.length===1;
     sfx(won ? (first?"first":"win") : "lose");
@@ -766,6 +773,9 @@ function reveal(fresh){
   updateStreak();
 }
 function showToast(msg){ const t=document.getElementById("toast"); if(msg) t.textContent=msg; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),3600); }
+function showFeedback(msg){ const f=document.getElementById("feedback"); if(!f) return;
+  f.innerHTML = msg ? `<span class="fpill">${msg}</span>` : "";
+  clearTimeout(f._h); if(msg) f._h=setTimeout(()=>{ f.innerHTML=""; }, 4500); }
 
 // ---------- state, streaks, dev bar ----------
 function stateKey(){ return DEV ? "dev"+day : "day_"+todayKey()+"_"+(mode||"casual"); }
@@ -788,7 +798,7 @@ function updateStreak(){
   const s=store.get("streak",0), t=todayKey();
   const y=new Date(); y.setDate(y.getDate()-1);
   const live = store.get("lastWin","")===t || store.get("lastWin","")===dateKey(y);
-  document.getElementById("streak").textContent = "🔥 "+(live?s:0)+" day streak";
+  document.getElementById("streak").textContent = "🔥 "+(live?s:0);
 }
 function setDay(d){
   day=d; loadState(); renderAll(); animateDraw();
@@ -913,6 +923,10 @@ document.getElementById("soundbtn").addEventListener("click",()=>{
   if(soundOn){ actx(); sfx("blip"); }        // unlock audio on the user gesture
 });
 applySoundUI();
+// iOS/Chrome autoplay: resume the AudioContext on the first user gesture so default-on sound works
+function unlockAudio(){ const c=actx(); if(c && c.state==="suspended" && c.resume) c.resume();
+  document.removeEventListener("pointerdown",unlockAudio); document.removeEventListener("keydown",unlockAudio); }
+document.addEventListener("pointerdown",unlockAudio); document.addEventListener("keydown",unlockAudio);
 
 applyTheme(); buildDevBar(); setDay(DEV ? 0 : todaysPuzzleIndex());
 if(!mode && !DEV) openChooser();          // first visit picks a mode; game renders behind it
