@@ -106,6 +106,18 @@
   #reveal .cocard .up{color:var(--green);} #reveal .cocard .dn{color:var(--red);}
   #reveal .grid{font-size:16.5px; letter-spacing:2px; color:var(--ink);}
   #reveal .res{color:var(--accent); font-weight:bold;}
+  #reveal .statsheet{margin:8px 0 12px; background:var(--panel2); border:1px solid var(--border); border-radius:10px; padding:6px 14px;}
+  #reveal .statrow{display:flex; justify-content:space-between; align-items:center; padding:8px 0; font-size:13.5px; border-top:1px solid var(--border);}
+  #reveal .statrow:first-child{border-top:none;}
+  #reveal .statrow span{color:var(--muted);} #reveal .statrow b{color:var(--ink); font-size:14.5px;}
+  #endcardbox .rankup{margin-top:10px; font-size:13.5px; font-weight:800; color:var(--green); letter-spacing:.5px;}
+  #endcardbox .erolo{margin-top:12px; font-size:13px; color:var(--accent); cursor:pointer; text-decoration:underline dotted; text-underline-offset:3px;}
+  .rgrid{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:12px;}
+  .rcard{background:var(--panel2); border:1px solid var(--border); border-radius:10px; padding:10px 6px; text-align:center;}
+  .rcard.locked{opacity:.5;}
+  .rcard .remoji{font-size:22px; line-height:1.1;}
+  .rcard .rtk{font-size:12.5px; font-weight:800; color:var(--ink); margin-top:4px;}
+  .rcard .rnm{font-size:10.5px; color:var(--muted); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   #sharebtn,#nextbtn{font:inherit; font-size:13px; margin-top:12px; margin-right:8px;
     background:linear-gradient(135deg,var(--accent), color-mix(in oklab, var(--accent), var(--green) 45%));
     color:var(--accent-ink); font-weight:bold; border:none; border-radius:10px;
@@ -167,6 +179,25 @@
   #endstreak{font-size:13px; color:var(--muted); margin-top:12px;}
   #enddismiss{display:block; margin:14px auto 0; font:inherit; font-size:13px; color:var(--muted);
     background:none; border:none; cursor:pointer; text-decoration:underline dotted; text-underline-offset:3px;}
+  #modebtn{font:inherit; font-size:12.5px; font-weight:700; background:var(--panel2); color:var(--txt);
+    border:1px solid var(--border); border-radius:20px; padding:5px 12px; cursor:pointer; white-space:nowrap;}
+  #modebtn:hover{border-color:var(--accent);}
+  #soundbtn{background:none; border:none; cursor:pointer; font-size:16px; padding:2px 4px; line-height:1;}
+  #chooser{display:none; position:fixed; inset:0; z-index:70; align-items:center; justify-content:center;
+    background:rgba(8,10,16,.9); padding:22px;}
+  #chooser.show{display:flex;}
+  #chooserbox{width:100%; max-width:440px; text-align:center; animation:endpop .34s cubic-bezier(.2,1.5,.4,1);}
+  #chooserbox .chbrand{font-size:30px; font-weight:800; letter-spacing:5px; color:var(--ink); margin-bottom:4px;}
+  #chooserbox .chbrand span{color:var(--accent);}
+  #chooserbox .chtitle{font-size:20px; color:var(--txt); margin-bottom:22px;}
+  .modecard{display:block; width:100%; text-align:left; background:var(--panel); border:1.5px solid var(--border);
+    border-radius:16px; padding:18px 20px; margin-bottom:14px; cursor:pointer; transition:transform .1s, border-color .15s;}
+  .modecard:hover{transform:translateY(-2px);}
+  .modecard.casual:hover{border-color:var(--green);}
+  .modecard.degen:hover{border-color:var(--accent);}
+  .modecard .mc-h{display:block; font-size:20px; font-weight:800; letter-spacing:1px; color:var(--ink);}
+  .modecard .mc-d{display:block; font-size:13.5px; color:var(--muted); margin-top:5px; line-height:1.4;}
+  #chooserbox .chnote{font-size:12px; color:var(--muted); margin-top:6px;}
   footer{margin-top:20px; font-size:12px; color:var(--muted); text-align:center;}
   @media (max-width:480px){
     #app{padding:10px 9px 36px;}
@@ -188,6 +219,8 @@
     </svg>
     <h1>CHART<span>ED</span></h1>
     <div id="headmeta"><div id="daytag"></div><div id="streak"></div></div>
+    <button id="modebtn" title="Switch mode"></button>
+    <button id="soundbtn" title="Sound">🔇</button>
     <button id="themebtn" title="Toggle light/dark">◐</button>
   </header>
   <div id="howto"><div id="howtohead"><b>Six guesses. One chart. What stock is it?</b><span class="chev">▾</span></div>
@@ -205,6 +238,17 @@
   <div id="sheet"><div id="sheetcard"></div></div>
   <div id="stamp"><div id="stamptxt"></div></div>
   <div id="endcard"><div id="endcardbox"></div></div>
+  <div id="chooser"><div id="chooserbox">
+    <div class="chbrand">CHART<span>ED</span></div>
+    <div class="chtitle">How do you want to play?</div>
+    <button class="modecard casual" data-mode="casual">
+      <span class="mc-h">🎓 CASUAL</span>
+      <span class="mc-d">Learn the charts, have some fun. Hints all the way.</span></button>
+    <button class="modecard degen" data-mode="degen">
+      <span class="mc-h">💎 DEGEN</span>
+      <span class="mc-d">Chart clues only, no hand-holding. How degenerate are you?</span></button>
+    <div class="chnote">You can switch anytime — tap the badge up top.</div>
+  </div></div>
   <div id="toast">Copied!</div>
   <footer>CHARTED · a daily game by @chartillect · beta</footer>
 </div>
@@ -214,7 +258,7 @@ const DEV = new URLSearchParams(location.search).has("dev");   // ?dev=1 unlocks
 const SHARE_URL = "chartedgame.com";
 const MAXG = 6;
 const EPOCH = "2026-07-20";   // public launch day = puzzle #1; one puzzle per LOCAL calendar day
-const VERSION = "2026-07-22b";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
+const VERSION = "2026-07-27a";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
 const U = DATA.universe, ORD = DATA.bucketOrder, PUZ = DATA.puzzles;
 const TKS = Object.keys(U).sort();
 
@@ -255,6 +299,10 @@ document.getElementById("themebtn").addEventListener("click",()=>{
 });
 
 let day = 0, guesses = [], done = false, won = false;
+let mode = store.get("mode","");            // "casual" | "degen" | "" (unset -> chooser)
+let pendingRankUp = "";                       // set on a fresh win that crosses a rank threshold
+let pendingNewCo = false;                      // set when a fresh win adds a NEW company to the Rolodex
+function modeLabel(){ return mode==="degen" ? "💎 Degen" : "🎓 Casual"; }
 function puzzle(){ return PUZ[day]; }
 function answer(){ return puzzle().answer; }
 function stage(){ return done ? 99 : guesses.length; }
@@ -406,16 +454,54 @@ function secL(s){ return SECTOR_LABEL[s]||s; }
 function k1000(){ const ys=puzzle().closes; const v=Math.round(ys[ys.length-1]/ys[0]*1000/10)*10;
   return "$"+v.toLocaleString("en-US"); }
 
-// ---------- hints ----------
-const HINTNAMES = ["","Sector","Event","Price axis","Know them?","First letter"];
+// ---------- mode + hint ladders ----------
+// Both ladders = 5 rungs with EVENT at rung 2 and PRICE at rung 3, so the chart
+// gates (annotation >= stage 2, priced >= stage 3) hold for BOTH modes unchanged.
+const SECTOR_PLAIN = {
+  "Tech":"software, chips, the internet's plumbing","Semis":"the chips that power everything, incl. AI",
+  "Crypto":"exchanges, stablecoins and Bitcoin plays","Comm/Media":"streaming, social, search, entertainment",
+  "Consumer Disc":"stuff people buy — retail, brands, travel","Autos/EV":"companies that build cars and electric vehicles",
+  "Cons Staples":"food, drinks and everyday household basics","Financials":"banks, cards, insurance and investing",
+  "Healthcare":"pharma, hospitals and medical devices","Industrials":"machinery, airlines, shipping, defense",
+  "Energy":"oil, gas and the companies that move it","Materials":"chemicals, metals and mining",
+  "Real Estate":"property owners and landlords","Utilities":"power and water — the monthly-bill companies"
+};
+function pctOffHigh(){ const ys=puzzle().closes, hi=Math.max(...ys); return Math.round((1-ys[ys.length-1]/hi)*100); }
+function shapeArch(){
+  const ys=puzzle().closes, n=ys.length, base=ys[0], last=ys[n-1], peak=Math.max(...ys);
+  const ret=(last/base-1)*100, peakGain=(peak/base-1)*100, offHigh=(last/peak-1)*100;
+  let pk=ys[0], dd=0; for(const y of ys){ pk=Math.max(pk,y); dd=Math.min(dd,y/pk-1); } dd*=100;
+  if(ret>120) return "Rocket 🚀";
+  if(peakGain>30 && offHigh<-18 && ret<peakGain*0.6) return "Round Trip";
+  if(dd<-30 && ret>-5) return "Comeback (V)";
+  if(ret>15 && offHigh>-12) return "Staircase";
+  if(ret<-15) return "Slow Bleed";
+  return "Chop";
+}
+function relPrice(){
+  const p=U[answer()].price||0;
+  return p<20?"a couple coffees":p<75?"a nice lunch":p<200?"a nice dinner out":p<500?"a fancy dinner for two":p<1500?"a weekend getaway":"a used car";
+}
+function emojiStr(){ const p=puzzle(); return p.co&&p.co.emoji?p.co.emoji:""; }
+const LADDERS = {
+  casual: ["","Sector","Event","Price","Emoji","Reveal"],
+  degen:  ["","Sector","Event","Price","Shape","Emoji"],
+};
+function rungName(k){ return (LADDERS[mode==="degen"?"degen":"casual"][k]||""); }
 function hintText(k){
-  const a=U[answer()], p=puzzle();
-  switch(k){
-    case 1: return "Sector: "+secL(a.sector);
-    case 2: return "📍 event marked on chart";
-    case 3: return "Price axis revealed";
-    case 4: return p.co ? (p.co.emoji?p.co.emoji+"  ":"")+"You might know them from: "+p.co.hint : "Size: "+SIZE_LABEL[a.cap]+" ("+SIZE_DESC[a.cap]+")";
-    case 5: return "Starts with “"+answer()[0]+"” · "+answer().length+" letters";
+  const a=U[answer()], p=puzzle(), degen = mode==="degen";
+  if(k===1) return degen ? "Sector · "+secL(a.sector)
+                         : "Sector: "+secL(a.sector)+(SECTOR_PLAIN[a.sector]?" — "+SECTOR_PLAIN[a.sector]:"");
+  if(k===2) return degen ? "📍 event marked on the chart"
+                         : "📍 See the marked week — that was its biggest move of the year.";
+  if(k===3) return degen ? "Price axis · "+pctOffHigh()+"% below its 52-week high"
+                         : "Price axis revealed · one share ≈ "+relPrice();
+  if(degen){
+    if(k===4) return "Shape: "+shapeArch();
+    if(k===5) return emojiStr();                                     // emoji only — you decode it
+  } else {
+    if(k===4) return (emojiStr()?emojiStr()+"  ":"")+"picture what they make…";
+    if(k===5) return (p.co?"You might know them from: "+p.co.hint+" · ":"")+"Starts with “"+answer()[0]+"”";
   }
 }
 function renderHints(){
@@ -430,7 +516,7 @@ function renderHints(){
   }
   if(!done && stage()<MAXG-1){
     const nx=document.createElement("div"); nx.className="hintnext";
-    nx.textContent = stage()===0 ? "hints unlock as you miss" : "next hint: "+HINTNAMES[stage()+1].toLowerCase();
+    nx.textContent = stage()===0 ? "hints unlock as you miss" : "next hint: "+rungName(stage()+1).toLowerCase();
     el.appendChild(nx);
   }
 }
@@ -527,16 +613,66 @@ inp.addEventListener("keydown",e=>{
 document.addEventListener("click",e=>{ if(!e.target.closest("#guessarea")) ac.style.display="none"; });
 
 // ---------- game flow ----------
+// ---------- Phase 2: ranks, sound, reactions, degen stat sheet ----------
+const RANKS = {
+  casual: [[0,"🎓 Rookie"],[5,"📈 Chart Curious"],[15,"🧠 Chart Nerd"]],
+  degen:  [[0,"🧻 Paper Hands"],[5,"💎 Diamond Hands"],[15,"🎰 Certified Degen"],[30,"👑 Chart God"]],
+};
+function winCount(m){ return store.get("wins_"+(m||"casual"),0); }
+function rankTitle(m){ const t=RANKS[m==="degen"?"degen":"casual"]; let r=t[0][1]; for(const e of t){ if(winCount(m)>=e[0]) r=e[1]; } return r; }
+function rankUpMsg(m, before){ const t=RANKS[m==="degen"?"degen":"casual"]; let b=t[0][1], a=t[0][1];
+  for(const e of t){ if(before>=e[0]) b=e[1]; if(winCount(m)>=e[0]) a=e[1]; } return a!==b ? a : ""; }
+
+let soundOn = store.get("sound", false);
+let _actx=null;
+function actx(){ if(!_actx){ try{ _actx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return _actx; }
+function beep(f,start,dur,type,gain){ const c=actx(); if(!c) return;
+  const o=c.createOscillator(), g=c.createGain(); o.type=type; o.frequency.value=f;
+  o.connect(g); g.connect(c.destination); const t=c.currentTime+start;
+  g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(gain,t+0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+dur); o.start(t); o.stop(t+dur+0.03); }
+function sfx(kind){ if(!soundOn) return;
+  if(kind==="win") [523,659,784,1047].forEach((f,i)=>beep(f,i*0.09,0.20,"triangle",0.16));
+  else if(kind==="first") [523,659,784,1047,1319,1568].forEach((f,i)=>beep(f,i*0.075,0.22,"triangle",0.18));
+  else if(kind==="lose") [392,349,294,247].forEach((f,i)=>beep(f,i*0.15,0.30,"sawtooth",0.11));
+  else if(kind==="blip") beep(600,0,0.07,"square",0.05);
+}
+function reactTo(tk){
+  const a=U[answer()], g=U[tk], j=judge(tk), ap=a.price||0, gp=g.price||0;
+  if(ap&&gp&&gp<ap*0.15) return "Bold. Wrong, but bold. 😅";
+  if(j.capDir==="up" && (ORD[a.cap]-ORD[g.cap])>=2) return "Way too small — think bigger. 🔍";
+  if(j.capDir==="down" && (ORD[g.cap]-ORD[a.cap])>=2) return "Too giant. Scale it down.";
+  const heat=(j.sectorOk?1:0)+(j.capDir==="same"?1:0)+(j.priceClose?1:0);
+  return heat>=3?"🔥 Boiling — you're basically there":heat===2?"🌡️ Warm — right neighborhood":heat===1?"❄️ Cold":"🧊 Ice cold";
+}
+function degenStats(){
+  const ys=puzzle().closes, base=ys[0], last=ys[ys.length-1];
+  const ret=Math.round((last/base-1)*100);
+  let pk=ys[0], dd=0; for(const y of ys){ pk=Math.max(pk,y); dd=Math.min(dd,y/pk-1); } dd=Math.round(dd*100);
+  const row=(l,v)=>`<div class="statrow"><span>${l}</span><b>${v}</b></div>`;
+  return row("12-mo return",(ret>=0?"+":"")+ret+"%")+row("Off 52-wk high",pctOffHigh()+"%")+row("Max drawdown",dd+"%")+row("Shape",shapeArch());
+}
+
 function submit(tk){
   if(done||!U[tk]||guesses.includes(tk)) return;
   guesses.push(tk); inp.value=""; acItems=[]; ac.style.display="none";
   store.set("played",true);
-  if(tk===answer()){ done=true; won=true; recordWin(); }
+  const M = mode||"casual", winsBefore = winCount(M);
+  if(tk===answer()){ done=true; won=true; recordWin();
+    if(!store.get("wc_"+stateKey(),false)){ store.set("wc_"+stateKey(),true); store.set("wins_"+M, winsBefore+1);
+      const rx=store.get("rolodex",[]); pendingNewCo=!rx.includes(answer());
+      if(pendingNewCo){ rx.push(answer()); store.set("rolodex",rx); }        // collect the company
+    }
+    pendingRankUp = rankUpMsg(M, winsBefore);
+  }
   else if(guesses.length>=MAXG){ done=true; won=false; }
   saveState(); renderAll(true);
+  if(!done){ sfx("blip"); showToast(reactTo(tk)); }        // hotter/colder + cheeky reactions
   if(done){
+    const first = won && guesses.length===1;
+    sfx(won ? (first?"first":"win") : "lose");
     const st=document.getElementById("stamp");
-    document.getElementById("stamptxt").textContent = won ? "CHARTED IN "+guesses.length : "UNCHARTED…";
+    document.getElementById("stamptxt").textContent = won ? (first?"FIRST TRY 🎯":"CHARTED IN "+guesses.length) : "UNCHARTED…";
     st.classList.toggle("lose", !won); st.classList.add("show");
     setTimeout(()=>st.classList.remove("show"), 1600);
     reveal(true);
@@ -557,16 +693,21 @@ function reveal(fresh){
     window.goatcounter ? send() : setTimeout(send, 3000);
   }
   el.style.display="block";
+  const degenReveal = mode==="degen";
+  const midContent = degenReveal
+    ? `<div class="statsheet">${degenStats()}</div>`
+    : `<div class="story">${p.story}</div>`+
+      (p.co ? `<div class="cocard"><b class="lbl">WHO THEY ARE</b>${p.co.what}`+
+        `<div class="k1000"><b class="lbl">IF YOU'D PUT IN $1,000 A YEAR AGO</b>`+
+        `you'd have <b class="${puzzle().closes.at(-1)>=puzzle().closes[0]?"up":"dn"}">${k1000()}</b> today.</div>`+
+        (p.long ? `<div class="k1000"><b class="lbl">${p.long.older?"$1,000 TEN YEARS AGO":"$1,000 IN "+p.long.year}</b>you'd have <b class="${p.long.amt>=1000?"up":"dn"}">$${p.long.amt.toLocaleString()}</b> today.</div>`:"")+
+        `</div>` : "");
   el.innerHTML =
     `<h2>${won?"🎯 Charted!":"📉 Uncharted…"} — $${answer()} <span class="co">(${U[answer()].name})</span></h2>`+
-    `<div class="story">${p.story}</div>`+
-    (p.co ? `<div class="cocard"><b class="lbl">WHO THEY ARE</b>${p.co.what}`+
-      `<div class="k1000"><b class="lbl">IF YOU'D PUT IN $1,000 A YEAR AGO</b>`+
-      `you'd have <b class="${puzzle().closes.at(-1)>=puzzle().closes[0]?"up":"dn"}">${k1000()}</b> today.</div>`+
-      (p.long ? `<div class="k1000"><b class="lbl">${p.long.older?"$1,000 TEN YEARS AGO":"$1,000 IN "+p.long.year}</b>you'd have <b class="${p.long.amt>=1000?"up":"dn"}">$${p.long.amt.toLocaleString()}</b> today.</div>`:"")+
-      `</div>` : "")+
+    midContent+
     `<div class="wordsrow"><span class="infotap" data-info="words">📖 chart words — what do these terms mean?</span></div>`+
-    `<div class="grid">CHARTED #${p.id} <span class="res">${res}</span><br>${emojiGrid()}</div>`+
+    `<div class="wordsrow"><span class="infotap rolodex-open">🗂 your chart rolodex — ${metCount()}/${PUZ.length} collected</span></div>`+
+    `<div class="grid">CHARTED #${p.id} · ${modeLabel()} <span class="res">${res}</span><br>${emojiGrid()}</div>`+
     `<button id="sharebtn">Share</button>`+
     (DEV && day<PUZ.length-1 ? `<button id="nextbtn">Next test day →</button>`:"")+
     (!DEV ? `<div id="countdown" style="margin-top:12px;color:var(--muted);font-size:12px"></div>`:"");
@@ -580,7 +721,7 @@ function reveal(fresh){
     };
     tick(); clearInterval(window._cdTimer); window._cdTimer=setInterval(tick,1000);
   }
-  const shareTxt=`CHARTED #${p.id} ${res}\n${emojiGrid()}\n\nWho charted? 👀 ${SHARE_URL} · @chartillect`;
+  const shareTxt=`CHARTED #${p.id} · ${modeLabel()} ${res}\n${emojiGrid()}\n\nWho charted? 👀 ${SHARE_URL} · @chartillect`;
   const QUIPS = won
     ? ["Charted and departed. 📈","Zero doubt. Full port. 💰","Warren and Charlie would nod.","Undefeated vs the chart.","Certified chart nerd. 🧠","Line only goes up. 📈","Touch charts, not grass. 📈"]
     : ["Diamond hands, paper eyes. 💎🧻","Not financial advice. CLEARLY.","Even Buffett has red days.","Bought the top, missed the ticker.","L on the chart, W on the vibes. 🫡","The chart won this round. 🫡","Stopped out. Run it back tomorrow."];
@@ -606,24 +747,28 @@ function reveal(fresh){
   // end-of-game share popup — the share moment, caught at peak emotion
   const ec=document.getElementById("endcard"), ecb=document.getElementById("endcardbox");
   ec.classList.toggle("lose", !won);
+  const firstTry = won && guesses.length===1;
+  const M = mode||"casual";
   ecb.innerHTML =
-    `<div class="ehead">${won?"CHARTED IN "+guesses.length:"UNCHARTED"}</div>`+
+    `<div class="ehead">${won?(firstTry?"FIRST TRY 🎯":"CHARTED IN "+guesses.length):"UNCHARTED"}</div>`+
     `<div class="eans">it was <b>$${answer()}</b> · ${U[answer()].name}</div>`+
     `<div class="egrid">${emojiGrid()}</div>`+
-    `<div class="emeta">CHARTED #${p.id} · ${res}</div>`+
+    `<div class="emeta">CHARTED #${p.id} · ${modeLabel()} · ${res}</div>`+
     `<div class="equip">${quip()}</div>`+
     `<button id="endshare">Share result</button>`+
-    (won?`<div id="endstreak">🔥 ${store.get("streak",0)} day streak</div>`:``)+
+    `<div id="endstreak">${won?"🔥 "+store.get("streak",0)+" day streak · ":""}${rankTitle(M)}</div>`+
+    ((fresh&&pendingRankUp)?`<div class="rankup">⬆ RANK UP — you're now ${pendingRankUp}!</div>`:``)+
+    (won?`<div class="erolo rolodex-open">🗂 ${(fresh&&pendingNewCo)?"$"+answer()+" joins your Rolodex":"Chart Rolodex"} · ${metCount()}/${PUZ.length} collected</div>`:``)+
     `<button id="enddismiss">see the breakdown ↓</button>`;
   document.getElementById("endshare").addEventListener("click", doShare);
   document.getElementById("enddismiss").addEventListener("click", ()=>ec.classList.remove("show"));
-  if(fresh) setTimeout(()=>ec.classList.add("show"), 1500);   // only auto-pop on a fresh finish, not on revisits
+  if(fresh){ setTimeout(()=>ec.classList.add("show"), 1500); pendingRankUp=""; pendingNewCo=false; }   // auto-pop on fresh finish only; consume flags
   updateStreak();
 }
 function showToast(msg){ const t=document.getElementById("toast"); if(msg) t.textContent=msg; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),3600); }
 
 // ---------- state, streaks, dev bar ----------
-function stateKey(){ return DEV ? "dev"+day : "day_"+todayKey(); }
+function stateKey(){ return DEV ? "dev"+day : "day_"+todayKey()+"_"+(mode||"casual"); }
 function saveState(){ store.set(stateKey(),{guesses,done,won}); }
 function loadState(){
   const s=store.get(stateKey(),null);
@@ -704,7 +849,22 @@ const INFO = {
 const sheet=document.getElementById("sheet"), sheetcard=document.getElementById("sheetcard");
 document.getElementById("stamp").addEventListener("click",e=>e.currentTarget.classList.remove("show"));
 function showInfo(k){ sheetcard.innerHTML = INFO[k] + '<button id="sheetclose">Got it</button>'; sheet.classList.add("open"); }
+// ---------- Phase 3: Chart Rolodex (collectible companies) ----------
+function metCount(){ return (store.get("rolodex",[])||[]).length; }
+function rolodexHTML(){
+  const met=new Set(store.get("rolodex",[])||[]);
+  const cards=PUZ.map(p=>{ const tk=p.answer, em=(p.co&&p.co.emoji)?p.co.emoji:"📈";
+    return met.has(tk)
+      ? `<div class="rcard got"><div class="remoji">${em}</div><div class="rtk">$${tk}</div><div class="rnm">${U[tk].name}</div></div>`
+      : `<div class="rcard locked"><div class="remoji">❓</div><div class="rtk">???</div></div>`;
+  }).join("");
+  return `<h3>🗂 Your Chart Rolodex</h3>`+
+    `<div class="sub">${met.size} of ${PUZ.length} companies met — solve the daily to collect them all.</div>`+
+    `<div class="rgrid">${cards}</div>`;
+}
+function openRolodex(){ sheetcard.innerHTML = rolodexHTML() + '<button id="sheetclose">Close</button>'; sheet.classList.add("open"); }
 document.addEventListener("click",e=>{
+  if(e.target.closest(".rolodex-open")){ openRolodex(); return; }
   const tap=e.target.closest(".infotap"); if(tap){ showInfo(tap.dataset.info); return; }
   if(sheet.classList.contains("open") && (e.target===sheet || e.target.closest("#sheetclose"))) sheet.classList.remove("open");
 });
@@ -738,7 +898,24 @@ document.addEventListener("visibilitychange", ()=>{ if(!document.hidden){ checkN
 window.addEventListener("focus", checkNewDay);
 setInterval(checkNewDay, 30000);
 
+// ---------- mode chooser wiring ----------
+function applyModeUI(){ const mb=document.getElementById("modebtn"); if(mb) mb.textContent=modeLabel(); }
+function openChooser(){ document.getElementById("chooser").classList.add("show"); }
+function chooseMode(m){ mode=m; store.set("mode",m);
+  document.getElementById("chooser").classList.remove("show"); applyModeUI(); setDay(day); }
+document.querySelectorAll("#chooser .modecard").forEach(b=>b.addEventListener("click",()=>chooseMode(b.dataset.mode)));
+document.getElementById("modebtn").addEventListener("click",openChooser);
+applyModeUI();
+
+function applySoundUI(){ const s=document.getElementById("soundbtn"); if(s) s.textContent=soundOn?"🔊":"🔇"; }
+document.getElementById("soundbtn").addEventListener("click",()=>{
+  soundOn=!soundOn; store.set("sound",soundOn); applySoundUI();
+  if(soundOn){ actx(); sfx("blip"); }        // unlock audio on the user gesture
+});
+applySoundUI();
+
 applyTheme(); buildDevBar(); setDay(DEV ? 0 : todaysPuzzleIndex());
+if(!mode && !DEV) openChooser();          // first visit picks a mode; game renders behind it
 checkVersion();
 </script>
 <script data-goatcounter="https://chartedgame.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
