@@ -3,6 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="CHARTED">
+<meta name="theme-color" content="#0c0e14">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <title>CHARTED — the daily stock chart game</title>
 <meta property="og:title" content="CHARTED — the daily stock chart game">
 <meta property="og:description" content="Guess the ticker from its last 12 months. New chart every day.">
@@ -265,7 +271,7 @@ const DEV = new URLSearchParams(location.search).has("dev");   // ?dev=1 unlocks
 const SHARE_URL = "chartedgame.com";
 const MAXG = 6;
 const EPOCH = "2026-07-20";   // public launch day = puzzle #1; one puzzle per LOCAL calendar day
-const VERSION = "2026-07-27b";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
+const VERSION = "2026-07-27d";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
 const U = DATA.universe, ORD = DATA.bucketOrder, PUZ = DATA.puzzles;
 const TKS = Object.keys(U).sort();
 
@@ -631,19 +637,15 @@ function rankUpMsg(m, before){ const t=RANKS[m==="degen"?"degen":"casual"]; let 
   for(const e of t){ if(before>=e[0]) b=e[1]; if(winCount(m)>=e[0]) a=e[1]; } return a!==b ? a : ""; }
 
 let soundOn = store.get("sound", true);        // sound ON by default (Vlad's call)
-let _actx=null;
-function actx(){ if(!_actx){ try{ _actx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return _actx; }
-function beep(f,start,dur,type,gain){ const c=actx(); if(!c) return;
-  const o=c.createOscillator(), g=c.createGain(); o.type=type; o.frequency.value=f;
-  o.connect(g); g.connect(c.destination); const t=c.currentTime+start;
-  g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(gain,t+0.02);
-  g.gain.exponentialRampToValueAtTime(0.0001,t+dur); o.start(t); o.stop(t+dur+0.03); }
-function sfx(kind){ if(!soundOn) return;
-  if(kind==="win") [523,659,784,1047].forEach((f,i)=>beep(f,i*0.09,0.20,"triangle",0.16));
-  else if(kind==="first") [523,659,784,1047,1319,1568].forEach((f,i)=>beep(f,i*0.075,0.22,"triangle",0.18));
-  else if(kind==="lose") [392,349,294,247].forEach((f,i)=>beep(f,i*0.15,0.30,"sawtooth",0.11));
-  else if(kind==="blip") beep(600,0,0.07,"square",0.05);
-}
+// HTML-media audio: routes through the media channel that plays even when the iPhone
+// ring/silent switch is on (Web Audio gets muted by it — most phones are on silent).
+const SND = {};
+["blip","win","first","lose"].forEach(k=>{ const a=new Audio("/snd/"+k+".wav"); a.preload="auto"; a.volume = k==="blip"?0.5:0.8; SND[k]=a; });
+function sfx(kind){ if(!soundOn) return; const a=SND[kind]; if(!a) return;
+  try{ a.currentTime=0; const p=a.play(); if(p&&p.catch) p.catch(()=>{}); }catch(e){} }
+let _primed=false;
+function primeAudio(){ if(_primed) return; _primed=true;      // iOS needs first playback inside a user gesture
+  Object.values(SND).forEach(a=>{ const p=a.play(); if(p&&p.then) p.then(()=>{a.pause(); a.currentTime=0;}).catch(()=>{}); }); }
 function reactTo(tk){
   const a=U[answer()], g=U[tk], j=judge(tk), ap=a.price||0, gp=g.price||0;
   if(ap&&gp&&gp<ap*0.15) return "Bold. Wrong, but bold. 😅";
@@ -920,13 +922,12 @@ applyModeUI();
 function applySoundUI(){ const s=document.getElementById("soundbtn"); if(s) s.textContent=soundOn?"🔊":"🔇"; }
 document.getElementById("soundbtn").addEventListener("click",()=>{
   soundOn=!soundOn; store.set("sound",soundOn); applySoundUI();
-  if(soundOn){ actx(); sfx("blip"); }        // unlock audio on the user gesture
+  if(soundOn){ primeAudio(); sfx("blip"); }        // unlock audio on the user gesture
 });
 applySoundUI();
-// iOS/Chrome autoplay: resume the AudioContext on the first user gesture so default-on sound works
-function unlockAudio(){ const c=actx(); if(c && c.state==="suspended" && c.resume) c.resume();
-  document.removeEventListener("pointerdown",unlockAudio); document.removeEventListener("keydown",unlockAudio); }
-document.addEventListener("pointerdown",unlockAudio); document.addEventListener("keydown",unlockAudio);
+// prime audio on the first user gesture (iOS requirement) so default-on sound works
+function _prime(){ primeAudio(); document.removeEventListener("pointerdown",_prime); document.removeEventListener("keydown",_prime); }
+document.addEventListener("pointerdown",_prime); document.addEventListener("keydown",_prime);
 
 applyTheme(); buildDevBar(); setDay(DEV ? 0 : todaysPuzzleIndex());
 if(!mode && !DEV) openChooser();          // first visit picks a mode; game renders behind it
