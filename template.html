@@ -196,7 +196,16 @@
   #modebtn{font:inherit; font-size:12.5px; font-weight:700; background:var(--panel2); color:var(--txt);
     border:1px solid var(--border); border-radius:20px; padding:5px 12px; cursor:pointer; white-space:nowrap;}
   #modebtn:hover{border-color:var(--accent);}
-  #soundbtn{background:none; border:none; cursor:pointer; font-size:16px; padding:2px 4px; line-height:1;}
+  #soundbtn,#statsbtn{background:none; border:none; cursor:pointer; font-size:16px; padding:2px 4px; line-height:1;}
+  .strow-h{margin:12px 0 6px; font-weight:700; color:var(--ink); font-size:13px;}
+  .sbar{display:flex; align-items:center; gap:8px; margin:3px 0;}
+  .sbar .sn{width:14px; color:var(--muted); font-size:12px; font-weight:700; text-align:center; flex:none;}
+  .sbar .sfill{background:var(--accent); color:var(--accent-ink); font-size:11.5px; font-weight:800;
+    border-radius:5px; padding:2px 7px; min-width:16px; text-align:right;}
+  .sbar .sfill.lossf{background:var(--red); color:#fff;}
+  .cell .heat{float:right; font-size:12px; opacity:.9;}
+  .hint.pxhint{display:flex; align-items:center; gap:9px; background:#0c0e14; border-color:var(--accent); color:#dde0ea;}
+  .hint.pxhint img{width:56px; height:auto; image-rendering:pixelated; display:block; border-radius:4px;}
   #chooser{display:none; position:fixed; inset:0; z-index:70; align-items:center; justify-content:center;
     background:rgba(8,10,16,.9); padding:22px;}
   #chooser.show{display:flex;}
@@ -219,7 +228,7 @@
     h1{font-size:17px; letter-spacing:1.5px;}
     #headmeta{font-size:10.5px; line-height:1.3; white-space:nowrap;}
     #modebtn{font-size:11px; padding:4px 9px;}
-    #soundbtn{font-size:15px; padding:2px;}
+    #soundbtn,#statsbtn{font-size:15px; padding:2px;}
     #chartwrap{padding:5px; margin:8px 0; border-radius:12px;}
     .row{gap:5px; grid-template-columns:84px 1fr 1fr 1fr;}
     #hints{gap:5px;}
@@ -237,6 +246,7 @@
     <h1>CHART<span>ED</span></h1>
     <div id="headmeta"><div id="daytag"></div><div id="streak"></div></div>
     <button id="modebtn" title="Switch mode"></button>
+    <button id="statsbtn" title="Your stats">📊</button>
     <button id="soundbtn" title="Sound">🔇</button>
     <button id="themebtn" title="Toggle light/dark">◐</button>
   </header>
@@ -276,7 +286,7 @@ const DEV = new URLSearchParams(location.search).has("dev");   // ?dev=1 unlocks
 const SHARE_URL = "chartedgame.com";
 const MAXG = 6;
 const EPOCH = "2026-07-20";   // public launch day = puzzle #1; one puzzle per LOCAL calendar day
-const VERSION = "2026-07-31c";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
+const VERSION = "2026-07-31d";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
 const U = DATA.universe, ORD = DATA.bucketOrder, PUZ = DATA.puzzles;
 const BOSSES = DATA.bosses || [];
 const BOSS_EPOCH = "2026-08-02";   // first boss Sunday; bosses rotate weekly from here
@@ -515,6 +525,18 @@ cv.addEventListener("mousemove",e=>{
   if(ni!==hoverI){ hoverI=ni; drawChart(); }
 });
 cv.addEventListener("mouseleave",()=>{ hoverI=-1; drawChart(); });
+// touch: finger-drag traces the crosshair on phones (passive — page scroll still works)
+function traceTouch(e){
+  if(!geo || !e.touches.length) return;
+  const r=cv.getBoundingClientRect(), x=e.touches[0].clientX-r.left;
+  const i=Math.round((x-geo.padL)/(geo.W-geo.padL-geo.padR)*(geo.n-1));
+  const ni=Math.max(0,Math.min(geo.n-1,i));
+  if(ni!==hoverI){ hoverI=ni; drawChart(); }
+}
+cv.addEventListener("touchstart",traceTouch,{passive:true});
+cv.addEventListener("touchmove",traceTouch,{passive:true});
+cv.addEventListener("touchend",()=>{ hoverI=-1; drawChart(); });
+cv.addEventListener("touchcancel",()=>{ hoverI=-1; drawChart(); });
 
 // ---------- friendly labels ----------
 const SECTOR_LABEL = {"Tech":"Tech","Semis":"Chips","Crypto":"Crypto","Comm/Media":"Media & Web",
@@ -592,6 +614,12 @@ function renderHints(){
     d.className="hint "+(stage()===k&&!done?"new":"");
     d.textContent = hintText(k);
     el.appendChild(d);
+    if(k===5 && mode!=="degen" && puzzle().px){   // casual finale: the pixelated logo (baked data URI — no network spoiler)
+      const w=document.createElement("div"); w.className="hint pxhint "+(stage()===k&&!done?"new":"");
+      const im=document.createElement("img"); im.src=puzzle().px; im.alt="";
+      w.append(im, document.createTextNode("their logo — can you make it out?"));
+      el.appendChild(w);
+    }
   }
   if(!done && stage()<MAXG-1){
     const nx=document.createElement("div"); nx.className="hintnext";
@@ -618,8 +646,10 @@ function buildRow(i, animLast){
     if(j.correct){
       r.innerHTML=`<div class="cell tk good">$${j.tk}</div><div class="cell good" style="grid-column:2/5">🎯 THAT'S THE CHART</div>`;
     } else {
+      const heat=(j.sectorOk?1:0)+(j.capDir==="same"?1:0)+(j.priceClose?1:0);
+      const hm=heat>=3?"🔥":heat===2?"🌡️":heat===1?"❄️":"🧊";   // board remembers how close each guess was
       r.innerHTML=
-       `<div class="cell tk">$${j.tk}<small>${U[j.tk].name}</small></div>`+
+       `<div class="cell tk">$${j.tk}<span class="heat">${hm}</span><small>${U[j.tk].name}</small></div>`+
        `<div class="cell ${j.sectorOk?"good":"bad"}">${j.sectorOk?"✓":"✗"} ${secL(j.sector)}</div>`+
        `<div class="cell ${j.capDir==="same"?"good":"bad"}">${j.capDir==="same"?"✓ "+SIZE_LABEL[U[j.tk].cap]:(j.capDir==="up"?"⬆ bigger":"⬇ smaller")}</div>`+
        `<div class="cell ${j.priceDir==="same"?"good":"bad"}">${j.priceDir==="same"?"✓ similar":(j.priceDir==="up"?"⬆ higher":"⬇ lower")}</div>`;
@@ -754,14 +784,39 @@ function submit(tk){
   if(done){
     showFeedback("");                          // don't leave the last reaction pill up behind the endcard
     if(!DEV && !firstFinMode()) store.set("rev_"+todayKey(), M);   // this board finished first today
+    if(!DEV && !rep){                          // guess distribution for the stats sheet (idx 0 = loss)
+      const dist=store.get("dist_"+M,[0,0,0,0,0,0,0]);
+      dist[won?guesses.length:0]++; store.set("dist_"+M,dist);
+    }
     const first = won && guesses.length===1 && !rep;
     sfx(won ? (first?"first":"win") : "lose");
+    if(won) confetti(first, isBossDay());
     const st=document.getElementById("stamp");
     document.getElementById("stamptxt").textContent = won ? (first?"FIRST TRY 🎯":"CHARTED IN "+guesses.length) : "UNCHARTED…";
     st.classList.toggle("lose", !won); st.classList.add("show");
     setTimeout(()=>st.classList.remove("show"), 1600);
     reveal(true);
   }
+}
+function confetti(big, gold){          // win juice — quick burst, auto-removes; respects reduced-motion
+  try{ if(matchMedia("(prefers-reduced-motion: reduce)").matches) return; }catch(e){}
+  const c=document.createElement("canvas"); c.width=innerWidth; c.height=innerHeight;
+  c.style.cssText="position:fixed;inset:0;z-index:65;pointer-events:none";
+  document.body.appendChild(c);
+  const x=c.getContext("2d");
+  const COLS = gold ? ["#ffd166","#ffe9b0","#f5b83d","#ffffff"] : ["#35e0e8","#3ddc84","#ffd166","#ffffff"];
+  const N = big ? 140 : 80;
+  const ps=Array.from({length:N},()=>({x:c.width/2+(Math.random()-.5)*c.width*.5, y:c.height*.35,
+    vx:(Math.random()-.5)*11, vy:-(4+Math.random()*9), s:4+Math.random()*5,
+    col:COLS[Math.floor(Math.random()*COLS.length)], rot:Math.random()*6.3, vr:(Math.random()-.5)*.4}));
+  const t0=performance.now();
+  (function step(now){
+    x.clearRect(0,0,c.width,c.height);
+    for(const p of ps){ p.x+=p.vx; p.y+=p.vy; p.vy+=0.35; p.rot+=p.vr;
+      x.save(); x.translate(p.x,p.y); x.rotate(p.rot); x.fillStyle=p.col;
+      x.fillRect(-p.s/2,-p.s/2,p.s,p.s*0.6); x.restore(); }
+    if(now-t0<1800) requestAnimationFrame(step); else c.remove();
+  })(t0);
 }
 function emojiGrid(){
   return guesses.map(t=>{
@@ -793,7 +848,7 @@ function reveal(fresh){
     `<h2>${won?"🎯 Charted!":"📉 Uncharted…"} — $${answer()} <span class="co">(${U[answer()].name})</span></h2>`+
     midContent+
     `<div class="wordsrow"><span class="infotap" data-info="words">📖 chart words — what do these terms mean?</span></div>`+
-    `<div class="wordsrow"><span class="infotap rolodex-open">🗂 your chart rolodex — ${metCount()} met</span></div>`+
+    `<div class="wordsrow"><span class="infotap rolodex-open">🗂 your chart rolodex — ${metCount()} met</span> · <span class="infotap stats-open">📊 your stats</span></div>`+
     `<div class="grid">CHARTED ${tag} · ${modeLabel()} <span class="res">${res}</span>${rep?' <span style="color:var(--muted);font-size:12px">· replay</span>':''}<br>${emojiGrid()}</div>`+
     `<button id="sharebtn">Share</button>`+
     (DEV && day<PUZ.length-1 ? `<button id="nextbtn">Next test day →</button>`:"")+
@@ -978,7 +1033,28 @@ function rolodexHTML(){
     `<div class="rgrid">${cards}</div>`;
 }
 function openRolodex(){ sheetcard.innerHTML = rolodexHTML() + '<button id="sheetclose">Close</button>'; sheet.classList.add("open"); }
+// ---------- stats sheet (guess distribution accrues from v31d) ----------
+function statsHTML(){
+  let h=`<h3>📊 Your stats</h3>`+
+    `<div class="sub">🔥 ${store.get("streak",0)} day streak · best ${store.get("maxStreak",0)} · 🗂 ${metCount()} ${metCount()===1?"company":"companies"} met</div>`;
+  let any=false;
+  for(const [m,label] of [["casual","🎓 Casual"],["degen","💎 Degen"]]){
+    const dist=store.get("dist_"+m,[0,0,0,0,0,0,0]);
+    const played=dist.reduce((a,b)=>a+b,0);
+    if(!played) continue; any=true;
+    const wins=played-dist[0], mx=Math.max(...dist,1);
+    h+=`<div class="strow-h">${label} — ${played} played · ${Math.round(wins/played*100)}% won · ${rankTitle(m)}</div>`;
+    for(let g=1;g<=6;g++)
+      h+=`<div class="sbar"><span class="sn">${g}</span><div class="sfill" style="width:${Math.max(8,dist[g]/mx*88)}%">${dist[g]||"·"}</div></div>`;
+    if(dist[0]) h+=`<div class="sbar"><span class="sn">✗</span><div class="sfill lossf" style="width:${Math.max(8,dist[0]/mx*88)}%">${dist[0]}</div></div>`;
+  }
+  if(!any) h+=`<div class="sub" style="margin-top:10px">Play a round — your guess distribution starts filling in from today.</div>`;
+  return h;
+}
+function openStats(){ sheetcard.innerHTML = statsHTML() + '<button id="sheetclose">Close</button>'; sheet.classList.add("open"); }
+document.getElementById("statsbtn").addEventListener("click", openStats);
 document.addEventListener("click",e=>{
+  if(e.target.closest(".stats-open")){ openStats(); return; }
   if(e.target.closest(".rolodex-open")){ openRolodex(); return; }
   const tap=e.target.closest(".infotap"); if(tap){ showInfo(tap.dataset.info); return; }
   if(sheet.classList.contains("open") && (e.target===sheet || e.target.closest("#sheetclose"))) sheet.classList.remove("open");

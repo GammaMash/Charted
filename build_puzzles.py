@@ -109,6 +109,13 @@ for i, tk in enumerate(QUEUE):
 # Sunday bosses: static curated file (own historical windows); embedded as-is when present
 BOSSES = json.load(open(f"{D}/bosses.json")) if os.path.exists(f"{D}/bosses.json") else []
 
+# pixelated-logo clue: tiny pre-baked data URIs (see gen_pixlogos.py) — pure JSON here,
+# so the nightly Action needs no image libraries. Missing ticker -> clue just doesn't show.
+PX = json.load(open(f"{D}/pixlogos.json")) if os.path.exists(f"{D}/pixlogos.json") else {}
+for p in out + BOSSES:
+    if p["answer"] in PX:
+        p["px"] = PX[p["answer"]]
+
 json.dump({"universe": uni, "bucketOrder": BUCKET_ORDER, "puzzles": out, "bosses": BOSSES},
           open(f"{D}/gamedata.json", "w"), separators=(",", ":"))
 n_ans = sum(v["answer"] for v in uni.values())
