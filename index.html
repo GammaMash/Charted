@@ -55,6 +55,11 @@
     padding:5px 12px; font-size:12.5px; font-weight:700; color:var(--ink); white-space:nowrap;}
   #howto b{color:var(--ink);}
   #howto .dim{color:var(--muted);}
+  body.bossday #howto{border-color:var(--yellow);}
+  body.bossday #howtohead b{color:var(--yellow); letter-spacing:2px;}
+  body.bossday #howtobody b{color:var(--yellow);}
+  body.bossday #chartwrap{border-color:var(--yellow);
+    box-shadow:var(--shadow), 0 0 0 1px rgba(255,209,102,.25);}
   #devbar{display:flex; gap:6px; flex-wrap:wrap; align-items:center; font-size:10.5px; color:var(--muted);
     border:1px dashed var(--border); border-radius:10px; padding:6px 9px; margin:10px 0;}
   #devbar button{font:inherit; background:var(--panel2); color:var(--txt); border:1px solid var(--border);
@@ -271,7 +276,7 @@ const DEV = new URLSearchParams(location.search).has("dev");   // ?dev=1 unlocks
 const SHARE_URL = "chartedgame.com";
 const MAXG = 6;
 const EPOCH = "2026-07-20";   // public launch day = puzzle #1; one puzzle per LOCAL calendar day
-const VERSION = "2026-07-31b";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
+const VERSION = "2026-07-31c";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
 const U = DATA.universe, ORD = DATA.bucketOrder, PUZ = DATA.puzzles;
 const BOSSES = DATA.bosses || [];
 const BOSS_EPOCH = "2026-08-02";   // first boss Sunday; bosses rotate weekly from here
@@ -889,7 +894,20 @@ function setDay(d){
   document.getElementById("reveal").style.display = done?"block":"none";
   if(done) reveal();
 }
+function applyBossUI(){          // boss-day banner: the loud "this is special" moment
+  const boss = isBossDay();
+  document.body.classList.toggle("bossday", boss);
+  const howtoEl = document.getElementById("howto");
+  if(boss && !howtoEl.dataset.boss){
+    howtoEl.dataset.boss = "1";
+    howtoEl.classList.remove("closed");     // returning players keep it collapsed normally — force it visible today
+    document.querySelector("#howtohead b").textContent = "👑 SUNDAY BOSS";
+    document.getElementById("howtobody").innerHTML =
+      'One legendary chart from market history. Any stock, any era — <b>read the dates</b>. Same six guesses, same streak.';
+  }
+}
 function renderAll(animLast){
+  applyBossUI();
   loadArt();
   inp.disabled = done;
   inp.placeholder = done ? "Round over — next chart tomorrow" : "Type a ticker or company…";
