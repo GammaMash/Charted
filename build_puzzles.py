@@ -106,7 +106,10 @@ for i, tk in enumerate(QUEUE):
       "long": LONG.get(tk),
     })
 
-json.dump({"universe": uni, "bucketOrder": BUCKET_ORDER, "puzzles": out},
+# Sunday bosses: static curated file (own historical windows); embedded as-is when present
+BOSSES = json.load(open(f"{D}/bosses.json")) if os.path.exists(f"{D}/bosses.json") else []
+
+json.dump({"universe": uni, "bucketOrder": BUCKET_ORDER, "puzzles": out, "bosses": BOSSES},
           open(f"{D}/gamedata.json", "w"), separators=(",", ":"))
 n_ans = sum(v["answer"] for v in uni.values())
 print(f"universe {len(uni)} · answers {n_ans} · gamedata {os.path.getsize(f'{D}/gamedata.json')//1024} KB")

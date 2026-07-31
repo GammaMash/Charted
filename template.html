@@ -271,8 +271,10 @@ const DEV = new URLSearchParams(location.search).has("dev");   // ?dev=1 unlocks
 const SHARE_URL = "chartedgame.com";
 const MAXG = 6;
 const EPOCH = "2026-07-20";   // public launch day = puzzle #1; one puzzle per LOCAL calendar day
-const VERSION = "2026-07-31a";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
+const VERSION = "2026-07-31b";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
 const U = DATA.universe, ORD = DATA.bucketOrder, PUZ = DATA.puzzles;
+const BOSSES = DATA.bosses || [];
+const BOSS_EPOCH = "2026-08-02";   // first boss Sunday; bosses rotate weekly from here
 const TKS = Object.keys(U).sort();
 
 function dateKey(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
@@ -283,6 +285,22 @@ function daysSinceEpoch(){
   return Math.max(0, Math.round((t-e)/86400000));
 }
 function todaysPuzzleIndex(){ return daysSinceEpoch() % PUZ.length; }
+// Sunday Boss: every Sunday BOTH modes get the same legendary chart over its actual
+// historical window, instead of the queue puzzle (which is skipped, not shifted).
+// Preview any boss with ?dev=1&boss=N (1-based) — dev state, nothing counts.
+const DEVBOSS = (()=>{ const b=+new URLSearchParams(location.search).get("boss");
+  return DEV && b>=1 && b<=BOSSES.length ? b-1 : -1; })();
+function isBossDay(){
+  if(DEVBOSS>=0) return true;
+  return !DEV && BOSSES.length>0 && new Date().getDay()===0;
+}
+function bossIndex(){
+  if(DEVBOSS>=0) return DEVBOSS;
+  const [y,m,dd]=BOSS_EPOCH.split("-").map(Number);
+  const e=new Date(y,m-1,dd), t=new Date(); t.setHours(0,0,0,0);
+  const w=Math.floor(Math.round((t-e)/86400000)/7);
+  return ((w%BOSSES.length)+BOSSES.length)%BOSSES.length;
+}
 
 const store = {
   get(k,d){ try{ const v = localStorage.getItem("ch_"+k); return v===null?d:JSON.parse(v);}catch(e){return this.m?.[k]??d;} },
@@ -321,7 +339,7 @@ function modeLabel(){ return mode==="degen" ? "💎 Degen" : "🎓 Casual"; }
 // it still plays, but wins don't count toward streak/wins/rank/Rolodex/first-try.
 function firstFinMode(){ return DEV ? "" : store.get("rev_"+todayKey(),""); }
 function isReplay(){ const f=firstFinMode(); return !!f && f!==(mode||"casual"); }
-function puzzle(){ return PUZ[day]; }
+function puzzle(){ return isBossDay() ? BOSSES[bossIndex()] : PUZ[day]; }
 function answer(){ return puzzle().answer; }
 function stage(){ return done ? 99 : guesses.length; }
 
@@ -359,6 +377,7 @@ function drawChart(){
   const padL=10, padR=72, padT=28, padB=26;
   let lo=Math.min(...ser), hi=Math.max(...ser);
   const range=(hi-lo)||1; lo-=range*.07; hi+=range*.07;
+  if(priced && lo<0) lo=0;                 // price axis never goes negative (big boss windows)
   const X=i=>padL+(W-padL-padR)*i/(n-1);
   const Y=v=>padT+(H-padT-padB)*(1-(v-lo)/(hi-lo));
   geo = {X,Y,n,padL,padR,W,H,priced,ser,ds};
@@ -385,13 +404,21 @@ function drawChart(){
     ctx.fillStyle=t.muted;
     ctx.fillText(priced ? "$"+fmtP(v) : (v>0?"+":"")+v.toFixed(0)+"%", W-padR+8, y+3.5);
   }
-  // month ticks
+  // time ticks: months for a 12-mo window, years for long boss windows
   ctx.fillStyle=t.muted; ctx.textAlign="center";
-  let lastM=-1;
-  for(let i=0;i<n;i++){
-    const d=new Date(ds[i]+"T12:00:00"), m=d.getMonth();
-    if(m!==lastM){ lastM=m;
-      if(m%2===0){ ctx.fillText(d.toLocaleString("en",{month:"short"}), X(i), H-9); } }
+  if(n>60){
+    let lastY=-1;
+    for(let i=0;i<n;i++){
+      const yy=+ds[i].slice(0,4);
+      if(yy!==lastY){ lastY=yy; ctx.fillText(String(yy), Math.max(X(i),padL+16), H-9); }
+    }
+  } else {
+    let lastM=-1;
+    for(let i=0;i<n;i++){
+      const d=new Date(ds[i]+"T12:00:00"), m=d.getMonth();
+      if(m!==lastM){ lastM=m;
+        if(m%2===0){ ctx.fillText(d.toLocaleString("en",{month:"short"}), X(i), H-9); } }
+    }
   }
   // area fill + the squiggle (clipped by animT)
   const m = Math.max(2, Math.round(n*animT));
@@ -420,7 +447,7 @@ function drawChart(){
   // 12-mo total badge — dodges the line and the annotation label
   const totalPct=(ys[n-1]/base-1)*100;
   if(animT>=1){
-    const btxt="12mo "+(totalPct>0?"+":"")+totalPct.toFixed(0)+"%";
+    const btxt=(isBossDay()?"total ":"12mo ")+(totalPct>0?"+":"")+totalPct.toFixed(0)+"%";
     ctx.font="bold 11px SF Mono, Menlo, monospace";
     const bw=ctx.measureText(btxt).width+12, bx=W-padR-bw-6;
     const clampY=v=>Math.min(Math.max(v,padT+4),H-padB-18);
@@ -454,7 +481,8 @@ function drawChart(){
     ctx.strokeStyle=t.panel; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(hx,hy,4,0,7); ctx.stroke();
     const d=new Date(ds[hoverI]+"T12:00:00");
     const val = priced ? "$"+fmtP(ys[hoverI]) : ((ys[hoverI]/base-1)*100).toFixed(0)+"% vs start";
-    const txt = d.toLocaleString("en",{month:"short",day:"numeric"})+" · "+val;
+    const dfmt = n>60 ? {month:"short",year:"2-digit"} : {month:"short",day:"numeric"};   // multi-year window: show the year
+    const txt = d.toLocaleString("en",dfmt)+" · "+val;
     ctx.font="10.5px SF Mono, Menlo, monospace";
     const tw=ctx.measureText(txt).width+14;
     let tx=Math.min(Math.max(hx-tw/2,padL+2),W-padR-tw+40), ty = hy>H/2 ? hy-34 : hy+14;
@@ -467,7 +495,7 @@ function drawChart(){
   if(done){ ctx.fillStyle=t.ink; ctx.fillText("$"+answer()+" — "+U[answer()].name, padL+6, 17); }
   else { ctx.fillStyle=t.muted; ctx.fillText("$????", padL+6, 17); }
   ctx.fillStyle=t.muted; ctx.font="9.5px SF Mono, Menlo, monospace";
-  ctx.textAlign="right"; ctx.fillText("last 12 months · weekly", W-padR+64, 17);
+  ctx.textAlign="right"; ctx.fillText((isBossDay()? p.window : "last 12 months")+" · weekly", W-padR+64, 17);
 }
 function fmtP(v){ return v>=1000 ? (v/1000).toFixed(1)+"k" : v.toFixed(v<20?2:0); }
 function animateDraw(){
@@ -539,7 +567,8 @@ function hintText(k){
                          : "Sector: "+secL(a.sector)+(SECTOR_PLAIN[a.sector]?" — "+SECTOR_PLAIN[a.sector]:"");
   if(k===2) return degen ? "📍 event marked on the chart"
                          : "How big? "+(SIZE_CLUE[a.cap]||"a well-known company");
-  if(k===3) return degen ? "Price axis · "+pctOffHigh()+"% below its 52-week high"
+  if(k===3) return degen ? "Price axis · "+(isBossDay()? "ended "+pctOffHigh()+"% below the peak"
+                                                       : pctOffHigh()+"% below its 52-week high")
                          : "Price axis revealed · one share ≈ "+relPrice();
   if(degen){
     if(k===4) return "Shape: "+shapeArch();
@@ -692,11 +721,11 @@ function reactTo(tk){
   return heat>=3?"🔥 Boiling — you're basically there":heat===2?"🌡️ Warm — right neighborhood":heat===1?"❄️ Cold":"🧊 Ice cold";
 }
 function degenStats(){
-  const ys=puzzle().closes, base=ys[0], last=ys[ys.length-1];
+  const ys=puzzle().closes, base=ys[0], last=ys[ys.length-1], boss=isBossDay();
   const ret=Math.round((last/base-1)*100);
   let pk=ys[0], dd=0; for(const y of ys){ pk=Math.max(pk,y); dd=Math.min(dd,y/pk-1); } dd=Math.round(dd*100);
   const row=(l,v)=>`<div class="statrow"><span>${l}</span><b>${v}</b></div>`;
-  return row("12-mo return",(ret>=0?"+":"")+ret+"%")+row("Off 52-wk high",pctOffHigh()+"%")+row("Max drawdown",dd+"%")+row("Shape",shapeArch());
+  return row(boss?"Window return":"12-mo return",(ret>=0?"+":"")+ret+"%")+row(boss?"Off the peak (end)":"Off 52-wk high",pctOffHigh()+"%")+row("Max drawdown",dd+"%")+row("Shape",shapeArch());
 }
 
 function submit(tk){
@@ -745,13 +774,14 @@ function reveal(fresh){
     window.goatcounter ? send() : setTimeout(send, 3000);
   }
   el.style.display="block";
+  const boss = isBossDay(), tag = boss ? "👑 BOSS #"+p.id : "#"+p.id;
   const degenReveal = mode==="degen";
   const midContent = degenReveal
-    ? `<div class="statsheet">${degenStats()}</div>`
+    ? (boss?`<div class="story">${p.story}</div>`:``)+`<div class="statsheet">${degenStats()}</div>`
     : `<div class="story">${p.story}</div>`+
       (p.co ? `<div class="cocard"><b class="lbl">WHO THEY ARE</b>${p.co.what}`+
-        `<div class="k1000"><b class="lbl">IF YOU'D PUT IN $1,000 A YEAR AGO</b>`+
-        `you'd have <b class="${puzzle().closes.at(-1)>=puzzle().closes[0]?"up":"dn"}">${k1000()}</b> today.</div>`+
+        `<div class="k1000"><b class="lbl">IF YOU'D PUT IN $1,000 ${boss?"AT THE START":"A YEAR AGO"}</b>`+
+        `you'd have <b class="${puzzle().closes.at(-1)>=puzzle().closes[0]?"up":"dn"}">${k1000()}</b> ${boss?"by the end.":"today."}</div>`+
         (p.long ? `<div class="k1000"><b class="lbl">${p.long.older?"$1,000 TEN YEARS AGO":"$1,000 IN "+p.long.year}</b>you'd have <b class="${p.long.amt>=1000?"up":"dn"}">$${p.long.amt.toLocaleString()}</b> today.</div>`:"")+
         `</div>` : "");
   el.innerHTML =
@@ -759,7 +789,7 @@ function reveal(fresh){
     midContent+
     `<div class="wordsrow"><span class="infotap" data-info="words">📖 chart words — what do these terms mean?</span></div>`+
     `<div class="wordsrow"><span class="infotap rolodex-open">🗂 your chart rolodex — ${metCount()} met</span></div>`+
-    `<div class="grid">CHARTED #${p.id} · ${modeLabel()} <span class="res">${res}</span>${rep?' <span style="color:var(--muted);font-size:12px">· replay</span>':''}<br>${emojiGrid()}</div>`+
+    `<div class="grid">CHARTED ${tag} · ${modeLabel()} <span class="res">${res}</span>${rep?' <span style="color:var(--muted);font-size:12px">· replay</span>':''}<br>${emojiGrid()}</div>`+
     `<button id="sharebtn">Share</button>`+
     (DEV && day<PUZ.length-1 ? `<button id="nextbtn">Next test day →</button>`:"")+
     (!DEV ? `<div id="countdown" style="margin-top:12px;color:var(--muted);font-size:12px"></div>`:"");
@@ -769,11 +799,13 @@ function reveal(fresh){
       let s=Math.floor((mid-now)/1000);
       const h=String(Math.floor(s/3600)).padStart(2,"0"); s%=3600;
       const m=String(Math.floor(s/60)).padStart(2,"0");
-      cd.textContent=`Next chart in ${h}:${m}:${String(s%60).padStart(2,"0")} — come back tomorrow.`;
+      const bossNext = BOSSES.length>0 && mid.getDay()===0;   // tomorrow is Sunday
+      cd.textContent=`Next chart in ${h}:${m}:${String(s%60).padStart(2,"0")} — `+
+        (bossNext?"👑 the Sunday Boss drops at midnight.":"come back tomorrow.");
     };
     tick(); clearInterval(window._cdTimer); window._cdTimer=setInterval(tick,1000);
   }
-  const shareTxt=`CHARTED #${p.id} · ${modeLabel()} ${res}${rep?" · replay":""}\n${emojiGrid()}\n\nWho charted? 👀 ${SHARE_URL} · @chartillect`;
+  const shareTxt=`CHARTED ${tag} · ${modeLabel()} ${res}${rep?" · replay":""}\n${emojiGrid()}\n\nWho charted? 👀 ${SHARE_URL} · @chartillect`;
   const QP = mode==="degen" ? {
     win:["Sir, this is a winner's casino. 🎰","Priced in? You WERE the price.","Chart recognized. Position respected. 💎","Tape don't lie. Neither do you.","Alpha. Raw, unlicensed alpha.","You've seen this movie. You wrote it.","Send it to the group chat. 📤"],
     loss:["Down bad on a chart with no money in it.","The candle won. It usually does. 🕯️","Liquidated. Emotionally.","Revenge trade loads at midnight. 🕛","That was the bear trap. You were the bear.","Guessing is a risk asset too, apparently.","Charts 1, degen 0. Run it back."]
@@ -810,7 +842,7 @@ function reveal(fresh){
     `<div class="ehead">${won?(firstTry?"FIRST TRY 🎯":"CHARTED IN "+guesses.length):"UNCHARTED"}</div>`+
     `<div class="eans">it was <b>$${answer()}</b> · ${U[answer()].name}</div>`+
     `<div class="egrid">${emojiGrid()}</div>`+
-    `<div class="emeta">CHARTED #${p.id} · ${modeLabel()} · ${res}</div>`+
+    `<div class="emeta">CHARTED ${tag} · ${modeLabel()} · ${res}</div>`+
     (rep?`<div class="emeta" style="margin-top:8px">replay — you'd already seen today's chart</div>`:``)+
     `<div class="equip">${quip()}</div>`+
     `<button id="endshare">Share result</button>`+
@@ -829,7 +861,7 @@ function showFeedback(msg){ const f=document.getElementById("feedback"); if(!f) 
   clearTimeout(f._h); if(msg) f._h=setTimeout(()=>{ f.innerHTML=""; }, 4500); }
 
 // ---------- state, streaks, dev bar ----------
-function stateKey(){ return DEV ? "dev"+day : "day_"+todayKey()+"_"+(mode||"casual"); }
+function stateKey(){ return DEV ? (DEVBOSS>=0 ? "devboss"+DEVBOSS : "dev"+day) : "day_"+todayKey()+"_"+(mode||"casual"); }
 function saveState(){ store.set(stateKey(),{guesses,done,won}); }
 function loadState(){
   const s=store.get(stateKey(),null);
@@ -861,7 +893,9 @@ function renderAll(animLast){
   loadArt();
   inp.disabled = done;
   inp.placeholder = done ? "Round over — next chart tomorrow" : "Type a ticker or company…";
-  document.getElementById("daytag").textContent="#"+puzzle().id+" · "+new Date().toLocaleString("en",{month:"short",day:"numeric"});
+  document.getElementById("daytag").textContent = isBossDay()
+    ? "👑 BOSS #"+puzzle().id
+    : "#"+puzzle().id+" · "+new Date().toLocaleString("en",{month:"short",day:"numeric"});
   drawChart(); renderHints(); renderRows(animLast); updateStreak();
   document.querySelectorAll("#devbar button[data-d]").forEach(b=>b.classList.toggle("on",+b.dataset.d===day));
   if(!done) document.getElementById("reveal").style.display="none";
@@ -914,7 +948,7 @@ function showInfo(k){ sheetcard.innerHTML = INFO[k] + '<button id="sheetclose">G
 // ---------- Phase 3: Chart Rolodex (collectible companies) ----------
 function metCount(){ return (store.get("rolodex",[])||[]).length; }
 function rolodexHTML(){
-  const EM={}; PUZ.forEach(p=>{ if(p.co&&p.co.emoji) EM[p.answer]=p.co.emoji; });
+  const EM={}; PUZ.concat(BOSSES).forEach(p=>{ if(p.co&&p.co.emoji) EM[p.answer]=p.co.emoji; });
   const met=(store.get("rolodex",[])||[]).filter(tk=>U[tk]);
   if(!met.length){
     return `<h3>🗂 Your Chart Rolodex</h3>`+
