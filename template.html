@@ -50,9 +50,9 @@
   #howtohead .chev{color:var(--muted); transition:transform .2s;}
   #howto.closed #howtobody{display:none;}
   #howto.closed #howtohead .chev{transform:rotate(-90deg);}
-  .cluechips{display:flex; gap:8px; margin:9px 0 8px;}
+  .cluechips{display:flex; flex-wrap:wrap; gap:8px; margin:9px 0 8px;}
   .cluechips span{border:1px solid var(--border); background:var(--panel2); border-radius:16px;
-    padding:5px 12px; font-size:12.5px; font-weight:700; color:var(--ink);}
+    padding:5px 12px; font-size:12.5px; font-weight:700; color:var(--ink); white-space:nowrap;}
   #howto b{color:var(--ink);}
   #howto .dim{color:var(--muted);}
   #devbar{display:flex; gap:6px; flex-wrap:wrap; align-items:center; font-size:10.5px; color:var(--muted);
@@ -271,7 +271,7 @@ const DEV = new URLSearchParams(location.search).has("dev");   // ?dev=1 unlocks
 const SHARE_URL = "chartedgame.com";
 const MAXG = 6;
 const EPOCH = "2026-07-20";   // public launch day = puzzle #1; one puzzle per LOCAL calendar day
-const VERSION = "2026-07-27f";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
+const VERSION = "2026-07-31a";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
 const U = DATA.universe, ORD = DATA.bucketOrder, PUZ = DATA.puzzles;
 const TKS = Object.keys(U).sort();
 
@@ -316,6 +316,11 @@ let mode = store.get("mode","");            // "casual" | "degen" | "" (unset ->
 let pendingRankUp = "";                       // set on a fresh win that crosses a rank threshold
 let pendingNewCo = false;                      // set when a fresh win adds a NEW company to the Rolodex
 function modeLabel(){ return mode==="degen" ? "💎 Degen" : "🎓 Casual"; }
+// Replay guard: the first board finished today records its mode. The OTHER mode's
+// board for the same day is a "replay" (the reveal already showed the answer) —
+// it still plays, but wins don't count toward streak/wins/rank/Rolodex/first-try.
+function firstFinMode(){ return DEV ? "" : store.get("rev_"+todayKey(),""); }
+function isReplay(){ const f=firstFinMode(); return !!f && f!==(mode||"casual"); }
 function puzzle(){ return PUZ[day]; }
 function answer(){ return puzzle().answer; }
 function stage(){ return done ? 99 : guesses.length; }
@@ -401,23 +406,44 @@ function drawChart(){
   ctx.beginPath();
   for(let i=0;i<m;i++){ i?ctx.lineTo(X(i),Y(ser[i])):ctx.moveTo(X(i),Y(ser[i])); }
   ctx.stroke(); ctx.shadowBlur=0;
-  // 12-mo total badge (inside plot, collision-free)
+  // hint-2 annotation rect (computed first so the badge can dodge it; drawn after the badge)
+  let annR = null, annDraw = null;
+  if(stage()>=2 && animT>=1){
+    const a=p.annot, ax=X(a.i), ay=Y(ser[a.i]);
+    ctx.font="10px SF Mono, Menlo, monospace";
+    const tw=ctx.measureText(a.label).width;
+    const tx = a.i>n/2 ? ax-8-tw : ax+8;                       // left edge of the text
+    const tb = ay + (ay<H/2 ? 16 : -10);                       // text baseline
+    annR = {x:tx-5, y:tb-11, w:tw+10, h:15};
+    annDraw = {a, ax, ay, tx, tb};
+  }
+  // 12-mo total badge — dodges the line and the annotation label
   const totalPct=(ys[n-1]/base-1)*100;
   if(animT>=1){
     const btxt="12mo "+(totalPct>0?"+":"")+totalPct.toFixed(0)+"%";
     ctx.font="bold 11px SF Mono, Menlo, monospace";
-    const bw=ctx.measureText(btxt).width+12, bx=W-padR-bw-6, by=Math.min(Math.max(Y(ser[n-1])-24,padT+4),H-padB-18);
+    const bw=ctx.measureText(btxt).width+12, bx=W-padR-bw-6;
+    const clampY=v=>Math.min(Math.max(v,padT+4),H-padB-18);
+    const hits=by=>{ let c=0;
+      for(let i=0;i<n;i++){ const px=X(i); if(px<bx-2||px>bx+bw+2) continue;
+        const py=Y(ser[i]); if(py>by-4&&py<by+20) c++; }
+      if(annR && bx<annR.x+annR.w && bx+bw>annR.x && by<annR.y+annR.h && by+16>annR.y) c+=10;
+      return c; };
+    const above=clampY(Y(ser[n-1])-24), below=clampY(Y(ser[n-1])+10);
+    const by = hits(above)<=hits(below) ? above : below;
     ctx.fillStyle=t.tipbg; ctx.fillRect(bx,by,bw,16);
     ctx.strokeStyle=t.grid; ctx.lineWidth=.8; ctx.strokeRect(bx,by,bw,16);
     ctx.fillStyle = totalPct>=0 ? t.green : t.red; ctx.textAlign="left";
     ctx.fillText(btxt, bx+6, by+12);
   }
-  // hint 2: annotation
-  if(stage()>=2 && animT>=1){
-    const a=p.annot, ax=X(a.i), ay=Y(ser[a.i]);
+  // hint 2: annotation (backing panel so it reads over the line + reveal art)
+  if(annDraw){
+    const {a, ax, ay, tx, tb} = annDraw;
+    ctx.fillStyle=t.tipbg; ctx.fillRect(annR.x,annR.y,annR.w,annR.h);
+    ctx.strokeStyle=t.grid; ctx.lineWidth=.8; ctx.strokeRect(annR.x,annR.y,annR.w,annR.h);
     ctx.fillStyle=t.accent; ctx.beginPath(); ctx.arc(ax,ay,3.5,0,7); ctx.fill();
-    ctx.font="10px SF Mono, Menlo, monospace"; ctx.textAlign = a.i>n/2 ? "right":"left";
-    ctx.fillText(a.label, a.i>n/2 ? ax-8 : ax+8, ay + (ay<H/2 ? 16 : -10));
+    ctx.font="10px SF Mono, Menlo, monospace"; ctx.textAlign="left";
+    ctx.fillText(a.label, tx, tb);
   }
   // hover crosshair + tooltip
   if(hoverI>=0 && hoverI<m && animT>=1){
@@ -652,11 +678,16 @@ function sfx(kind){ if(!soundOn) return; const a=SND[kind]; if(!a) return;
 let _primed=false;
 function primeAudio(){ if(_primed) return; _primed=true;      // iOS needs first playback inside a user gesture
   Object.values(SND).forEach(a=>{ const p=a.play(); if(p&&p.then) p.then(()=>{a.pause(); a.currentTime=0;}).catch(()=>{}); }); }
+let cheekyUsed = false;   // one cheeky reaction per board, then temperature only (reset in loadState)
 function reactTo(tk){
   const a=U[answer()], g=U[tk], j=judge(tk), ap=a.price||0, gp=g.price||0;
-  if(ap&&gp&&gp<ap*0.15) return "Bold. Wrong, but bold. 😅";
-  if(j.capDir==="up" && (ORD[a.cap]-ORD[g.cap])>=2) return "Way too small — think bigger. 🔍";
-  if(j.capDir==="down" && (ORD[g.cap]-ORD[a.cap])>=2) return "Too giant. Scale it down.";
+  if(!cheekyUsed){
+    let c="";
+    if(ap&&gp&&gp<ap*0.15) c="Bold. Wrong, but bold. 😅";
+    else if(j.capDir==="up" && (ORD[a.cap]-ORD[g.cap])>=2) c="Way too small — think bigger. 🔍";
+    else if(j.capDir==="down" && (ORD[g.cap]-ORD[a.cap])>=2) c="Too giant. Scale it down.";
+    if(c){ cheekyUsed=true; return c; }
+  }
   const heat=(j.sectorOk?1:0)+(j.capDir==="same"?1:0)+(j.priceClose?1:0);
   return heat>=3?"🔥 Boiling — you're basically there":heat===2?"🌡️ Warm — right neighborhood":heat===1?"❄️ Cold":"🧊 Ice cold";
 }
@@ -673,18 +704,23 @@ function submit(tk){
   guesses.push(tk); inp.value=""; acItems=[]; ac.style.display="none";
   store.set("played",true);
   const M = mode||"casual", winsBefore = winCount(M);
-  if(tk===answer()){ done=true; won=true; recordWin();
-    if(!store.get("wc_"+stateKey(),false)){ store.set("wc_"+stateKey(),true); store.set("wins_"+M, winsBefore+1);
-      const rx=store.get("rolodex",[]); pendingNewCo=!rx.includes(answer());
-      if(pendingNewCo){ rx.push(answer()); store.set("rolodex",rx); }        // collect the company
+  const rep = isReplay();                     // evaluated BEFORE this board can set the flag
+  if(tk===answer()){ done=true; won=true;
+    if(!rep){ recordWin();
+      if(!store.get("wc_"+stateKey(),false)){ store.set("wc_"+stateKey(),true); store.set("wins_"+M, winsBefore+1);
+        const rx=store.get("rolodex",[]); pendingNewCo=!rx.includes(answer());
+        if(pendingNewCo){ rx.push(answer()); store.set("rolodex",rx); }        // collect the company
+      }
+      pendingRankUp = rankUpMsg(M, winsBefore);
     }
-    pendingRankUp = rankUpMsg(M, winsBefore);
   }
   else if(guesses.length>=MAXG){ done=true; won=false; }
   saveState(); renderAll(true);
   if(!done){ sfx("blip"); showFeedback(reactTo(tk)); }      // hotter/colder + cheeky reactions (inline, never overlaps)
   if(done){
-    const first = won && guesses.length===1;
+    showFeedback("");                          // don't leave the last reaction pill up behind the endcard
+    if(!DEV && !firstFinMode()) store.set("rev_"+todayKey(), M);   // this board finished first today
+    const first = won && guesses.length===1 && !rep;
     sfx(won ? (first?"first":"win") : "lose");
     const st=document.getElementById("stamp");
     document.getElementById("stamptxt").textContent = won ? (first?"FIRST TRY 🎯":"CHARTED IN "+guesses.length) : "UNCHARTED…";
@@ -701,8 +737,9 @@ function emojiGrid(){
 }
 function reveal(fresh){
   const el=document.getElementById("reveal"), p=puzzle();
+  const rep = isReplay();
   const res = won ? guesses.length+"/6" : "X/6";
-  if(!DEV && !store.get("counted_"+stateKey(),false)){
+  if(!DEV && !rep && !store.get("counted_"+stateKey(),false)){
     store.set("counted_"+stateKey(),true);
     const send=()=>{ if(window.goatcounter&&goatcounter.count){ goatcounter.count({path:"solve-"+(won?guesses.length:"X"),title:"CHARTED #"+p.id,event:true}); if(won) goatcounter.count({path:"streak-"+store.get("streak",0),title:"CHARTED streak",event:true}); } };
     window.goatcounter ? send() : setTimeout(send, 3000);
@@ -722,7 +759,7 @@ function reveal(fresh){
     midContent+
     `<div class="wordsrow"><span class="infotap" data-info="words">📖 chart words — what do these terms mean?</span></div>`+
     `<div class="wordsrow"><span class="infotap rolodex-open">🗂 your chart rolodex — ${metCount()} met</span></div>`+
-    `<div class="grid">CHARTED #${p.id} · ${modeLabel()} <span class="res">${res}</span><br>${emojiGrid()}</div>`+
+    `<div class="grid">CHARTED #${p.id} · ${modeLabel()} <span class="res">${res}</span>${rep?' <span style="color:var(--muted);font-size:12px">· replay</span>':''}<br>${emojiGrid()}</div>`+
     `<button id="sharebtn">Share</button>`+
     (DEV && day<PUZ.length-1 ? `<button id="nextbtn">Next test day →</button>`:"")+
     (!DEV ? `<div id="countdown" style="margin-top:12px;color:var(--muted);font-size:12px"></div>`:"");
@@ -736,10 +773,15 @@ function reveal(fresh){
     };
     tick(); clearInterval(window._cdTimer); window._cdTimer=setInterval(tick,1000);
   }
-  const shareTxt=`CHARTED #${p.id} · ${modeLabel()} ${res}\n${emojiGrid()}\n\nWho charted? 👀 ${SHARE_URL} · @chartillect`;
-  const QUIPS = won
-    ? ["Charted and departed. 📈","Zero doubt. Full port. 💰","Warren and Charlie would nod.","Undefeated vs the chart.","Certified chart nerd. 🧠","Line only goes up. 📈","Touch charts, not grass. 📈"]
-    : ["Diamond hands, paper eyes. 💎🧻","Not financial advice. CLEARLY.","Even Buffett has red days.","Bought the top, missed the ticker.","L on the chart, W on the vibes. 🫡","The chart won this round. 🫡","Stopped out. Run it back tomorrow."];
+  const shareTxt=`CHARTED #${p.id} · ${modeLabel()} ${res}${rep?" · replay":""}\n${emojiGrid()}\n\nWho charted? 👀 ${SHARE_URL} · @chartillect`;
+  const QP = mode==="degen" ? {
+    win:["Sir, this is a winner's casino. 🎰","Priced in? You WERE the price.","Chart recognized. Position respected. 💎","Tape don't lie. Neither do you.","Alpha. Raw, unlicensed alpha.","You've seen this movie. You wrote it.","Send it to the group chat. 📤"],
+    loss:["Down bad on a chart with no money in it.","The candle won. It usually does. 🕯️","Liquidated. Emotionally.","Revenge trade loads at midnight. 🕛","That was the bear trap. You were the bear.","Guessing is a risk asset too, apparently.","Charts 1, degen 0. Run it back."]
+  } : {
+    win:["Charted and departed. 📈","Zero doubt. Full port. 💰","Warren and Charlie would nod.","Undefeated vs the chart.","Certified chart nerd. 🧠","Line only goes up. 📈","Touch charts, not grass. 📈"],
+    loss:["Diamond hands, paper eyes. 💎🧻","Not financial advice. CLEARLY.","Even Buffett has red days.","Bought the top, missed the ticker.","L on the chart, W on the vibes. 🫡","The chart won this round. 🫡","Stopped out. Run it back tomorrow."]
+  };
+  const QUIPS = won ? QP.win : QP.loss;
   const quip=()=>QUIPS[Math.floor(Math.random()*QUIPS.length)];
   function copyShare(){
     (navigator.clipboard?.writeText(shareTxt)||Promise.reject()).then(()=>showToast("Copied! "+quip()),()=>{
@@ -762,13 +804,14 @@ function reveal(fresh){
   // end-of-game share popup — the share moment, caught at peak emotion
   const ec=document.getElementById("endcard"), ecb=document.getElementById("endcardbox");
   ec.classList.toggle("lose", !won);
-  const firstTry = won && guesses.length===1;
+  const firstTry = won && guesses.length===1 && !rep;
   const M = mode||"casual";
   ecb.innerHTML =
     `<div class="ehead">${won?(firstTry?"FIRST TRY 🎯":"CHARTED IN "+guesses.length):"UNCHARTED"}</div>`+
     `<div class="eans">it was <b>$${answer()}</b> · ${U[answer()].name}</div>`+
     `<div class="egrid">${emojiGrid()}</div>`+
     `<div class="emeta">CHARTED #${p.id} · ${modeLabel()} · ${res}</div>`+
+    (rep?`<div class="emeta" style="margin-top:8px">replay — you'd already seen today's chart</div>`:``)+
     `<div class="equip">${quip()}</div>`+
     `<button id="endshare">Share result</button>`+
     `<div id="endstreak">${won?"🔥 "+store.get("streak",0)+" day streak · ":""}${rankTitle(M)}</div>`+
@@ -791,6 +834,7 @@ function saveState(){ store.set(stateKey(),{guesses,done,won}); }
 function loadState(){
   const s=store.get(stateKey(),null);
   if(s){ guesses=s.guesses; done=s.done; won=s.won; } else { guesses=[]; done=false; won=false; }
+  cheekyUsed = guesses.length>0;   // fresh board gets one cheeky reaction; a resumed board doesn't repeat it
 }
 function recordWin(){          // calendar streak: consecutive local days with a solve
   if(DEV) return;
@@ -828,7 +872,7 @@ function buildDevBar(){
   PUZ.slice(0,7).forEach((p,i)=>{ const b=document.createElement("button"); b.dataset.d=i;
     b.textContent="Day "+(i+1); b.addEventListener("click",()=>setDay(i)); bar.appendChild(b); });
   const r=document.createElement("button"); r.textContent="↺ reset all";
-  r.addEventListener("click",()=>{ for(let i=0;i<PUZ.length;i++) store.set("d"+i,null); setDay(0); });
+  r.addEventListener("click",()=>{ for(let i=0;i<PUZ.length;i++) store.set("dev"+i,null); setDay(0); });
   bar.appendChild(r);
 }
 // ---------- info sheets ----------
@@ -918,7 +962,7 @@ window.addEventListener("focus", checkNewDay);
 setInterval(checkNewDay, 30000);
 
 // ---------- mode chooser wiring ----------
-function applyModeUI(){ const mb=document.getElementById("modebtn"); if(mb) mb.textContent=modeLabel(); }
+function applyModeUI(){ const mb=document.getElementById("modebtn"); if(mb) mb.textContent = mode ? modeLabel() : "choose mode"; }
 function openChooser(){ document.getElementById("chooser").classList.add("show"); }
 function chooseMode(m){ mode=m; store.set("mode",m);
   document.getElementById("chooser").classList.remove("show"); applyModeUI(); setDay(day); }
