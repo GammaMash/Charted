@@ -73,6 +73,7 @@
   .hint{font-size:12.5px; font-weight:600; border:1px solid var(--border); border-radius:20px; padding:6px 12px;
     background:var(--panel); transition:all .2s;}
   .hint.locked{opacity:.6;}
+  .hintdigest{width:100%; font-size:11.5px; font-weight:600; color:var(--muted); padding:2px 4px 0;}
   .hint.new{border-color:var(--accent); color:var(--accent); background:var(--chip-accent);
     animation:pop .35s ease;}
   @keyframes pop{0%{transform:scale(.85); opacity:0;} 100%{transform:scale(1); opacity:1;}}
@@ -96,7 +97,8 @@
   .cell{background:var(--panel); border:1.5px solid var(--border); border-radius:9px; padding:9px 8px; font-weight:600;
     text-align:center; white-space:nowrap; overflow:hidden;}
   .cell.tk{color:var(--ink); font-weight:bold; text-align:left;}
-  .cell.tk small{display:block; font-weight:500; font-size:10.5px; color:var(--muted);}
+  .cell.tk small{display:block; font-weight:500; font-size:10.5px; color:var(--muted);
+    overflow:hidden; text-overflow:ellipsis;}
   .cell.good{border-color:var(--green); color:var(--green); background:var(--chip-good);}
   .cell.warm{border-color:var(--yellow); color:var(--yellow); background:var(--chip-warm);}
   .cell.bad{color:var(--txt); opacity:.8;}
@@ -231,6 +233,8 @@
     #soundbtn,#statsbtn{font-size:15px; padding:2px;}
     #chartwrap{padding:5px; margin:8px 0; border-radius:12px;}
     .row{gap:5px; grid-template-columns:84px 1fr 1fr 1fr;}
+    .cell{font-size:12px; padding:9px 6px;}
+    .cell.tk small{font-size:10px;}
     #hints{gap:5px;}
   }
 </style>
@@ -255,12 +259,12 @@
     Every guess earns three clues · every miss unlocks a hint · new chart at midnight.</div></div>
   <div id="devbar"><b>TEST&nbsp;MODE</b></div>
   <div id="chartwrap"><canvas id="chart"></canvas></div>
-  <div id="hints"></div>
   <div id="guessarea">
     <input id="guessinput" type="text" name="ticker-search" placeholder="Type a ticker or company…" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" enterkeyhint="go" role="combobox">
     <div id="ac"></div>
   </div>
   <div id="feedback"></div>
+  <div id="hints"></div>
   <div id="rows"></div>
   <div id="reveal"></div>
   <div id="sheet"><div id="sheetcard"></div></div>
@@ -286,7 +290,7 @@ const DEV = new URLSearchParams(location.search).has("dev");   // ?dev=1 unlocks
 const SHARE_URL = "chartedgame.com";
 const MAXG = 6;
 const EPOCH = "2026-07-20";   // public launch day = puzzle #1; one puzzle per LOCAL calendar day
-const VERSION = "2026-07-31d";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
+const VERSION = "2026-07-31e";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
 const U = DATA.universe, ORD = DATA.bucketOrder, PUZ = DATA.puzzles;
 const BOSSES = DATA.bosses || [];
 const BOSS_EPOCH = "2026-08-02";   // first boss Sunday; bosses rotate weekly from here
@@ -545,6 +549,9 @@ const SECTOR_LABEL = {"Tech":"Tech","Semis":"Chips","Crypto":"Crypto","Comm/Medi
 const SIZE_LABEL = {"MEGA":"Giant","LARGE":"Big","MID":"Mid","SMALL":"Small"};
 const SIZE_DESC  = {"MEGA":"$200B+ \u2014 Apple tier","LARGE":"$20\u2013200B","MID":"$2\u201320B","SMALL":"under $2B"};
 function secL(s){ return SECTOR_LABEL[s]||s; }
+const SECTOR_CELL = {"Media & Web":"Media","Everyday Goods":"Everyday","Autos & EV":"Autos",
+  "Healthcare":"Health","Real Estate":"Property","Industrial":"Industry"};   // fits the narrow board cells
+function secC(s){ const l=secL(s); return SECTOR_CELL[l]||l; }
 function k1000(){ const ys=puzzle().closes; const v=Math.round(ys[ys.length-1]/ys[0]*1000/10)*10;
   return "$"+v.toLocaleString("en-US"); }
 
@@ -605,23 +612,40 @@ function hintText(k){
     if(k===5) return (p.co?"You might know them from: "+p.co.hint+" · ":"")+"Starts with “"+answer()[0]+"”";
   }
 }
+function hintCompact(k){          // absorbed hints shrink to a one-line digest — page stays calm
+  const a=U[answer()], p=puzzle(), degen = mode==="degen";
+  if(k===1) return "🏷 "+secL(a.sector);
+  if(k===2) return degen ? "📍 event" : "⚖️ "+(SIZE_LABEL[a.cap]||"Big");
+  if(k===3) return degen ? "💲 "+(p.window? "peaked $"+fmtP(Math.max(...p.closes)) : pctOffHigh()+"% off high")
+                         : "💲 ≈ "+relPrice();
+  if(k===4) return degen ? "〰 "+shapeArch() : emojiStr()||"🖼";
+  return "";
+}
 function renderHints(){
   const el=document.getElementById("hints"); el.innerHTML="";
   if(done) return;                              // post-game: hints are spent — clean screen
-  for(let k=1;k<MAXG;k++){
-    if(stage()<k) break;                       // locked hints stay invisible — calm screen
-    const d=document.createElement("div");
-    d.className="hint "+(stage()===k&&!done?"new":"");
-    d.textContent = hintText(k);
-    el.appendChild(d);
-    if(k===5 && mode!=="degen" && puzzle().px){   // casual finale: the pixelated logo (baked data URI — no network spoiler)
-      const w=document.createElement("div"); w.className="hint pxhint "+(stage()===k&&!done?"new":"");
-      const im=document.createElement("img"); im.src=puzzle().px; im.alt="";
-      w.append(im, document.createTextNode("their logo — can you make it out?"));
-      el.appendChild(w);
-    }
+  const cur=Math.min(stage(),MAXG-1);
+  const olds=[];
+  for(let k=1;k<=cur;k++){
+    if(k===cur){                                // only the newest hint gets a full pill
+      const d=document.createElement("div");
+      d.className="hint new";
+      d.textContent = hintText(k);
+      if(olds.length){                          // digest of everything already absorbed, above the fresh hint
+        const dg=document.createElement("div"); dg.className="hintdigest";
+        dg.textContent = olds.join("  ·  ");
+        el.appendChild(dg);
+      }
+      el.appendChild(d);
+      if(k===5 && mode!=="degen" && puzzle().px){   // casual finale: pixelated logo (baked data URI — no network spoiler)
+        const w=document.createElement("div"); w.className="hint pxhint new";
+        const im=document.createElement("img"); im.src=puzzle().px; im.alt="";
+        w.append(im, document.createTextNode("their logo — can you make it out?"));
+        el.appendChild(w);
+      }
+    } else olds.push(hintCompact(k));
   }
-  if(!done && stage()<MAXG-1){
+  if(stage()<MAXG-1){
     const nx=document.createElement("div"); nx.className="hintnext";
     nx.textContent = stage()===0 ? "hints unlock as you miss" : "next hint: "+rungName(stage()+1).toLowerCase();
     el.appendChild(nx);
@@ -650,7 +674,7 @@ function buildRow(i, animLast){
       const hm=heat>=3?"🔥":heat===2?"🌡️":heat===1?"❄️":"🧊";   // board remembers how close each guess was
       r.innerHTML=
        `<div class="cell tk">$${j.tk}<span class="heat">${hm}</span><small>${U[j.tk].name}</small></div>`+
-       `<div class="cell ${j.sectorOk?"good":"bad"}">${j.sectorOk?"✓":"✗"} ${secL(j.sector)}</div>`+
+       `<div class="cell ${j.sectorOk?"good":"bad"}">${j.sectorOk?"✓":"✗"} ${secC(j.sector)}</div>`+
        `<div class="cell ${j.capDir==="same"?"good":"bad"}">${j.capDir==="same"?"✓ "+SIZE_LABEL[U[j.tk].cap]:(j.capDir==="up"?"⬆ bigger":"⬇ smaller")}</div>`+
        `<div class="cell ${j.priceDir==="same"?"good":"bad"}">${j.priceDir==="same"?"✓ similar":(j.priceDir==="up"?"⬆ higher":"⬇ lower")}</div>`;
     }
@@ -767,6 +791,8 @@ function submit(tk){
   if(done||!U[tk]||guesses.includes(tk)) return;
   guesses.push(tk); inp.value=""; acItems=[]; ac.style.display="none";
   store.set("played",true);
+  if(guesses.length===1 && !isBossDay())        // tutorial folds away once you're actually playing (boss banner stays up)
+    document.getElementById("howto").classList.add("closed");
   const M = mode||"casual", winsBefore = winCount(M);
   const rep = isReplay();                     // evaluated BEFORE this board can set the flag
   if(tk===answer()){ done=true; won=true;
