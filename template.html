@@ -14,7 +14,12 @@
 <meta property="og:description" content="Guess the ticker from its last 12 months. New chart every day.">
 <style>
   :root{
-    --bg:#0c0e14; --bg2:#12141d; --panel:#161927; --panel2:#1c2033;
+    /* mono is a DATA typeface — tickers, prices, the grid, the chart. Prose reads as a
+       developer tool in it, so sentences and buttons use a humanist sans. */
+    --mono:"SF Mono",SFMono-Regular,ui-monospace,Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,"Helvetica Neue",Arial,sans-serif;
+    --chartbg:#1b1f31; --chartbd:#454a68;
+    --bg:#08090f; --bg2:#12141d; --panel:#161927; --panel2:#1c2033;
     --grid:#464a60; --border:#343850; --txt:#dde0ea; --muted:#aaaec4; --ink:#ffffff;
     --accent:#35e0e8; --accent-ink:#062a2e; --green:#3ddc84; --red:#ff5964; --yellow:#ffd166;
     --chip-good:rgba(61,220,132,.12); --chip-warm:rgba(255,209,102,.12); --chip-accent:rgba(53,224,232,.10);
@@ -22,7 +27,8 @@
     --glowline:#ffffff;
   }
   [data-theme="light"]{
-    --bg:#eef0f5; --bg2:#e6e9f0; --panel:#ffffff; --panel2:#f2f4f9;
+    --chartbg:#ffffff; --chartbd:#c3c7d6;
+    --bg:#e9ecf3; --bg2:#e6e9f0; --panel:#ffffff; --panel2:#f2f4f9;
     --grid:#c9ccd9; --border:#d3d6e2; --txt:#33374a; --muted:#5d6178; --ink:#101219;
     --accent:#0891b2; --accent-ink:#ffffff; --green:#15803d; --red:#dc2626; --yellow:#a16207;
     --chip-good:rgba(21,128,61,.10); --chip-warm:rgba(161,98,7,.10); --chip-accent:rgba(8,145,178,.08);
@@ -33,8 +39,11 @@
   html,body{margin:0;}
   body{background:radial-gradient(1200px 500px at 50% -100px, var(--bg2), var(--bg)) fixed, var(--bg);
     color:var(--txt);
-    font-family:"SF Mono",SFMono-Regular,ui-monospace,Menlo,Consolas,monospace;
+    font-family:var(--sans);
     display:flex; justify-content:center; min-height:100vh; transition:background .25s,color .25s;}
+  h1,#headmeta,.cell,.hcell,.hintdigest,#reveal .grid,#endcardbox .egrid,#endcardbox .emeta,
+  #countdown,.rcard .rtk,.opt .tk,.opt .fb,#picklbl span,footer,#devbar,.sbar .sn,.sbar .sfill,
+  #reveal .cocard b.lbl,#reveal .statrow b{font-family:var(--mono);}
   #app{width:100%; max-width:560px; padding:16px 14px 44px;}
   header{display:flex; align-items:center; gap:10px; margin-bottom:10px;}
   #logo{flex:none; width:34px; height:34px;}
@@ -66,8 +75,25 @@
     border-radius:7px; padding:3px 8px; cursor:pointer; transition:all .15s;}
   #devbar button:hover{border-color:var(--accent);}
   #devbar button.on{background:var(--accent); color:var(--accent-ink); border-color:var(--accent); font-weight:bold;}
-  #chartwrap{background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:8px;
-    margin:10px 0; box-shadow:var(--shadow);}
+  #ask{font-size:19px; font-weight:700; color:var(--ink); letter-spacing:-.2px; line-height:1.25; margin:6px 2px 2px;}
+  #asksub{font-size:12.5px; color:var(--muted); margin:0 2px 9px;}
+  #chartwrap{background:var(--chartbg); border:1px solid var(--chartbd); border-radius:16px; padding:8px;
+    margin:2px 0 11px; box-shadow:var(--shadow), 0 0 0 1px rgba(53,224,232,.06);}
+  #picklbl{display:flex; justify-content:space-between; align-items:baseline; margin:4px 3px 8px;}
+  #picklbl b{font-size:13.5px; color:var(--ink); font-weight:650;}
+  #picklbl span{font-size:11px; color:var(--muted);}
+  #opts{display:grid; grid-template-columns:1fr 1fr; gap:7px;}
+  .opt{background:var(--panel); border:1.5px solid var(--chartbd); border-radius:12px; padding:9px 10px;
+    text-align:left; font:inherit; color:var(--txt); cursor:pointer; min-height:52px; transition:.14s;}
+  .opt:hover{border-color:var(--accent); transform:translateY(-1px);}
+  .opt .nm{font-size:13.5px; font-weight:650; color:var(--ink); display:block; line-height:1.2;}
+  .opt .tk{font-size:10px; color:var(--muted); font-weight:700; display:block; margin-top:3px;}
+  .opt.dead{opacity:.5; border-color:var(--border); background:var(--bg2); cursor:default; transform:none;}
+  .opt.dead .nm{color:var(--muted); text-decoration:line-through; text-decoration-thickness:1px;}
+  .opt.dead .fb{display:block; margin-top:4px; font-size:9.5px; line-height:1.35;}
+  .opt .heat{float:right; font-size:11px;}
+  .fb .no{color:var(--red);} .fb .yes{color:var(--green);} .fb .dir{color:var(--yellow);}
+  #lesson{font-size:12px; color:var(--muted); line-height:1.5; margin:9px 3px 2px;}
   canvas{width:100%; display:block; border-radius:8px; cursor:crosshair;}
   #hints{display:flex; gap:6px; flex-wrap:wrap; margin:10px 0;}
   .hint{font-size:12.5px; font-weight:600; border:1px solid var(--border); border-radius:20px; padding:6px 12px;
@@ -254,10 +280,12 @@
     <button id="soundbtn" title="Sound">🔇</button>
     <button id="themebtn" title="Toggle light/dark">◐</button>
   </header>
-  <div id="howto"><div id="howtohead"><b>Six guesses. One chart. What stock is it?</b><span class="chev">▾</span></div>
+  <div id="howto"><div id="howtohead"><b>How to play</b><span class="chev">▾</span></div>
     <div id="howtobody"><div class="cluechips"><span class="infotap" data-info="sector">🏷 sector ⓘ</span><span class="infotap" data-info="size">⚖️ size ⓘ</span><span>💲 price hi/lo</span></div>
     Every guess earns three clues · every miss unlocks a hint · new chart at midnight.</div></div>
   <div id="devbar"><b>TEST&nbsp;MODE</b></div>
+  <div id="ask">Which company's stock is this?</div>
+  <div id="asksub">Six guesses. Every wrong pick gives you clues.</div>
   <div id="chartwrap"><canvas id="chart"></canvas></div>
   <div id="guessarea">
     <input id="guessinput" type="text" name="ticker-search" placeholder="Type a ticker or company…" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" enterkeyhint="go" role="combobox">
@@ -265,6 +293,9 @@
   </div>
   <div id="feedback"></div>
   <div id="hints"></div>
+  <div id="lesson"></div>
+  <div id="picklbl"><b>Pick one 👇</b><span id="gleft"></span></div>
+  <div id="opts"></div>
   <div id="rows"></div>
   <div id="reveal"></div>
   <div id="sheet"><div id="sheetcard"></div></div>
@@ -290,7 +321,7 @@ const DEV = new URLSearchParams(location.search).has("dev");   // ?dev=1 unlocks
 const SHARE_URL = "chartedgame.com";
 const MAXG = 6;
 const EPOCH = "2026-07-20";   // public launch day = puzzle #1; one puzzle per LOCAL calendar day
-const VERSION = "2026-07-31e";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
+const VERSION = "2026-07-31f";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
 const U = DATA.universe, ORD = DATA.bucketOrder, PUZ = DATA.puzzles;
 const BOSSES = DATA.bosses || [];
 const BOSS_EPOCH = "2026-08-02";   // first boss Sunday; bosses rotate weekly from here
@@ -359,12 +390,16 @@ function modeLabel(){ return mode==="degen" ? "💎 Degen" : "🎓 Casual"; }
 function firstFinMode(){ return DEV ? "" : store.get("rev_"+todayKey(),""); }
 function isReplay(){ const f=firstFinMode(); return !!f && f!==(mode||"casual"); }
 function puzzle(){ return isBossDay() ? BOSSES[bossIndex()] : PUZ[day]; }
+// Casual is a 12-way pick: the blank text box is a recall task a casual player can't perform.
+// Degen keeps free text against all 534 — recognition vs recall is what splits the modes now.
+function mcMode(){ return mode!=="degen" && (puzzle().opts||[]).length>0; }
 function answer(){ return puzzle().answer; }
 function stage(){ return done ? 99 : guesses.length; }
 
 // ---------- chart ----------
 const cv = document.getElementById("chart");
 const ctx = cv.getContext("2d");
+const MONO = "SF Mono, Menlo, monospace";   // the chart is data — always mono, whatever the page uses
 let animT = 1, hoverI = -1, geo = null;   // geo: {X,Y,n,padL,padR,W,H,priced,ser}
 
 // reveal art: loaded ONLY after the round ends (no spoilers, not even in network requests)
@@ -439,19 +474,37 @@ function drawChart(){
         if(m%2===0){ ctx.fillText(d.toLocaleString("en",{month:"short"}), X(i), H-9); } }
     }
   }
-  // area fill + the squiggle (clipped by animT)
+  // Colour carries the story: a rally and a crash used to render identically.
+  // Casual = one verdict colour + a "where it started" baseline (answers "compared to what?").
+  // Degen = week-by-week heat, every up week green and every down week red.
   const m = Math.max(2, Math.round(n*animT));
+  const endUp = ser[n-1] >= ser[0];
+  const lineCol = endUp ? t.green : t.red;
   const grad = ctx.createLinearGradient(0,padT,0,H-padB);
-  grad.addColorStop(0,t.fillTop); grad.addColorStop(1,t.fillBot);
+  grad.addColorStop(0, endUp ? "rgba(61,220,132,.24)" : "rgba(255,89,100,.22)");
+  grad.addColorStop(1, "rgba(0,0,0,0)");
   ctx.beginPath(); ctx.moveTo(X(0),Y(ser[0]));
   for(let i=1;i<m;i++) ctx.lineTo(X(i),Y(ser[i]));
   ctx.lineTo(X(m-1),H-padB); ctx.lineTo(X(0),H-padB); ctx.closePath();
   ctx.fillStyle=grad; ctx.fill();
-  if(t.glow){ ctx.shadowColor="rgba(53,224,232,.35)"; ctx.shadowBlur=8; }
-  ctx.strokeStyle=t.line; ctx.lineWidth=2.6; ctx.lineJoin="round"; ctx.lineCap="round";
-  ctx.beginPath();
-  for(let i=0;i<m;i++){ i?ctx.lineTo(X(i),Y(ser[i])):ctx.moveTo(X(i),Y(ser[i])); }
-  ctx.stroke(); ctx.shadowBlur=0;
+  if(mode!=="degen" && animT>=1){                       // start line — the most educational pixel here
+    ctx.setLineDash([4,4]); ctx.strokeStyle=t.muted; ctx.lineWidth=1; ctx.globalAlpha=.75;
+    ctx.beginPath(); ctx.moveTo(padL,Y(ser[0])); ctx.lineTo(W-padR,Y(ser[0])); ctx.stroke();
+    ctx.setLineDash([]); ctx.globalAlpha=1;
+    ctx.fillStyle=t.muted; ctx.font="9.5px "+MONO; ctx.textAlign="left";
+    ctx.fillText("where it started", padL+4, Y(ser[0])-5);
+  }
+  ctx.lineWidth=2.8; ctx.lineJoin="round"; ctx.lineCap="round";
+  if(mode==="degen"){
+    for(let i=1;i<m;i++){ ctx.strokeStyle = ser[i]>=ser[i-1] ? t.green : t.red;
+      ctx.beginPath(); ctx.moveTo(X(i-1),Y(ser[i-1])); ctx.lineTo(X(i),Y(ser[i])); ctx.stroke(); }
+  } else {
+    if(t.glow){ ctx.shadowColor = endUp ? "rgba(61,220,132,.4)" : "rgba(255,89,100,.4)"; ctx.shadowBlur=9; }
+    ctx.strokeStyle=lineCol;
+    ctx.beginPath();
+    for(let i=0;i<m;i++){ i?ctx.lineTo(X(i),Y(ser[i])):ctx.moveTo(X(i),Y(ser[i])); }
+    ctx.stroke(); ctx.shadowBlur=0;
+  }
   // hint-2 annotation rect (computed first so the badge can dodge it; drawn after the badge)
   let annR = null, annDraw = null;
   if(stage()>=2 && animT>=1){
@@ -609,7 +662,8 @@ function hintText(k){
     if(k===5) return emojiStr();                                     // emoji only — you decode it
   } else {
     if(k===4) return (emojiStr()?emojiStr()+"  ":"")+"picture what they make…";
-    if(k===5) return (p.co?"You might know them from: "+p.co.hint+" · ":"")+"Starts with “"+answer()[0]+"”";
+    // no first-letter clue in casual: against 12 visible names it's the answer, not a hint.
+    if(k===5) return p.co ? "You might know them from: "+p.co.hint : "One last look at the chart…";
   }
 }
 function hintCompact(k){          // absorbed hints shrink to a one-line digest — page stays calm
@@ -621,6 +675,46 @@ function hintCompact(k){          // absorbed hints shrink to a one-line digest 
   if(k===4) return degen ? "〰 "+shapeArch() : emojiStr()||"🖼";
   return "";
 }
+// Teaches vocabulary off TODAY's chart. Deliberately not a hint rung — a player who just
+// burned a guess and got a definition instead of help would rightly feel cheated.
+function chartLesson(){
+  const ys=puzzle().closes, n=ys.length;
+  let pk=ys[0], dd=0; for(const y of ys){ pk=Math.max(pk,y); dd=Math.min(dd,y/pk-1); }
+  dd=Math.round(dd*100);
+  const tot=Math.round((ys[n-1]/ys[0]-1)*100);
+  if(dd<=-20) return "📖 That "+Math.abs(dd)+"% fall from its high has a name: a <b>drawdown</b>.";
+  if(tot>=40) return "📖 Up "+tot+"% over the window — that's its <b>total return</b>.";
+  if(tot<=-15) return "📖 It ended "+Math.abs(tot)+"% <b>below</b> the dashed line — that's where it started.";
+  return "📖 Every bend in the line is one week's closing price.";
+}
+function renderLesson(){
+  const el=document.getElementById("lesson");
+  const show = mode!=="degen" && guesses.length>0 && !done;
+  el.style.display = show ? "block" : "none";
+  if(show) el.innerHTML = chartLesson();
+}
+function renderOpts(){
+  const el=document.getElementById("opts"), lbl=document.getElementById("picklbl");
+  if(!mcMode() || done){ el.innerHTML=""; el.style.display="none"; lbl.style.display="none"; return; }
+  el.style.display="grid"; lbl.style.display="flex";
+  const left=MAXG-guesses.length;
+  document.getElementById("gleft").textContent = left+(left===1?" guess left":" guesses left");
+  el.innerHTML = puzzle().opts.map(tk=>{
+    if(!guesses.includes(tk))
+      return `<button class="opt" data-t="${tk}"><span class="nm">${U[tk].name}</span><span class="tk">$${tk}</span></button>`;
+    const j=judge(tk);
+    const heat=(j.sectorOk?1:0)+(j.capDir==="same"?1:0)+(j.priceClose?1:0);
+    const hm=heat>=3?"🔥":heat===2?"🌡️":heat===1?"❄️":"🧊";
+    const sec=j.sectorOk?`<span class="yes">✓ ${secC(j.sector)}</span>`:`<span class="no">✗ ${secC(j.sector)}</span>`;
+    const sz=j.capDir==="same"?`<span class="yes">✓ size</span>`:`<span class="dir">${j.capDir==="up"?"⬆ bigger":"⬇ smaller"}</span>`;
+    const pr=j.priceDir==="same"?`<span class="yes">✓ price</span>`:`<span class="dir">${j.priceDir==="up"?"⬆ higher":"⬇ lower"}</span>`;
+    return `<div class="opt dead"><span class="nm">${U[tk].name}<span class="heat">${hm}</span></span>`+
+           `<span class="fb">${sec} · ${sz} · ${pr}</span></div>`;
+  }).join("");
+}
+document.getElementById("opts").addEventListener("click",e=>{
+  const b=e.target.closest(".opt[data-t]"); if(b) submit(b.dataset.t);
+});
 function renderHints(){
   const el=document.getElementById("hints"); el.innerHTML="";
   if(done) return;                              // post-game: hints are spent — clean screen
@@ -645,7 +739,7 @@ function renderHints(){
       }
     } else olds.push(hintCompact(k));
   }
-  if(stage()<MAXG-1){
+  if(stage()<MAXG-1 && !(mcMode() && stage()===0)){   // "Pick one 👇" is the call to action on a fresh board
     const nx=document.createElement("div"); nx.className="hintnext";
     nx.textContent = stage()===0 ? "hints unlock as you miss" : "next hint: "+rungName(stage()+1).toLowerCase();
     el.appendChild(nx);
@@ -688,6 +782,7 @@ function buildHdr(){
 }
 function renderRows(animLast){
   const el=document.getElementById("rows"); el.innerHTML="";
+  if(mcMode() && !done) return;      // the option board carries the feedback in casual
   if(done){
     if(!guesses.length) return;
     const tog=document.createElement("div"); tog.className="rowstoggle";
@@ -990,6 +1085,14 @@ function applyBossUI(){          // boss-day banner: the loud "this is special" 
 function renderAll(animLast){
   applyBossUI();
   loadArt();
+  const mc = mcMode();
+  document.getElementById("guessarea").style.display = (mc||done) ? "none" : "block";
+  document.getElementById("ask").style.display = done ? "none" : "block";
+  document.getElementById("asksub").style.display = done ? "none" : "block";
+  document.getElementById("asksub").textContent = mc
+    ? "Six guesses. Every wrong pick gives you clues."
+    : "Six guesses. Chart clues only.";
+  renderOpts(); renderLesson();
   inp.disabled = done;
   inp.placeholder = done ? "Round over — next chart tomorrow" : "Type a ticker or company…";
   document.getElementById("daytag").textContent = isBossDay()

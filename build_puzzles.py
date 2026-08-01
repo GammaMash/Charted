@@ -107,6 +107,57 @@ for i, tk in enumerate(QUEUE):
     })
 
 # Sunday bosses: static curated file (own historical windows); embedded as-is when present
+# ---------------------------------------------------------------- multiple choice
+# Casual mode is a 12-way pick, so the answer is always in the list. That makes the
+# DISTRACTORS the difficulty dial. Two rules keep every clue column alive:
+#   - at least 2 share the answer's sector, so the sector hint can't solve it outright
+#   - the twelve span >=3 size buckets, or the SIZE clue returns "same" every time (dead column)
+# Deterministic per puzzle id, so everyone sees the same twelve on the same day.
+# The pool is a fixed cast of recognizable companies — a casual player can't reason about
+# a name they've never heard of, and a recurring cast is something they learn over time.
+MC_POOL = """AAPL MSFT ORCL IBM DELL CSCO PLTR SNDK
+NVDA AMD INTC MU AVGO QCOM MRVL SMCI
+GOOGL META NFLX DIS SPOT T VZ EA TTWO WBD ROKU
+AMZN MCD SBUX HD ABNB BKNG LOW CVNA LULU NKE CHWY DKNG RBLX GME
+WMT COST KO PEP PG TGT MNST
+TSLA F GM RIVN LCID NIO
+COIN HOOD MSTR CRCL GEMI MARA RIOT
+JPM V MA BAC GS AXP SCHW SOFI
+LLY JNJ PFE UNH MRK CVS ABBV MRNA HIMS
+BA CAT GE UBER DE LMT UNP
+XOM CVX COP""".split()
+MC_N = 12
+
+def mc_options(tk, pid):
+    """Random fill first, then repair to meet the constraints — a greedy 'maximise spread'
+    pass instead drags the same rare names (the one small cap) into every single set."""
+    import random
+    rnd = random.Random(9173 + pid)
+    a = uni[tk]
+    cand = [t for t in MC_POOL if t != tk and t in uni]
+    rnd.shuffle(cand)
+    same = [t for t in cand if uni[t]["sector"] == a["sector"]]
+    picks = same[:2]                                     # sector hint must leave >=3 live names
+    picks += [t for t in cand if t not in picks][: MC_N - 1 - len(picks)]
+
+    def caps_of(ps): return {a["cap"]} | {uni[t]["cap"] for t in ps}
+    swappable = [t for t in picks if t not in same[:2]]
+    for need in [c for c in ("MEGA", "LARGE", "MID") if c != a["cap"]]:
+        if len(caps_of(picks)) >= 3:
+            break
+        pool_c = [t for t in cand if t not in picks and uni[t]["cap"] == need]
+        if not pool_c or not swappable:
+            continue
+        drop = swappable.pop()                           # trade a duplicate-bucket pick for a missing one
+        picks[picks.index(drop)] = pool_c[0]
+
+    opts = picks + [tk]
+    rnd.shuffle(opts)                                    # answer sits in a different slot each day
+    assert len(opts) == MC_N and tk in opts
+    assert len({uni[t]["cap"] for t in opts}) >= 3, f"{tk}: size clue would be dead"
+    assert sum(uni[t]["sector"] == a["sector"] for t in opts) >= 3, f"{tk}: sector clue too strong"
+    return opts
+
 BOSSES = json.load(open(f"{D}/bosses.json")) if os.path.exists(f"{D}/bosses.json") else []
 
 # pixelated-logo clue: tiny pre-baked data URIs (see gen_pixlogos.py) — pure JSON here,
@@ -115,6 +166,7 @@ PX = json.load(open(f"{D}/pixlogos.json")) if os.path.exists(f"{D}/pixlogos.json
 for p in out + BOSSES:
     if p["answer"] in PX:
         p["px"] = PX[p["answer"]]
+    p["opts"] = mc_options(p["answer"], p["id"])
 
 json.dump({"universe": uni, "bucketOrder": BUCKET_ORDER, "puzzles": out, "bosses": BOSSES},
           open(f"{D}/gamedata.json", "w"), separators=(",", ":"))
