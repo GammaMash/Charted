@@ -239,6 +239,8 @@
     border:1px solid var(--border); border-radius:20px; padding:5px 12px; cursor:pointer; white-space:nowrap;}
   #modebtn:hover{border-color:var(--accent);}
   #soundbtn,#statsbtn{background:none; border:none; cursor:pointer; font-size:16px; padding:2px 4px; line-height:1;}
+  #helpbtn{flex:none; font:inherit; font-size:13px; font-weight:800; width:26px; height:26px; border-radius:50%;
+    border:1px solid var(--accent); background:var(--panel); color:var(--accent); cursor:pointer; line-height:1;}
   .strow-h{margin:12px 0 6px; font-weight:700; color:var(--ink); font-size:13px;}
   .sbar{display:flex; align-items:center; gap:8px; margin:3px 0;}
   .sbar .sn{width:14px; color:var(--muted); font-size:12px; font-weight:700; text-align:center; flex:none;}
@@ -248,21 +250,52 @@
   .cell .heat{float:right; font-size:12px; opacity:.9;}
   .hint.pxhint{display:flex; align-items:center; gap:9px; background:#0c0e14; border-color:var(--accent); color:#dde0ea;}
   .hint.pxhint img{width:56px; height:auto; image-rendering:pixelated; display:block; border-radius:4px;}
+  /* ONE overlay does three jobs: first-run teaching, the ? help sheet, and mode switching.
+     Players don't click "how to play" links — every daily game that works interrupts once
+     with a worked example instead. The mode buttons are this screen's CTA, so the choice
+     lands AFTER the rules mean something. */
   #chooser{display:none; position:fixed; inset:0; z-index:70; align-items:center; justify-content:center;
-    background:rgba(8,10,16,.9); padding:22px;}
+    background:rgba(8,10,16,.92); padding:14px;}
   #chooser.show{display:flex;}
-  #chooserbox{width:100%; max-width:440px; text-align:center; animation:endpop .34s cubic-bezier(.2,1.5,.4,1);}
-  #chooserbox .chbrand{font-size:30px; font-weight:800; letter-spacing:5px; color:var(--ink); margin-bottom:4px;}
-  #chooserbox .chbrand span{color:var(--accent);}
-  #chooserbox .chtitle{font-size:20px; color:var(--txt); margin-bottom:22px;}
-  .modecard{display:block; width:100%; text-align:left; background:var(--panel); border:1.5px solid var(--border);
-    border-radius:16px; padding:18px 20px; margin-bottom:14px; cursor:pointer; transition:transform .1s, border-color .15s;}
-  .modecard:hover{transform:translateY(-2px);}
-  .modecard.casual:hover{border-color:var(--green);}
+  #chooserbox{width:100%; max-width:440px; max-height:97vh; display:flex; flex-direction:column; overflow:hidden;
+    background:var(--panel); border:1.5px solid var(--accent); border-radius:18px;
+    animation:endpop .34s cubic-bezier(.2,1.5,.4,1);}
+  #chbody{overflow-y:auto; padding:18px 17px 6px;}
+  #chfoot{padding:10px 17px 15px; border-top:1px solid var(--border); background:var(--panel);}
+  #chhead{display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;
+    font-family:var(--mono); font-size:11px; letter-spacing:2px; color:var(--muted);}
+  #chtog{font-family:var(--sans); letter-spacing:0; font-size:12px; color:var(--accent); cursor:pointer;}
+  #chclose{font-family:var(--sans); letter-spacing:0; font-size:17px; color:var(--muted); cursor:pointer;
+    line-height:1; padding:0 2px; margin-left:10px;}
+  #chooserbox .chbig{font-size:18.5px; font-weight:700; color:var(--ink); line-height:1.3; margin-bottom:10px;}
+  #chmini{width:100%; height:88px; display:block; border-radius:9px; margin:2px 0 4px; background:var(--chartbg);}
+  #chooserbox .chp{font-size:13px; color:var(--txt); line-height:1.55; margin:9px 0;}
+  .exrow{background:var(--panel2); border:1.5px solid var(--red); border-radius:11px; padding:9px 11px; margin:9px 0 4px;}
+  .exrow .extop{display:flex; align-items:baseline; gap:6px;}
+  .exrow .extop b{font-size:15px; color:var(--ink);}
+  .exrow .extop .tk{font-family:var(--mono); font-size:10.5px; color:var(--muted); font-weight:700;}
+  .exrow .extop .exv{margin-left:auto; font-size:11.5px; font-weight:700; color:var(--red);}
+  .exrow .exfb{margin-top:5px; font-family:var(--mono); font-size:11px;}
+  .exlegend div{font-size:12.5px; line-height:1.5; margin:5px 0; color:var(--txt);}
+  .exlegend code{font-family:var(--mono); font-size:11.5px; background:var(--panel2); border-radius:4px; padding:1px 5px;}
+  .exlegend b{color:var(--ink);}
+  #chooserbox .chfine{font-size:12px; color:var(--muted); margin:9px 0 2px;}
+  #chpick{font-size:12.5px; font-weight:700; color:var(--muted); text-align:center; margin:0 0 9px; letter-spacing:.3px;}
+  #chooser.collapsed .howtopart{display:none;}
+  .modecard{display:block; width:100%; text-align:left; border-radius:13px; padding:11px 14px; margin-bottom:8px;
+    cursor:pointer; font:inherit; border:1.5px solid transparent; transition:transform .1s, border-color .15s;}
+  .modecard .mc-h{display:block; font-size:15.5px; font-weight:800; letter-spacing:.4px;}
+  .modecard .mc-d{display:block; font-size:12px; margin-top:2px; line-height:1.35;}
+  .modecard.casual{background:linear-gradient(135deg,var(--accent), color-mix(in oklab, var(--accent), var(--green) 45%));
+    color:var(--accent-ink);}
+  .modecard.casual .mc-h{color:var(--accent-ink);}
+  .modecard.casual .mc-d{color:var(--accent-ink); opacity:.82;}
+  .modecard.casual:hover{transform:translateY(-1px);}
+  .modecard.degen{background:var(--panel2); border-color:var(--chartbd); color:var(--ink);}
+  .modecard.degen .mc-h{color:var(--ink);}
+  .modecard.degen .mc-d{color:var(--muted);}
   .modecard.degen:hover{border-color:var(--accent);}
-  .modecard .mc-h{display:block; font-size:20px; font-weight:800; letter-spacing:1px; color:var(--ink);}
-  .modecard .mc-d{display:block; font-size:13.5px; color:var(--muted); margin-top:5px; line-height:1.4;}
-  #chooserbox .chnote{font-size:12px; color:var(--muted); margin-top:6px;}
+  .modecard.cur{outline:2px solid var(--green); outline-offset:2px;}
   footer{margin-top:20px; font-size:12px; color:var(--muted); text-align:center;}
   @media (max-width:480px){
     #app{padding:10px 9px 36px;}
@@ -290,6 +323,7 @@
     <h1>CHART<span>ED</span></h1>
     <div id="headmeta"><div id="daytag"></div><div id="streak"></div></div>
     <button id="modebtn" title="Switch mode"></button>
+    <button id="helpbtn" title="How to play">?</button>
     <button id="statsbtn" title="Your stats">📊</button>
     <button id="soundbtn" title="Sound">🔇</button>
     <button id="themebtn" title="Toggle light/dark">◐</button>
@@ -317,15 +351,33 @@
   <div id="stamp"><div id="stamptxt"></div></div>
   <div id="endcard"><div id="endcardbox"></div></div>
   <div id="chooser"><div id="chooserbox">
-    <div class="chbrand">CHART<span>ED</span></div>
-    <div class="chtitle">How do you want to play?</div>
-    <button class="modecard casual" data-mode="casual">
-      <span class="mc-h">🎓 CASUAL</span>
-      <span class="mc-d">Pick from 12 companies. Every miss unlocks a clue. Learn the charts as you go.</span></button>
-    <button class="modecard degen" data-mode="degen">
-      <span class="mc-h">💎 DEGEN</span>
-      <span class="mc-d">No list. Name it yourself from 500+ tickers, chart clues only. How degenerate are you?</span></button>
-    <div class="chnote">You can switch anytime — tap the badge up top.</div>
+    <div id="chbody">
+      <div id="chhead"><span>HOW TO PLAY</span><span><span id="chtog">show rules ▾</span><span id="chclose">✕</span></span></div>
+      <div class="howtopart">
+        <div class="chbig">Guess the mystery company from its stock chart in 6 tries.</div>
+        <canvas id="chmini" width="640" height="180"></canvas>
+        <div class="chp">Every wrong pick tells you three things about the mystery company:</div>
+        <div class="exrow">
+          <div class="extop"><b>Pfizer</b><span class="tk">$PFE</span><span class="exv">✗ wrong guess</span></div>
+          <div class="exfb"><span class="no">✗ Health</span> · <span class="dir">⬆ bigger</span> · <span class="dir">⬆ higher</span></div>
+        </div>
+        <div class="exlegend">
+          <div><code>✗ Health</code> — wrong industry.</div>
+          <div><code>⬆ bigger</code> — the mystery company is worth <b>more</b> than Pfizer.</div>
+          <div><code>⬆ higher</code> — its share price is <b>higher</b> than Pfizer's.</div>
+        </div>
+        <div class="chfine">Each miss also unlocks a hint. New chart every day at midnight.</div>
+      </div>
+    </div>
+    <div id="chfoot">
+      <div id="chpick">NOW PICK HOW YOU WANT TO PLAY</div>
+      <button class="modecard casual" data-mode="casual">
+        <span class="mc-h">🎓 CASUAL</span>
+        <span class="mc-d">Pick from 12 companies. Every miss unlocks a clue.</span></button>
+      <button class="modecard degen" data-mode="degen">
+        <span class="mc-h">💎 DEGEN</span>
+        <span class="mc-d">No list — name it yourself from 500+ tickers.</span></button>
+    </div>
   </div></div>
   <div id="toast">Copied!</div>
   <footer>CHARTED · a daily game by @chartillect · beta</footer>
@@ -336,7 +388,7 @@ const DEV = new URLSearchParams(location.search).has("dev");   // ?dev=1 unlocks
 const SHARE_URL = "chartedgame.com";
 const MAXG = 6;
 const EPOCH = "2026-07-20";   // public launch day = puzzle #1; one puzzle per LOCAL calendar day
-const VERSION = "2026-07-31i";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
+const VERSION = "2026-08-01a";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
 const U = DATA.universe, ORD = DATA.bucketOrder, PUZ = DATA.puzzles;
 const BOSSES = DATA.bosses || [];
 const BOSS_EPOCH = "2026-08-02";   // first boss Sunday; bosses rotate weekly from here
@@ -1256,11 +1308,47 @@ setInterval(checkNewDay, 30000);
 
 // ---------- mode chooser wiring ----------
 function applyModeUI(){ const mb=document.getElementById("modebtn"); if(mb) mb.textContent = mode ? modeLabel() : "choose mode"; }
-function openChooser(){ document.getElementById("chooser").classList.add("show"); }
-function chooseMode(m){ mode=m; store.set("mode",m);
-  document.getElementById("chooser").classList.remove("show"); applyModeUI(); setDay(day); }
+function drawMini(){                       // today's real chart, bare — same one waiting behind the overlay
+  const c=document.getElementById("chmini"); if(!c) return;
+  const x=c.getContext("2d"), W=c.width, H=c.height, ys=puzzle().closes;
+  const ser=ys.map(y=>(y/ys[0]-1)*100), t=T();
+  let lo=Math.min(...ser), hi=Math.max(...ser); const r=(hi-lo)||1; lo-=r*.08; hi+=r*.08;
+  const X=i=>6+(W-12)*i/(ser.length-1), Y=v=>10+(H-20)*(1-(v-lo)/(hi-lo));
+  x.clearRect(0,0,W,H);
+  const up=ser[ser.length-1]>=ser[0];
+  const g=x.createLinearGradient(0,10,0,H-10);
+  g.addColorStop(0, up?"rgba(61,220,132,.26)":"rgba(255,89,100,.24)"); g.addColorStop(1,"rgba(0,0,0,0)");
+  x.beginPath(); x.moveTo(X(0),Y(ser[0])); ser.forEach((v,i)=>x.lineTo(X(i),Y(v)));
+  x.lineTo(X(ser.length-1),H-10); x.lineTo(X(0),H-10); x.closePath(); x.fillStyle=g; x.fill();
+  x.strokeStyle=up?t.green:t.red; x.lineWidth=2.4; x.lineJoin="round"; x.beginPath();
+  ser.forEach((v,i)=>i?x.lineTo(X(i),Y(v)):x.moveTo(X(i),Y(v))); x.stroke();
+}
+// first=true is the forced first-run choice (no dismiss). Otherwise it's the ? sheet or a
+// mode switch, both dismissible. Returning players get the rules collapsed — they've read them.
+function openChooser(opts){
+  const o=opts||{}, el=document.getElementById("chooser");
+  el.classList.toggle("collapsed", !!o.collapsed);
+  document.getElementById("chtog").style.display = o.collapsed ? "inline" : "none";
+  document.getElementById("chtog").textContent = "show rules ▾";
+  document.getElementById("chclose").style.display = o.first ? "none" : "inline";
+  document.getElementById("chpick").textContent = o.first ? "NOW PICK HOW YOU WANT TO PLAY" : "SWITCH MODE";
+  document.querySelectorAll("#chooser .modecard").forEach(b=>b.classList.toggle("cur", b.dataset.mode===mode));
+  el.classList.add("show"); drawMini();
+}
+function closeChooser(){ document.getElementById("chooser").classList.remove("show"); }
+function chooseMode(m){ mode=m; store.set("mode",m); closeChooser(); applyModeUI(); setDay(day); }
 document.querySelectorAll("#chooser .modecard").forEach(b=>b.addEventListener("click",()=>chooseMode(b.dataset.mode)));
-document.getElementById("modebtn").addEventListener("click",openChooser);
+document.getElementById("chtog").addEventListener("click",()=>{
+  const c=document.getElementById("chooser").classList.toggle("collapsed");
+  document.getElementById("chtog").textContent = c ? "show rules ▾" : "hide rules ▴";
+  if(!c) drawMini();
+});
+document.getElementById("chclose").addEventListener("click", closeChooser);
+document.getElementById("chooser").addEventListener("click", e=>{      // backdrop dismiss, but never on first run
+  if(e.target.id==="chooser" && mode) closeChooser();
+});
+document.getElementById("modebtn").addEventListener("click",()=>openChooser({collapsed:store.get("played",false)}));
+document.getElementById("helpbtn").addEventListener("click",()=>openChooser({}));   // ? always opens expanded
 applyModeUI();
 
 function applySoundUI(){ const s=document.getElementById("soundbtn"); if(s) s.textContent=soundOn?"🔊":"🔇"; }
@@ -1274,7 +1362,7 @@ function _prime(){ primeAudio(); document.removeEventListener("pointerdown",_pri
 document.addEventListener("pointerdown",_prime); document.addEventListener("keydown",_prime);
 
 applyTheme(); buildDevBar(); setDay(DEV ? 0 : todaysPuzzleIndex());
-if(!mode && !DEV) openChooser();          // first visit picks a mode; game renders behind it
+if(!mode && !DEV) openChooser({first:true});   // first visit: rules + mode choice, no dismiss
 checkVersion();
 </script>
 <script data-goatcounter="https://chartedgame.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
