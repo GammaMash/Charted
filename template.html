@@ -94,12 +94,26 @@
   .opt .heat{float:right; font-size:11px;}
   .fb .no{color:var(--red);} .fb .yes{color:var(--green);} .fb .dir{color:var(--yellow);}
   #lesson{font-size:12px; color:var(--muted); line-height:1.5; margin:9px 3px 2px;}
+  /* the pick you just made, held on screen where the text box used to be:
+     tap -> verdict -> new clue reads as one chain instead of three unrelated flickers */
+  #lastguess{display:none; background:var(--panel); border:1.5px solid var(--red); border-radius:12px;
+    padding:10px 12px; margin:2px 0 4px; animation:pop .28s ease;}
+  #lastguess .lgtop{display:flex; align-items:baseline; gap:7px; flex-wrap:wrap;}
+  #lastguess .lgtop b{font-size:15px; color:var(--ink); font-weight:650;}
+  #lastguess .lgtop .tk{font-family:var(--mono); font-size:11px; color:var(--muted); font-weight:700;}
+  #lastguess .lgverdict{margin-left:auto; font-size:12px; font-weight:700; color:var(--red); white-space:nowrap;}
+  #lastguess .lgfb{margin-top:6px; font-family:var(--mono); font-size:11px; line-height:1.4;}
+  #lastguess .lgheat{float:right; font-family:var(--sans); font-weight:700; color:var(--txt);}
+  #picklbl b.starthere{color:var(--green); font-size:14.5px;}
   canvas{width:100%; display:block; border-radius:8px; cursor:crosshair;}
   #hints{display:flex; gap:6px; flex-wrap:wrap; margin:10px 0;}
   .hint{font-size:12.5px; font-weight:600; border:1px solid var(--border); border-radius:20px; padding:6px 12px;
     background:var(--panel); transition:all .2s;}
   .hint.locked{opacity:.6;}
   .hintdigest{width:100%; font-size:11.5px; font-weight:600; color:var(--muted); padding:2px 4px 0;}
+  .hint .hlab{display:inline-block; font-family:var(--mono); font-size:9.5px; font-weight:800;
+    letter-spacing:1.2px; color:var(--accent-ink); background:var(--accent); border-radius:4px;
+    padding:1px 6px; margin-right:7px; vertical-align:1px;}
   .hint.new{border-color:var(--accent); color:var(--accent); background:var(--chip-accent);
     animation:pop .35s ease;}
   @keyframes pop{0%{transform:scale(.85); opacity:0;} 100%{transform:scale(1); opacity:1;}}
@@ -280,9 +294,9 @@
     <button id="soundbtn" title="Sound">🔇</button>
     <button id="themebtn" title="Toggle light/dark">◐</button>
   </header>
-  <div id="howto"><div id="howtohead"><b>How to play</b><span class="chev">▾</span></div>
+  <div id="howto"><div id="howtohead"><b>6 guesses · every wrong pick unlocks a clue</b><span class="chev">▾</span></div>
     <div id="howtobody"><div class="cluechips"><span class="infotap" data-info="sector">🏷 sector ⓘ</span><span class="infotap" data-info="size">⚖️ size ⓘ</span><span>💲 price hi/lo</span></div>
-    Every guess earns three clues · every miss unlocks a hint · new chart at midnight.</div></div>
+    Every guess also tells you three things about the mystery stock — tap a clue name above to see what it means. New chart every day at midnight.</div></div>
   <div id="devbar"><b>TEST&nbsp;MODE</b></div>
   <div id="ask">Which company's stock is this?</div>
   <div id="asksub">Six guesses. Every wrong pick gives you clues.</div>
@@ -291,6 +305,7 @@
     <input id="guessinput" type="text" name="ticker-search" placeholder="Type a ticker or company…" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" enterkeyhint="go" role="combobox">
     <div id="ac"></div>
   </div>
+  <div id="lastguess"></div>
   <div id="feedback"></div>
   <div id="hints"></div>
   <div id="lesson"></div>
@@ -306,10 +321,10 @@
     <div class="chtitle">How do you want to play?</div>
     <button class="modecard casual" data-mode="casual">
       <span class="mc-h">🎓 CASUAL</span>
-      <span class="mc-d">Learn the charts, have some fun. Hints all the way.</span></button>
+      <span class="mc-d">Pick from 12 companies. Every miss unlocks a clue. Learn the charts as you go.</span></button>
     <button class="modecard degen" data-mode="degen">
       <span class="mc-h">💎 DEGEN</span>
-      <span class="mc-d">Chart clues only, no hand-holding. How degenerate are you?</span></button>
+      <span class="mc-d">No list. Name it yourself from 500+ tickers, chart clues only. How degenerate are you?</span></button>
     <div class="chnote">You can switch anytime — tap the badge up top.</div>
   </div></div>
   <div id="toast">Copied!</div>
@@ -321,7 +336,7 @@ const DEV = new URLSearchParams(location.search).has("dev");   // ?dev=1 unlocks
 const SHARE_URL = "chartedgame.com";
 const MAXG = 6;
 const EPOCH = "2026-07-20";   // public launch day = puzzle #1; one puzzle per LOCAL calendar day
-const VERSION = "2026-07-31f";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
+const VERSION = "2026-07-31i";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
 const U = DATA.universe, ORD = DATA.bucketOrder, PUZ = DATA.puzzles;
 const BOSSES = DATA.bosses || [];
 const BOSS_EPOCH = "2026-08-02";   // first boss Sunday; bosses rotate weekly from here
@@ -693,11 +708,29 @@ function renderLesson(){
   el.style.display = show ? "block" : "none";
   if(show) el.innerHTML = chartLesson();
 }
+function fbBits(j){
+  return [ j.sectorOk?`<span class="yes">✓ ${secC(j.sector)}</span>`:`<span class="no">✗ ${secC(j.sector)}</span>`,
+           j.capDir==="same"?`<span class="yes">✓ size</span>`:`<span class="dir">${j.capDir==="up"?"⬆ bigger":"⬇ smaller"}</span>`,
+           j.priceDir==="same"?`<span class="yes">✓ price</span>`:`<span class="dir">${j.priceDir==="up"?"⬆ higher":"⬇ lower"}</span>` ];
+}
+function renderLastGuess(){
+  const el=document.getElementById("lastguess");
+  if(!mcMode() || done || !guesses.length){ el.style.display="none"; el.innerHTML=""; return; }
+  const tk=guesses[guesses.length-1], j=judge(tk);
+  const heat=(j.sectorOk?1:0)+(j.capDir==="same"?1:0)+(j.priceClose?1:0);
+  const hm=heat>=3?"🔥 Boiling":heat===2?"🌡️ Warm":heat===1?"❄️ Cold":"🧊 Ice cold";
+  el.style.display="block";
+  el.innerHTML=`<div class="lgtop"><b>${U[tk].name}</b><span class="tk">$${tk}</span>`+
+    `<span class="lgverdict">✗ wrong guess</span></div>`+
+    `<div class="lgfb">${fbBits(j).join(" · ")}<span class="lgheat">${hm}</span></div>`;
+}
 function renderOpts(){
   const el=document.getElementById("opts"), lbl=document.getElementById("picklbl");
   if(!mcMode() || done){ el.innerHTML=""; el.style.display="none"; lbl.style.display="none"; return; }
   el.style.display="grid"; lbl.style.display="flex";
   const left=MAXG-guesses.length;
+  lbl.querySelector("b").outerHTML = guesses.length
+    ? `<b>Pick another 👇</b>` : `<b class="starthere">👇 Start here</b>`;
   document.getElementById("gleft").textContent = left+(left===1?" guess left":" guesses left");
   el.innerHTML = puzzle().opts.map(tk=>{
     if(!guesses.includes(tk))
@@ -705,11 +738,8 @@ function renderOpts(){
     const j=judge(tk);
     const heat=(j.sectorOk?1:0)+(j.capDir==="same"?1:0)+(j.priceClose?1:0);
     const hm=heat>=3?"🔥":heat===2?"🌡️":heat===1?"❄️":"🧊";
-    const sec=j.sectorOk?`<span class="yes">✓ ${secC(j.sector)}</span>`:`<span class="no">✗ ${secC(j.sector)}</span>`;
-    const sz=j.capDir==="same"?`<span class="yes">✓ size</span>`:`<span class="dir">${j.capDir==="up"?"⬆ bigger":"⬇ smaller"}</span>`;
-    const pr=j.priceDir==="same"?`<span class="yes">✓ price</span>`:`<span class="dir">${j.priceDir==="up"?"⬆ higher":"⬇ lower"}</span>`;
     return `<div class="opt dead"><span class="nm">${U[tk].name}<span class="heat">${hm}</span></span>`+
-           `<span class="fb">${sec} · ${sz} · ${pr}</span></div>`;
+           `<span class="fb">${fbBits(j).join(" · ")}</span></div>`;
   }).join("");
 }
 document.getElementById("opts").addEventListener("click",e=>{
@@ -724,7 +754,8 @@ function renderHints(){
     if(k===cur){                                // only the newest hint gets a full pill
       const d=document.createElement("div");
       d.className="hint new";
-      d.textContent = hintText(k);
+      d.innerHTML = '<span class="hlab">HINT</span>';   // say what it is — it reads as a stray fact otherwise
+      d.appendChild(document.createTextNode(hintText(k)));
       if(olds.length){                          // digest of everything already absorbed, above the fresh hint
         const dg=document.createElement("div"); dg.className="hintdigest";
         dg.textContent = olds.join("  ·  ");
@@ -901,7 +932,8 @@ function submit(tk){
   }
   else if(guesses.length>=MAXG){ done=true; won=false; }
   saveState(); renderAll(true);
-  if(!done){ sfx("blip"); showFeedback(reactTo(tk)); }      // hotter/colder + cheeky reactions (inline, never overlaps)
+  // MC keeps the verdict on screen in #lastguess, so the transient pill would just double it
+  if(!done){ sfx("blip"); if(!mcMode()) showFeedback(reactTo(tk)); }
   if(done){
     showFeedback("");                          // don't leave the last reaction pill up behind the endcard
     if(!DEV && !firstFinMode()) store.set("rev_"+todayKey(), M);   // this board finished first today
@@ -1092,7 +1124,8 @@ function renderAll(animLast){
   document.getElementById("asksub").textContent = mc
     ? "Six guesses. Every wrong pick gives you clues."
     : "Six guesses. Chart clues only.";
-  renderOpts(); renderLesson();
+  renderOpts(); renderLastGuess(); renderLesson();
+  document.getElementById("feedback").style.display = mc ? "none" : "flex";   // MC uses the banner instead
   inp.disabled = done;
   inp.placeholder = done ? "Round over — next chart tomorrow" : "Type a ticker or company…";
   document.getElementById("daytag").textContent = isBossDay()
@@ -1188,8 +1221,11 @@ document.addEventListener("click",e=>{
   const tap=e.target.closest(".infotap"); if(tap){ showInfo(tap.dataset.info); return; }
   if(sheet.classList.contains("open") && (e.target===sheet || e.target.closest("#sheetclose"))) sheet.classList.remove("open");
 });
+// Collapsed by default — the headline, the "Start here" pointer and the result banner
+// carry the game now, so the strip only needs to state the rule in one line. Boss day
+// re-opens it (applyBossUI) because the gold banner IS the announcement.
 const howto=document.getElementById("howto");
-if(store.get("played",false)) howto.classList.add("closed");
+howto.classList.add("closed");
 document.getElementById("howtohead").addEventListener("click",()=>howto.classList.toggle("closed"));
 window.addEventListener("resize",()=>drawChart());
 // New-day watchdog: tabs left open overnight / restored from cache roll to the new

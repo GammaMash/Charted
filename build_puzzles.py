@@ -34,6 +34,28 @@ for tk, v in uni.items():
 
 BUCKET_ORDER = {"SMALL":0,"MID":1,"LARGE":2,"MEGA":3}
 
+# ---------------------------------------------------------------- display names
+# The upstream feed strips "Company"/"Corporation", which leaves 29 names dangling as
+# "The Boeing" / "The Coca-Cola". Barely noticeable as grid subtitles; glaring now that
+# names are the big bold labels on the casual pick board.
+KEEP_THE = {"HD", "TTD"}                      # "The" is genuinely part of these brands
+THE_OK_TAIL = ("Group", "Companies", "Co.", "Corporation")
+NAME_FIX = {                                   # wrong or too corporate for a casual player
+    "XOM": "ExxonMobil",                       # feed says "ExxonMobil Holdings" — no such entity
+    "LULU": "Lululemon", "SNDK": "SanDisk", "QCOM": "Qualcomm", "NKE": "Nike",
+    "CVNA": "Carvana", "MRK": "Merck", "JPM": "JPMorgan Chase", "GS": "Goldman Sachs",
+    "META": "Meta", "UBER": "Uber", "PLTR": "Palantir", "DELL": "Dell",
+    "HOOD": "Robinhood", "F": "Ford", "MSTR": "Strategy (MicroStrategy)",
+}
+def display_name(tk, name):
+    if tk in NAME_FIX:
+        return NAME_FIX[tk]
+    if name.startswith("The ") and tk not in KEEP_THE and not name.endswith(THE_OK_TAIL):
+        return name[4:]
+    return name
+for tk, v in uni.items():
+    v["name"] = display_name(tk, v["name"])
+
 def stats(ys):
     tot = (ys[-1]/ys[0]-1)*100
     peak = ys[0]; dd = 0.0
