@@ -55,10 +55,13 @@
   #themebtn:hover{border-color:var(--accent);}
   #howto{font-size:13px; line-height:1.6; font-weight:500; background:var(--panel); border:1px solid var(--border);
     border-radius:12px; padding:10px 13px; margin:10px 0; box-shadow:var(--shadow);}
-  #howtohead{cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:8px; user-select:none;}
-  #howtohead .chev{color:var(--muted); transition:transform .2s;}
+  #howto{cursor:pointer; transition:border-color .15s;}
+  #howto:hover{border-color:var(--accent);}
+  #howtohead{display:flex; justify-content:space-between; align-items:center; gap:8px; user-select:none;}
+  /* the bar used to expand inline, which showed a WORSE explanation than the overlay.
+     Now it's a third door into the same how-to, and it says so. */
+  #howtohead .howlink{color:var(--accent); font-size:11.5px; font-weight:700; white-space:nowrap; flex:none;}
   #howto.closed #howtobody{display:none;}
-  #howto.closed #howtohead .chev{transform:rotate(-90deg);}
   .cluechips{display:flex; flex-wrap:wrap; gap:8px; margin:9px 0 8px;}
   .cluechips span{border:1px solid var(--border); background:var(--panel2); border-radius:16px;
     padding:5px 12px; font-size:12.5px; font-weight:700; color:var(--ink); white-space:nowrap;}
@@ -79,9 +82,13 @@
   #asksub{font-size:12.5px; color:var(--muted); margin:0 2px 9px;}
   #chartwrap{background:var(--chartbg); border:1px solid var(--chartbd); border-radius:16px; padding:8px;
     margin:2px 0 11px; box-shadow:var(--shadow), 0 0 0 1px rgba(53,224,232,.06);}
-  #picklbl{display:flex; justify-content:space-between; align-items:baseline; margin:4px 3px 8px;}
+  /* counter sits WITH the call to action, not exiled to the far edge, and it warms up
+     as the board tightens: green -> yellow at 2 -> red on the last guess */
+  #picklbl{display:flex; justify-content:flex-start; align-items:baseline; gap:9px; margin:4px 3px 8px;}
   #picklbl b{font-size:13.5px; color:var(--ink); font-weight:650;}
-  #picklbl span{font-size:11px; color:var(--muted);}
+  #gleft{font-size:12.5px; font-weight:700; color:var(--green);}
+  #gleft.warn{color:var(--yellow);}
+  #gleft.crit{color:var(--red);}
   #opts{display:grid; grid-template-columns:1fr 1fr; gap:7px;}
   .opt{background:var(--panel); border:1.5px solid var(--chartbd); border-radius:12px; padding:9px 10px;
     text-align:left; font:inherit; color:var(--txt); cursor:pointer; min-height:52px; transition:.14s;}
@@ -178,7 +185,9 @@
   #sharebtn:hover,#nextbtn:hover{transform:translateY(-1px);}
   #nextbtn{background:var(--panel2); color:var(--txt); border:1px solid var(--border);}
   .infotap{cursor:pointer; text-decoration:underline dotted; text-underline-offset:3px;}
-  #sheet{display:none; position:fixed; inset:0; z-index:50; background:rgba(0,0,0,.5);
+  /* above #chooser (70) — the sector/size explainers are reachable FROM the how-to overlay,
+     so they must stack on top of it, not behind it */
+  #sheet{display:none; position:fixed; inset:0; z-index:80; background:rgba(0,0,0,.5);
     align-items:flex-end; justify-content:center;}
   #sheet.open{display:flex;}
   #sheetcard{background:var(--panel); border:1px solid var(--border); border-radius:16px 16px 0 0;
@@ -328,9 +337,8 @@
     <button id="soundbtn" title="Sound">🔇</button>
     <button id="themebtn" title="Toggle light/dark">◐</button>
   </header>
-  <div id="howto"><div id="howtohead"><b>6 guesses · every wrong pick unlocks a clue</b><span class="chev">▾</span></div>
-    <div id="howtobody"><div class="cluechips"><span class="infotap" data-info="sector">🏷 sector ⓘ</span><span class="infotap" data-info="size">⚖️ size ⓘ</span><span>💲 price hi/lo</span></div>
-    Every guess also tells you three things about the mystery stock — tap a clue name above to see what it means. New chart every day at midnight.</div></div>
+  <div id="howto"><div id="howtohead"><b>6 guesses · every wrong pick unlocks a clue</b><span class="howlink">ⓘ How to play</span></div>
+    <div id="howtobody"></div></div>
   <div id="devbar"><b>TEST&nbsp;MODE</b></div>
   <div id="ask">Which company's stock is this?</div>
   <div id="asksub">Six guesses. Every wrong pick gives you clues.</div>
@@ -367,6 +375,8 @@
           <div><code>⬆ higher</code> — its share price is <b>higher</b> than Pfizer's.</div>
         </div>
         <div class="chfine">Each miss also unlocks a hint. New chart every day at midnight.</div>
+        <div class="chp" style="margin-bottom:4px">Tap any of these to learn what it means:</div>
+        <div class="cluechips"><span class="infotap" data-info="sector">🏷 sector ⓘ</span><span class="infotap" data-info="size">⚖️ size ⓘ</span><span class="infotap" data-info="words">📖 chart words ⓘ</span></div>
       </div>
     </div>
     <div id="chfoot">
@@ -388,7 +398,7 @@ const DEV = new URLSearchParams(location.search).has("dev");   // ?dev=1 unlocks
 const SHARE_URL = "chartedgame.com";
 const MAXG = 6;
 const EPOCH = "2026-07-20";   // public launch day = puzzle #1; one puzzle per LOCAL calendar day
-const VERSION = "2026-08-01a";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
+const VERSION = "2026-08-01b";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
 const U = DATA.universe, ORD = DATA.bucketOrder, PUZ = DATA.puzzles;
 const BOSSES = DATA.bosses || [];
 const BOSS_EPOCH = "2026-08-02";   // first boss Sunday; bosses rotate weekly from here
@@ -783,7 +793,9 @@ function renderOpts(){
   const left=MAXG-guesses.length;
   lbl.querySelector("b").outerHTML = guesses.length
     ? `<b>Pick another 👇</b>` : `<b class="starthere">👇 Start here</b>`;
-  document.getElementById("gleft").textContent = left+(left===1?" guess left":" guesses left");
+  const gl=document.getElementById("gleft");
+  gl.textContent = left+(left===1?" guess left":" guesses left");
+  gl.className = left<=1 ? "crit" : left<=2 ? "warn" : "";
   el.innerHTML = puzzle().opts.map(tk=>{
     if(!guesses.includes(tk))
       return `<button class="opt" data-t="${tk}"><span class="nm">${U[tk].name}</span><span class="tk">$${tk}</span></button>`;
@@ -1278,7 +1290,7 @@ document.addEventListener("click",e=>{
 // re-opens it (applyBossUI) because the gold banner IS the announcement.
 const howto=document.getElementById("howto");
 howto.classList.add("closed");
-document.getElementById("howtohead").addEventListener("click",()=>howto.classList.toggle("closed"));
+document.getElementById("howto").addEventListener("click",()=>openChooser({}));   // third door into the same how-to
 window.addEventListener("resize",()=>drawChart());
 // New-day watchdog: tabs left open overnight / restored from cache roll to the new
 // puzzle automatically. Online we hard-reload (also picks up the nightly data refresh);
