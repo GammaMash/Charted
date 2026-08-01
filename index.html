@@ -398,7 +398,7 @@ const DEV = new URLSearchParams(location.search).has("dev");   // ?dev=1 unlocks
 const SHARE_URL = "chartedgame.com";
 const MAXG = 6;
 const EPOCH = "2026-07-20";   // public launch day = puzzle #1; one puzzle per LOCAL calendar day
-const VERSION = "2026-08-01b";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
+const VERSION = "2026-08-01c";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
 const U = DATA.universe, ORD = DATA.bucketOrder, PUZ = DATA.puzzles;
 const BOSSES = DATA.bosses || [];
 const BOSS_EPOCH = "2026-08-02";   // first boss Sunday; bosses rotate weekly from here
@@ -1047,20 +1047,29 @@ function reveal(fresh){
   const res = won ? guesses.length+"/6" : "X/6";
   if(!DEV && !rep && !store.get("counted_"+stateKey(),false)){
     store.set("counted_"+stateKey(),true);
-    const send=()=>{ if(window.goatcounter&&goatcounter.count){ goatcounter.count({path:"solve-"+(won?guesses.length:"X"),title:"CHARTED #"+p.id,event:true}); if(won) goatcounter.count({path:"streak-"+store.get("streak",0),title:"CHARTED streak",event:true}); } };
+    // mode-tagged so the dashboard shows the Casual/Degen split AND each mode's difficulty curve
+    const M2 = mode||"casual";
+    const send=()=>{ if(window.goatcounter&&goatcounter.count){
+      goatcounter.count({path:"played-"+M2,title:"CHARTED board finished",event:true});
+      goatcounter.count({path:"solve-"+M2+"-"+(won?guesses.length:"X"),title:"CHARTED #"+p.id,event:true});
+      if(won) goatcounter.count({path:"streak-"+store.get("streak",0),title:"CHARTED streak",event:true}); } };
     window.goatcounter ? send() : setTimeout(send, 3000);
   }
   el.style.display="block";
   const boss = isBossDay(), tag = boss ? "👑 BOSS #"+p.id : "#"+p.id;
+  // The mode split is about how much HELP you get on the way in, not how much you learn on
+  // the way out — by reveal time the round is over, so withholding the payoff from Degen was
+  // just deleting the best part for the players most likely to care about it.
   const degenReveal = mode==="degen";
-  const midContent = degenReveal
-    ? (boss?`<div class="story">${p.story}</div>`:``)+`<div class="statsheet">${degenStats()}</div>`
-    : `<div class="story">${p.story}</div>`+
-      (p.co ? `<div class="cocard"><b class="lbl">WHO THEY ARE</b>${p.co.what}`+
+  const story = `<div class="story">${p.story}</div>`;
+  const cocard = p.co ? `<div class="cocard"><b class="lbl">WHO THEY ARE</b>${p.co.what}`+
         `<div class="k1000"><b class="lbl">IF YOU'D PUT IN $1,000 ${boss?"AT THE START":"A YEAR AGO"}</b>`+
         `you'd have <b class="${puzzle().closes.at(-1)>=puzzle().closes[0]?"up":"dn"}">${k1000()}</b> ${boss?"by the end.":"today."}</div>`+
         (p.long ? `<div class="k1000"><b class="lbl">${p.long.older?"$1,000 TEN YEARS AGO":"$1,000 IN "+p.long.year}</b>you'd have <b class="${p.long.amt>=1000?"up":"dn"}">$${p.long.amt.toLocaleString()}</b> today.</div>`:"")+
-        `</div>` : "");
+        `</div>` : "";
+  const midContent = degenReveal
+    ? story + `<div class="statsheet">${degenStats()}</div>` + cocard   // what happened → the numbers → what it paid
+    : story + cocard;
   el.innerHTML =
     `<h2>${won?"🎯 Charted!":"📉 Uncharted…"} — $${answer()} <span class="co">(${U[answer()].name})</span></h2>`+
     midContent+
@@ -1348,7 +1357,12 @@ function openChooser(opts){
   el.classList.add("show"); drawMini();
 }
 function closeChooser(){ document.getElementById("chooser").classList.remove("show"); }
-function chooseMode(m){ mode=m; store.set("mode",m); closeChooser(); applyModeUI(); setDay(day); }
+function chooseMode(m){
+  const changed = m!==mode;                     // count first picks and real switches, not re-taps
+  mode=m; store.set("mode",m); closeChooser(); applyModeUI(); setDay(day);
+  if(changed && !DEV && window.goatcounter && goatcounter.count)
+    goatcounter.count({path:"mode-"+m, title:"CHARTED mode picked", event:true});
+}
 document.querySelectorAll("#chooser .modecard").forEach(b=>b.addEventListener("click",()=>chooseMode(b.dataset.mode)));
 document.getElementById("chtog").addEventListener("click",()=>{
   const c=document.getElementById("chooser").classList.toggle("collapsed");
