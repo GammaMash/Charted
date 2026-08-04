@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="CHARTED">
@@ -12,16 +12,31 @@
 <title>CHARTED — the daily stock chart game</title>
 <meta property="og:title" content="CHARTED — the daily stock chart game">
 <meta property="og:description" content="Guess the ticker from its last 12 months. New chart every day.">
+<!-- og.png is rebuilt nightly from yesterday's chart by gen_og.py; build_index.py stamps __OGV__ so
+     iMessage/X/Facebook re-fetch instead of serving a cached preview from launch week -->
+<meta property="og:image" content="https://chartedgame.com/og.png?v=__OGV__">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://chartedgame.com/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@chartillect">
 <style>
   :root{
     /* mono is a DATA typeface — tickers, prices, the grid, the chart. Prose reads as a
        developer tool in it, so sentences and buttons use a humanist sans. */
     --mono:"SF Mono",SFMono-Regular,ui-monospace,Menlo,Consolas,monospace;
     --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,"Helvetica Neue",Arial,sans-serif;
+    /* SIX sizes, no more. 91% of players are on a phone; there was no floor before and half
+       the interface sat in a 9.5-12.5px band, which reads as "crammed" because nothing is
+       ranked. Never add a seventh — remap to the nearest step instead. */
+    --fs-xs:12px; --fs-sm:13.5px; --fs-md:15px; --fs-lg:17px; --fs-xl:21px; --fs-2xl:28px;
     --chartbg:#1b1f31; --chartbd:#454a68;
     --bg:#08090f; --bg2:#12141d; --panel:#161927; --panel2:#1c2033;
-    --grid:#464a60; --border:#343850; --txt:#dde0ea; --muted:#aaaec4; --ink:#ffffff;
+    --grid:#464a60; --border:#343850; --txt:#dde0ea; --muted:#bcc0d6; --ink:#ffffff;
     --accent:#35e0e8; --accent-ink:#062a2e; --green:#3ddc84; --red:#ff5964; --yellow:#ffd166;
+    /* the "come back tomorrow" layer gets its own hue so it stops competing with cyan,
+       which was already doing labels, borders, buttons and links at once */
+    --habit:#a78bfa; --habit-dim:rgba(167,139,250,.12); --habit-bd:rgba(167,139,250,.42);
     --chip-good:rgba(61,220,132,.12); --chip-warm:rgba(255,209,102,.12); --chip-accent:rgba(53,224,232,.10);
     --shadow:0 10px 30px rgba(0,0,0,.45);
     --glowline:#ffffff;
@@ -31,6 +46,7 @@
     --bg:#e9ecf3; --bg2:#e6e9f0; --panel:#ffffff; --panel2:#f2f4f9;
     --grid:#c9ccd9; --border:#d3d6e2; --txt:#33374a; --muted:#5d6178; --ink:#101219;
     --accent:#0891b2; --accent-ink:#ffffff; --green:#15803d; --red:#dc2626; --yellow:#a16207;
+    --habit:#6d3fd4; --habit-dim:rgba(109,63,212,.09); --habit-bd:rgba(109,63,212,.34);
     --chip-good:rgba(21,128,61,.10); --chip-warm:rgba(161,98,7,.10); --chip-accent:rgba(8,145,178,.08);
     --shadow:0 10px 30px rgba(30,35,60,.12);
     --glowline:#14161e;
@@ -41,30 +57,33 @@
     color:var(--txt);
     font-family:var(--sans);
     display:flex; justify-content:center; min-height:100vh; transition:background .25s,color .25s;}
-  h1,#headmeta,.cell,.hcell,.hintdigest,#reveal .grid,#endcardbox .egrid,#endcardbox .emeta,
-  #countdown,.rcard .rtk,.opt .tk,.opt .fb,#picklbl span,footer,#devbar,.sbar .sn,.sbar .sfill,
-  #reveal .cocard b.lbl,#reveal .statrow b{font-family:var(--mono);}
+  /* mono is for NUMBERS — tickers, prices, the grid, the countdown. It used to carry column
+     headers, verdicts and prose too, and at 10px with wide tracking that is what turned to
+     texture. Labels and feedback moved to sans: same pixel size, materially more legible. */
+  h1,#headmeta,.cell,.hintdigest,#reveal .grid,#endcardbox .egrid,#endcardbox .emeta,
+  #countdown,#cdnum,.rcard .rtk,.opt .tk,.sbar .sn,.sbar .sfill,
+  #reveal .statrow b{font-family:var(--mono);}
   #app{width:100%; max-width:560px; padding:16px 14px 44px;}
   header{display:flex; align-items:center; gap:10px; margin-bottom:10px;}
   #logo{flex:none; width:34px; height:34px;}
   h1{font-size:23px; letter-spacing:5px; color:var(--ink); margin:0; font-weight:800;}
   h1 span{background:linear-gradient(90deg,var(--accent),var(--green)); -webkit-background-clip:text; background-clip:text; color:transparent;}
-  #headmeta{margin-left:auto; text-align:right; font-size:12.5px; font-weight:600; line-height:1.6; color:var(--muted);}
-  #themebtn{flex:none; font:inherit; font-size:15px; width:34px; height:34px; border-radius:50%;
+  #headmeta{margin-left:auto; text-align:right; font-size:var(--fs-sm); font-weight:600; line-height:1.6; color:var(--muted);}
+  #themebtn{flex:none; font:inherit; font-size:var(--fs-lg); width:34px; height:34px; border-radius:50%;
     border:1px solid var(--border); background:var(--panel); color:var(--txt); cursor:pointer;}
   #themebtn:hover{border-color:var(--accent);}
-  #howto{font-size:13px; line-height:1.6; font-weight:500; background:var(--panel); border:1px solid var(--border);
+  #howto{font-size:var(--fs-sm); line-height:1.6; font-weight:500; background:var(--panel); border:1px solid var(--border);
     border-radius:12px; padding:10px 13px; margin:10px 0; box-shadow:var(--shadow);}
   #howto{cursor:pointer; transition:border-color .15s;}
   #howto:hover{border-color:var(--accent);}
   #howtohead{display:flex; justify-content:space-between; align-items:center; gap:8px; user-select:none;}
   /* the bar used to expand inline, which showed a WORSE explanation than the overlay.
      Now it's a third door into the same how-to, and it says so. */
-  #howtohead .howlink{color:var(--accent); font-size:11.5px; font-weight:700; white-space:nowrap; flex:none;}
+  #howtohead .howlink{color:var(--accent); font-size:var(--fs-xs); font-weight:700; white-space:nowrap; flex:none;}
   #howto.closed #howtobody{display:none;}
   .cluechips{display:flex; flex-wrap:wrap; gap:8px; margin:9px 0 8px;}
   .cluechips span{border:1px solid var(--border); background:var(--panel2); border-radius:16px;
-    padding:5px 12px; font-size:12.5px; font-weight:700; color:var(--ink); white-space:nowrap;}
+    padding:5px 12px; font-size:var(--fs-sm); font-weight:700; color:var(--ink); white-space:nowrap;}
   #howto b{color:var(--ink);}
   #howto .dim{color:var(--muted);}
   body.bossday #howto{border-color:var(--yellow);}
@@ -72,60 +91,60 @@
   body.bossday #howtobody b{color:var(--yellow);}
   body.bossday #chartwrap{border-color:var(--yellow);
     box-shadow:var(--shadow), 0 0 0 1px rgba(255,209,102,.25);}
-  #devbar{display:flex; gap:6px; flex-wrap:wrap; align-items:center; font-size:10.5px; color:var(--muted);
+  #devbar{display:flex; gap:6px; flex-wrap:wrap; align-items:center; font-size:var(--fs-xs); color:var(--muted);
     border:1px dashed var(--border); border-radius:10px; padding:6px 9px; margin:10px 0;}
   #devbar button{font:inherit; background:var(--panel2); color:var(--txt); border:1px solid var(--border);
     border-radius:7px; padding:3px 8px; cursor:pointer; transition:all .15s;}
   #devbar button:hover{border-color:var(--accent);}
   #devbar button.on{background:var(--accent); color:var(--accent-ink); border-color:var(--accent); font-weight:bold;}
-  #ask{font-size:19px; font-weight:700; color:var(--ink); letter-spacing:-.2px; line-height:1.25; margin:6px 2px 2px;}
-  #asksub{font-size:12.5px; color:var(--muted); margin:0 2px 9px;}
+  #ask{font-size:var(--fs-xl); font-weight:700; color:var(--ink); letter-spacing:-.2px; line-height:1.25; margin:6px 2px 2px;}
+  #asksub{font-size:var(--fs-sm); color:var(--muted); margin:0 2px 9px;}
   #chartwrap{background:var(--chartbg); border:1px solid var(--chartbd); border-radius:16px; padding:8px;
     margin:2px 0 11px; box-shadow:var(--shadow), 0 0 0 1px rgba(53,224,232,.06);}
   /* counter sits WITH the call to action, not exiled to the far edge, and it warms up
      as the board tightens: green -> yellow at 2 -> red on the last guess */
   #picklbl{display:flex; justify-content:flex-start; align-items:baseline; gap:9px; margin:4px 3px 8px;}
-  #picklbl b{font-size:13.5px; color:var(--ink); font-weight:650;}
-  #gleft{font-size:12.5px; font-weight:700; color:var(--green);}
+  #picklbl b{font-size:var(--fs-md); color:var(--ink); font-weight:650;}
+  #gleft{font-size:var(--fs-sm); font-weight:700; color:var(--green);}
   #gleft.warn{color:var(--yellow);}
   #gleft.crit{color:var(--red);}
   #opts{display:grid; grid-template-columns:1fr 1fr; gap:7px;}
   .opt{background:var(--panel); border:1.5px solid var(--chartbd); border-radius:12px; padding:9px 10px;
-    text-align:left; font:inherit; color:var(--txt); cursor:pointer; min-height:52px; transition:.14s;}
+    text-align:left; font:inherit; color:var(--txt); cursor:pointer; min-height:58px; transition:.14s;}
   .opt:hover{border-color:var(--accent); transform:translateY(-1px);}
-  .opt .nm{font-size:13.5px; font-weight:650; color:var(--ink); display:block; line-height:1.2;}
-  .opt .tk{font-size:10px; color:var(--muted); font-weight:700; display:block; margin-top:3px;}
-  .opt.dead{opacity:.5; border-color:var(--border); background:var(--bg2); cursor:default; transform:none;}
+  .opt .nm{font-size:var(--fs-md); font-weight:650; color:var(--ink); display:block; line-height:1.2;}
+  .opt .tk{font-size:var(--fs-xs); color:var(--muted); font-weight:700; display:block; margin-top:3px;}
+  .opt.dead{opacity:.62; border-color:var(--border); background:var(--bg2); cursor:default; transform:none;}
   .opt.dead .nm{color:var(--muted); text-decoration:line-through; text-decoration-thickness:1px;}
-  .opt.dead .fb{display:block; margin-top:4px; font-size:9.5px; line-height:1.35;}
-  .opt .heat{float:right; font-size:11px;}
+  .opt.dead .fb{display:block; margin-top:5px; font-size:var(--fs-xs); font-weight:600; line-height:1.4;}
+  .opt .heat{float:right; font-size:var(--fs-xs);}
   .fb .no{color:var(--red);} .fb .yes{color:var(--green);} .fb .dir{color:var(--yellow);}
-  #lesson{font-size:12px; color:var(--muted); line-height:1.5; margin:9px 3px 2px;}
+  #lesson{font-size:var(--fs-xs); color:var(--muted); line-height:1.5; margin:9px 3px 2px;}
   /* the pick you just made, held on screen where the text box used to be:
      tap -> verdict -> new clue reads as one chain instead of three unrelated flickers */
   #lastguess{display:none; background:var(--panel); border:1.5px solid var(--red); border-radius:12px;
     padding:10px 12px; margin:2px 0 4px; animation:pop .28s ease;}
   #lastguess .lgtop{display:flex; align-items:baseline; gap:7px; flex-wrap:wrap;}
-  #lastguess .lgtop b{font-size:15px; color:var(--ink); font-weight:650;}
-  #lastguess .lgtop .tk{font-family:var(--mono); font-size:11px; color:var(--muted); font-weight:700;}
-  #lastguess .lgverdict{margin-left:auto; font-size:12px; font-weight:700; color:var(--red); white-space:nowrap;}
-  #lastguess .lgfb{margin-top:6px; font-family:var(--mono); font-size:11px; line-height:1.4;}
+  #lastguess .lgtop b{font-size:var(--fs-lg); color:var(--ink); font-weight:650;}
+  #lastguess .lgtop .tk{font-family:var(--mono); font-size:var(--fs-xs); color:var(--muted); font-weight:700;}
+  #lastguess .lgverdict{margin-left:auto; font-size:var(--fs-xs); font-weight:700; color:var(--red); white-space:nowrap;}
+  #lastguess .lgfb{margin-top:6px; font-size:var(--fs-xs); font-weight:600; line-height:1.4;}
   #lastguess .lgheat{float:right; font-family:var(--sans); font-weight:700; color:var(--txt);}
-  #picklbl b.starthere{color:var(--green); font-size:14.5px;}
+  #picklbl b.starthere{color:var(--green); font-size:var(--fs-md);}
   canvas{width:100%; display:block; border-radius:8px; cursor:crosshair;}
   #hints{display:flex; gap:6px; flex-wrap:wrap; margin:10px 0;}
-  .hint{font-size:12.5px; font-weight:600; border:1px solid var(--border); border-radius:20px; padding:6px 12px;
+  .hint{font-size:var(--fs-sm); font-weight:600; border:1px solid var(--border); border-radius:20px; padding:6px 12px;
     background:var(--panel); transition:all .2s;}
   .hint.locked{opacity:.6;}
-  .hintdigest{width:100%; font-size:11.5px; font-weight:600; color:var(--muted); padding:2px 4px 0;}
-  .hint .hlab{display:inline-block; font-family:var(--mono); font-size:9.5px; font-weight:800;
+  .hintdigest{width:100%; font-size:var(--fs-xs); font-weight:600; color:var(--muted); padding:2px 4px 0;}
+  .hint .hlab{display:inline-block; font-family:var(--mono); font-size:var(--fs-xs); font-weight:800;
     letter-spacing:1.2px; color:var(--accent-ink); background:var(--accent); border-radius:4px;
     padding:1px 6px; margin-right:7px; vertical-align:1px;}
   .hint.new{border-color:var(--accent); color:var(--accent); background:var(--chip-accent);
     animation:pop .35s ease;}
   @keyframes pop{0%{transform:scale(.85); opacity:0;} 100%{transform:scale(1); opacity:1;}}
   #guessarea{position:relative; margin:12px 0 6px;}
-  #guessinput{width:100%; font:inherit; font-size:16px; font-weight:600; background:var(--panel); color:var(--ink);
+  #guessinput{width:100%; font:inherit; font-size:var(--fs-lg); font-weight:600; background:var(--panel); color:var(--ink);
     border:1.5px solid var(--border); border-radius:11px; padding:12px 13px; outline:none;
     box-shadow:var(--shadow); transition:border-color .15s;}
   #guessinput:focus{border-color:var(--accent);}
@@ -134,51 +153,51 @@
   #ac{position:absolute; left:0; right:0; top:100%; z-index:10; background:var(--panel);
     border:1px solid var(--border); border-radius:10px; margin-top:4px; overflow:hidden;
     display:none; box-shadow:var(--shadow);}
-  .acrow{padding:10px 13px; font-size:14.5px; cursor:pointer; display:flex; justify-content:space-between; color:var(--ink);}
+  .acrow{padding:10px 13px; font-size:var(--fs-md); cursor:pointer; display:flex; justify-content:space-between; color:var(--ink);}
   .acrow.sel,.acrow:hover{background:var(--chip-accent);}
-  .acrow .nm{color:var(--muted); font-size:11.5px; margin-left:10px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .acrow .nm{color:var(--muted); font-size:var(--fs-xs); margin-left:10px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   #rows{display:flex; flex-direction:column; gap:6px; margin-top:10px;}
-  .row{display:grid; grid-template-columns:92px 1fr 1fr 1fr; gap:6px; font-size:13px;}
+  .row{display:grid; grid-template-columns:92px 1fr 1fr 1fr; gap:6px; font-size:var(--fs-sm);}
   .row.animin{animation:slidein .3s ease;}
   @keyframes slidein{0%{transform:translateY(-6px); opacity:0;} 100%{transform:translateY(0); opacity:1;}}
   .cell{background:var(--panel); border:1.5px solid var(--border); border-radius:9px; padding:9px 8px; font-weight:600;
     text-align:center; white-space:nowrap; overflow:hidden;}
   .cell.tk{color:var(--ink); font-weight:bold; text-align:left;}
-  .cell.tk small{display:block; font-weight:500; font-size:10.5px; color:var(--muted);
+  .cell.tk small{display:block; font-weight:500; font-size:var(--fs-xs); color:var(--muted);
     overflow:hidden; text-overflow:ellipsis;}
   .cell.good{border-color:var(--green); color:var(--green); background:var(--chip-good);}
   .cell.warm{border-color:var(--yellow); color:var(--yellow); background:var(--chip-warm);}
   .cell.bad{color:var(--txt); opacity:.8;}
   .row.empty .cell{background:transparent; opacity:.5; min-height:34px; border-style:dashed;}
   .row.hdr{margin-bottom:-1px;}
-  .hcell{font-size:10px; letter-spacing:1.5px; color:var(--muted); font-weight:700; text-align:center; padding:0 8px 2px;}
+  .hcell{font-size:var(--fs-xs); letter-spacing:1.5px; color:var(--muted); font-weight:700; text-align:center; padding:0 8px 2px;}
   .row.hdr .hcell:first-child{text-align:left;}
   #reveal{display:none; background:var(--panel); border:1.5px solid var(--accent); border-radius:14px;
-    padding:16px 17px; margin-top:14px; font-size:14.5px; line-height:1.6; box-shadow:var(--shadow);
+    padding:16px 17px; margin-top:14px; font-size:var(--fs-md); line-height:1.6; box-shadow:var(--shadow);
     animation:pop .4s ease;}
-  #reveal h2{margin:0 0 4px; font-size:16px; color:var(--ink);}
+  #reveal h2{margin:0 0 4px; font-size:var(--fs-lg); color:var(--ink);}
   #reveal h2 .co{color:var(--muted); font-weight:normal;}
   #reveal .story{margin:6px 0 12px;}
   #reveal .cocard{background:var(--panel2); border:1px solid var(--border); border-radius:10px;
-    padding:11px 13px; margin:0 0 12px; font-size:13.5px; line-height:1.55;}
-  #reveal .cocard b.lbl{display:block; font-size:10px; letter-spacing:1.5px; color:var(--muted); margin-bottom:2px;}
+    padding:11px 13px; margin:0 0 12px; font-size:var(--fs-md); line-height:1.55;}
+  #reveal .cocard b.lbl{display:block; font-size:var(--fs-xs); letter-spacing:1.5px; color:var(--muted); margin-bottom:2px;}
   #reveal .cocard .k1000{margin-top:9px;}
   #reveal .cocard .up{color:var(--green);} #reveal .cocard .dn{color:var(--red);}
-  #reveal .grid{font-size:16.5px; letter-spacing:2px; color:var(--ink);}
+  #reveal .grid{font-size:var(--fs-lg); letter-spacing:2px; color:var(--ink);}
   #reveal .res{color:var(--accent); font-weight:bold;}
   #reveal .statsheet{margin:8px 0 12px; background:var(--panel2); border:1px solid var(--border); border-radius:10px; padding:6px 14px;}
-  #reveal .statrow{display:flex; justify-content:space-between; align-items:center; padding:8px 0; font-size:13.5px; border-top:1px solid var(--border);}
+  #reveal .statrow{display:flex; justify-content:space-between; align-items:center; padding:8px 0; font-size:var(--fs-md); border-top:1px solid var(--border);}
   #reveal .statrow:first-child{border-top:none;}
-  #reveal .statrow span{color:var(--muted);} #reveal .statrow b{color:var(--ink); font-size:14.5px;}
-  #endcardbox .rankup{margin-top:10px; font-size:13.5px; font-weight:800; color:var(--green); letter-spacing:.5px;}
-  #endcardbox .erolo{margin-top:12px; font-size:13px; color:var(--accent); cursor:pointer; text-decoration:underline dotted; text-underline-offset:3px;}
+  #reveal .statrow span{color:var(--muted);} #reveal .statrow b{color:var(--ink); font-size:var(--fs-md);}
+  #endcardbox .rankup{margin-top:10px; font-size:var(--fs-md); font-weight:800; color:var(--green); letter-spacing:.5px;}
+  #endcardbox .erolo{margin-top:12px; font-size:var(--fs-sm); color:var(--accent); cursor:pointer; text-decoration:underline dotted; text-underline-offset:3px;}
   .rgrid{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:12px;}
   .rcard{background:var(--panel2); border:1px solid var(--border); border-radius:10px; padding:10px 6px; text-align:center;}
   .rcard.locked{opacity:.5;}
   .rcard .remoji{font-size:22px; line-height:1.1;}
-  .rcard .rtk{font-size:12.5px; font-weight:800; color:var(--ink); margin-top:4px;}
-  .rcard .rnm{font-size:10.5px; color:var(--muted); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-  #sharebtn,#nextbtn{font:inherit; font-size:13px; margin-top:12px; margin-right:8px;
+  .rcard .rtk{font-size:var(--fs-sm); font-weight:800; color:var(--ink); margin-top:4px;}
+  .rcard .rnm{font-size:var(--fs-xs); color:var(--muted); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  #sharebtn,#nextbtn{font:inherit; font-size:var(--fs-sm); margin-top:12px; margin-right:8px;
     background:linear-gradient(135deg,var(--accent), color-mix(in oklab, var(--accent), var(--green) 45%));
     color:var(--accent-ink); font-weight:bold; border:none; border-radius:10px;
     padding:10px 16px; cursor:pointer; transition:transform .1s;}
@@ -192,17 +211,17 @@
   #sheet.open{display:flex;}
   #sheetcard{background:var(--panel); border:1px solid var(--border); border-radius:16px 16px 0 0;
     max-width:560px; width:100%; max-height:72vh; overflow-y:auto; padding:18px 18px 26px;
-    font-size:13.5px; line-height:1.6; box-shadow:var(--shadow); animation:sheetup .25s ease;}
+    font-size:var(--fs-md); line-height:1.6; box-shadow:var(--shadow); animation:sheetup .25s ease;}
   @keyframes sheetup{0%{transform:translateY(24px); opacity:0;} 100%{transform:translateY(0); opacity:1;}}
-  #sheetcard h3{margin:0 0 4px; font-size:15px; color:var(--ink);}
+  #sheetcard h3{margin:0 0 4px; font-size:var(--fs-lg); color:var(--ink);}
   #sheetcard .sub{color:var(--muted); margin-bottom:12px;}
   #sheetcard .irow{display:flex; gap:10px; padding:7px 0; border-top:1px solid var(--border);}
   #sheetcard .irow b{flex:none; width:118px; color:var(--ink);}
   #sheetcard .irow span{color:var(--txt);}
-  #sheetclose{margin-top:14px; font:inherit; font-size:13px; background:var(--panel2); color:var(--txt);
+  #sheetclose{margin-top:14px; font:inherit; font-size:var(--fs-sm); background:var(--panel2); color:var(--txt);
     border:1px solid var(--border); border-radius:10px; padding:9px 16px; cursor:pointer; width:100%;}
-  .hintnext{font-size:12px; color:var(--muted); padding:7px 4px; font-weight:500;}
-  .gleft{text-align:right; font-size:11.5px; color:var(--muted); padding:3px 6px;}
+  .hintnext{font-size:var(--fs-xs); color:var(--muted); padding:7px 4px; font-weight:500;}
+  .gleft{text-align:right; font-size:var(--fs-xs); color:var(--muted); padding:3px 6px;}
   #stamp{display:none; position:fixed; inset:0; z-index:60; align-items:center; justify-content:center;
     background:rgba(8,10,16,.78);}
   #stamp.show{display:flex;}
@@ -211,12 +230,12 @@
     background:var(--panel); box-shadow:var(--shadow); animation:stampin .4s cubic-bezier(.2,1.6,.4,1);}
   #stamp.lose #stamptxt{color:var(--red); border-color:var(--red);}
   @keyframes stampin{0%{transform:rotate(-5deg) scale(2.2); opacity:0;} 100%{transform:rotate(-5deg) scale(1); opacity:1;}}
-  .rowstoggle{font-size:12.5px; color:var(--muted); cursor:pointer; padding:9px 6px; user-select:none; font-weight:600;}
+  .rowstoggle{font-size:var(--fs-sm); color:var(--muted); cursor:pointer; padding:9px 6px; user-select:none; font-weight:600;}
   .rowstoggle:hover{color:var(--txt);}
-  .wordsrow{margin:0 0 12px; font-size:12.5px;}
+  .wordsrow{margin:0 0 12px; font-size:var(--fs-sm);}
   .wordsrow .infotap{color:var(--accent);}
   #toast{position:fixed; bottom:40px; left:50%; transform:translateX(-50%) translateY(14px) scale(.92); background:var(--accent);
-    color:var(--accent-ink); font-weight:bold; padding:15px 28px; border-radius:24px; font-size:19px; letter-spacing:.2px; white-space:normal; text-align:center; line-height:1.3; width:max-content; max-width:min(90vw,460px);
+    color:var(--accent-ink); font-weight:bold; padding:15px 28px; border-radius:24px; font-size:var(--fs-xl); letter-spacing:.2px; white-space:normal; text-align:center; line-height:1.3; width:max-content; max-width:min(90vw,460px);
     opacity:0; transition:opacity .22s ease, transform .28s cubic-bezier(.2,1.5,.4,1); pointer-events:none;
     box-shadow:0 12px 40px rgba(0,0,0,.5), 0 0 0 4px rgba(255,255,255,.14); z-index:60;}
   #toast.show{opacity:1; transform:translateX(-50%) translateY(0) scale(1);}
@@ -228,35 +247,56 @@
     animation:endpop .34s cubic-bezier(.2,1.5,.4,1);}
   #feedback{min-height:38px; display:flex; align-items:center; justify-content:center; margin:2px 0 2px;}
   #feedback .fpill{background:var(--panel2); border:1px solid var(--border); color:var(--txt); font-weight:700;
-    font-size:13.5px; padding:8px 18px; border-radius:22px; animation:endpop .28s cubic-bezier(.2,1.5,.4,1);}
+    font-size:var(--fs-md); padding:8px 18px; border-radius:22px; animation:endpop .28s cubic-bezier(.2,1.5,.4,1);}
   @keyframes endpop{0%{transform:scale(.9); opacity:0;} 100%{transform:scale(1); opacity:1;}}
-  #endcardbox .ehead{font-size:27px; font-weight:800; letter-spacing:3px; color:var(--green);}
+  #endcardbox .ehead{font-size:var(--fs-2xl); font-weight:800; letter-spacing:3px; color:var(--green);}
   #endcard.lose #endcardbox .ehead{color:var(--red);}
-  #endcardbox .eans{font-size:15px; color:var(--txt); margin-top:4px;}
+  #endcardbox .eans{font-size:var(--fs-lg); color:var(--txt); margin-top:4px;}
   #endcardbox .eans b{color:var(--ink);}
-  #endcardbox .egrid{font-size:26px; letter-spacing:4px; margin:16px 0 4px;}
-  #endcardbox .emeta{font-size:12.5px; color:var(--muted); letter-spacing:1.5px;}
-  #endcardbox .equip{font-size:14px; color:var(--txt); margin:14px 0 2px; min-height:18px;}
-  #endshare{font:inherit; font-size:16px; font-weight:bold; width:100%; margin-top:14px;
+  #endcardbox .egrid{font-size:30px; letter-spacing:4px; margin:16px 0 4px;}
+  #endcardbox .emeta{font-size:var(--fs-sm); color:var(--muted); letter-spacing:1.5px;}
+  #endcardbox .equip{font-size:var(--fs-md); color:var(--txt); margin:14px 0 2px; min-height:18px;}
+  /* the grid IS the shareable artefact, so the button shows it rather than saying "share result" */
+  #endshare{font:inherit; width:100%; margin-top:15px; border:none; border-radius:13px;
+    padding:15px 14px; cursor:pointer; transition:transform .1s;
     background:linear-gradient(135deg,var(--accent), color-mix(in oklab, var(--accent), var(--green) 45%));
-    color:var(--accent-ink); border:none; border-radius:12px; padding:14px; cursor:pointer; transition:transform .1s;}
+    color:var(--accent-ink); display:flex; flex-direction:column; align-items:center; gap:3px;}
+  #endshare .sb1{font-size:var(--fs-lg); font-weight:800; letter-spacing:.3px;}
+  #endshare .sb2{font-family:var(--mono); font-size:19px; letter-spacing:4px;}
   #endshare:hover{transform:translateY(-1px);}
-  #endstreak{font-size:13px; color:var(--muted); margin-top:12px;}
-  #enddismiss{display:block; margin:14px auto 0; font:inherit; font-size:13px; color:var(--muted);
+  /* The endcard is the only screen every finisher sees, and it used to celebrate and stop.
+     80% of first-time winners never came back for a second win, so these two blocks exist to
+     point at tomorrow: what the streak becomes if they return, and how long until it can. */
+  .habitbox{background:var(--habit-dim); border:1px solid var(--habit-bd); border-radius:13px;
+    padding:13px 14px; margin-top:16px; text-align:left;}
+  .habitbox .hstreak{font-size:var(--fs-lg); font-weight:800; color:var(--habit); letter-spacing:.4px;}
+  .habitbox .hprom{font-size:var(--fs-sm); color:var(--ink); margin-top:4px; line-height:1.45;}
+  .habitbox .hrank{font-size:var(--fs-xs); color:var(--muted); margin-top:7px;}
+  .pips{display:flex; gap:4px; margin-top:8px;}
+  .pips i{flex:1; height:5px; border-radius:3px; background:var(--panel2);}
+  .pips i.on{background:var(--habit);}
+  /* the timer already existed — it was just 12px grey, below the fold, inside #reveal */
+  .cdbox{border:1px solid var(--border); background:var(--panel2); border-radius:13px;
+    padding:12px 14px; margin-top:10px;}
+  .cdbox .cdlab{font-size:var(--fs-xs); letter-spacing:2px; color:var(--muted); font-weight:700;}
+  .cdbox #cdnum{font-size:26px; font-weight:800; color:var(--ink); letter-spacing:1.5px; margin-top:2px;}
+  .cdbox #cdboss{font-size:var(--fs-sm); color:var(--yellow); margin-top:5px; font-weight:600;}
+  .cdbox #cdboss:empty{display:none;}
+  #enddismiss{display:block; margin:14px auto 0; font:inherit; font-size:var(--fs-sm); color:var(--muted);
     background:none; border:none; cursor:pointer; text-decoration:underline dotted; text-underline-offset:3px;}
-  #modebtn{font:inherit; font-size:12.5px; font-weight:700; background:var(--panel2); color:var(--txt);
+  #modebtn{font:inherit; font-size:var(--fs-sm); font-weight:700; background:var(--panel2); color:var(--txt);
     border:1px solid var(--border); border-radius:20px; padding:5px 12px; cursor:pointer; white-space:nowrap;}
   #modebtn:hover{border-color:var(--accent);}
-  #soundbtn,#statsbtn{background:none; border:none; cursor:pointer; font-size:16px; padding:2px 4px; line-height:1;}
-  #helpbtn{flex:none; font:inherit; font-size:13px; font-weight:800; width:26px; height:26px; border-radius:50%;
+  #soundbtn,#statsbtn{background:none; border:none; cursor:pointer; font-size:var(--fs-lg); padding:2px 4px; line-height:1;}
+  #helpbtn{flex:none; font:inherit; font-size:var(--fs-sm); font-weight:800; width:26px; height:26px; border-radius:50%;
     border:1px solid var(--accent); background:var(--panel); color:var(--accent); cursor:pointer; line-height:1;}
-  .strow-h{margin:12px 0 6px; font-weight:700; color:var(--ink); font-size:13px;}
+  .strow-h{margin:12px 0 6px; font-weight:700; color:var(--ink); font-size:var(--fs-sm);}
   .sbar{display:flex; align-items:center; gap:8px; margin:3px 0;}
-  .sbar .sn{width:14px; color:var(--muted); font-size:12px; font-weight:700; text-align:center; flex:none;}
-  .sbar .sfill{background:var(--accent); color:var(--accent-ink); font-size:11.5px; font-weight:800;
+  .sbar .sn{width:14px; color:var(--muted); font-size:var(--fs-xs); font-weight:700; text-align:center; flex:none;}
+  .sbar .sfill{background:var(--accent); color:var(--accent-ink); font-size:var(--fs-xs); font-weight:800;
     border-radius:5px; padding:2px 7px; min-width:16px; text-align:right;}
   .sbar .sfill.lossf{background:var(--red); color:#fff;}
-  .cell .heat{float:right; font-size:12px; opacity:.9;}
+  .cell .heat{float:right; font-size:var(--fs-xs); opacity:.9;}
   .hint.pxhint{display:flex; align-items:center; gap:9px; background:#0c0e14; border-color:var(--accent); color:#dde0ea;}
   .hint.pxhint img{width:56px; height:auto; image-rendering:pixelated; display:block; border-radius:4px;}
   /* ONE overlay does three jobs: first-run teaching, the ? help sheet, and mode switching.
@@ -272,29 +312,29 @@
   #chbody{overflow-y:auto; padding:18px 17px 6px;}
   #chfoot{padding:10px 17px 15px; border-top:1px solid var(--border); background:var(--panel);}
   #chhead{display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;
-    font-family:var(--mono); font-size:11px; letter-spacing:2px; color:var(--muted);}
-  #chtog{font-family:var(--sans); letter-spacing:0; font-size:12px; color:var(--accent); cursor:pointer;}
-  #chclose{font-family:var(--sans); letter-spacing:0; font-size:17px; color:var(--muted); cursor:pointer;
+    font-family:var(--mono); font-size:var(--fs-xs); letter-spacing:2px; color:var(--muted);}
+  #chtog{font-family:var(--sans); letter-spacing:0; font-size:var(--fs-xs); color:var(--accent); cursor:pointer;}
+  #chclose{font-family:var(--sans); letter-spacing:0; font-size:var(--fs-lg); color:var(--muted); cursor:pointer;
     line-height:1; padding:0 2px; margin-left:10px;}
-  #chooserbox .chbig{font-size:18.5px; font-weight:700; color:var(--ink); line-height:1.3; margin-bottom:10px;}
+  #chooserbox .chbig{font-size:var(--fs-xl); font-weight:700; color:var(--ink); line-height:1.3; margin-bottom:10px;}
   #chmini{width:100%; height:88px; display:block; border-radius:9px; margin:2px 0 4px; background:var(--chartbg);}
-  #chooserbox .chp{font-size:13px; color:var(--txt); line-height:1.55; margin:9px 0;}
+  #chooserbox .chp{font-size:var(--fs-sm); color:var(--txt); line-height:1.55; margin:9px 0;}
   .exrow{background:var(--panel2); border:1.5px solid var(--red); border-radius:11px; padding:9px 11px; margin:9px 0 4px;}
   .exrow .extop{display:flex; align-items:baseline; gap:6px;}
-  .exrow .extop b{font-size:15px; color:var(--ink);}
-  .exrow .extop .tk{font-family:var(--mono); font-size:10.5px; color:var(--muted); font-weight:700;}
-  .exrow .extop .exv{margin-left:auto; font-size:11.5px; font-weight:700; color:var(--red);}
-  .exrow .exfb{margin-top:5px; font-family:var(--mono); font-size:11px;}
-  .exlegend div{font-size:12.5px; line-height:1.5; margin:5px 0; color:var(--txt);}
-  .exlegend code{font-family:var(--mono); font-size:11.5px; background:var(--panel2); border-radius:4px; padding:1px 5px;}
+  .exrow .extop b{font-size:var(--fs-lg); color:var(--ink);}
+  .exrow .extop .tk{font-family:var(--mono); font-size:var(--fs-xs); color:var(--muted); font-weight:700;}
+  .exrow .extop .exv{margin-left:auto; font-size:var(--fs-xs); font-weight:700; color:var(--red);}
+  .exrow .exfb{margin-top:5px; font-size:var(--fs-xs); font-weight:600;}
+  .exlegend div{font-size:var(--fs-sm); line-height:1.5; margin:5px 0; color:var(--txt);}
+  .exlegend code{font-family:var(--mono); font-size:var(--fs-xs); background:var(--panel2); border-radius:4px; padding:1px 5px;}
   .exlegend b{color:var(--ink);}
-  #chooserbox .chfine{font-size:12px; color:var(--muted); margin:9px 0 2px;}
-  #chpick{font-size:12.5px; font-weight:700; color:var(--muted); text-align:center; margin:0 0 9px; letter-spacing:.3px;}
+  #chooserbox .chfine{font-size:var(--fs-xs); color:var(--muted); margin:9px 0 2px;}
+  #chpick{font-size:var(--fs-sm); font-weight:700; color:var(--muted); text-align:center; margin:0 0 9px; letter-spacing:.3px;}
   #chooser.collapsed .howtopart{display:none;}
   .modecard{display:block; width:100%; text-align:left; border-radius:13px; padding:11px 14px; margin-bottom:8px;
     cursor:pointer; font:inherit; border:1.5px solid transparent; transition:transform .1s, border-color .15s;}
-  .modecard .mc-h{display:block; font-size:15.5px; font-weight:800; letter-spacing:.4px;}
-  .modecard .mc-d{display:block; font-size:12px; margin-top:2px; line-height:1.35;}
+  .modecard .mc-h{display:block; font-size:var(--fs-lg); font-weight:800; letter-spacing:.4px;}
+  .modecard .mc-d{display:block; font-size:var(--fs-xs); margin-top:2px; line-height:1.35;}
   .modecard.casual{background:linear-gradient(135deg,var(--accent), color-mix(in oklab, var(--accent), var(--green) 45%));
     color:var(--accent-ink);}
   .modecard.casual .mc-h{color:var(--accent-ink);}
@@ -305,18 +345,18 @@
   .modecard.degen .mc-d{color:var(--muted);}
   .modecard.degen:hover{border-color:var(--accent);}
   .modecard.cur{outline:2px solid var(--green); outline-offset:2px;}
-  footer{margin-top:20px; font-size:12px; color:var(--muted); text-align:center;}
+  footer{margin-top:20px; font-size:var(--fs-xs); color:var(--muted); text-align:center;}
   @media (max-width:480px){
     #app{padding:10px 9px 36px;}
     header{gap:6px;}
     h1{font-size:17px; letter-spacing:1.5px;}
-    #headmeta{font-size:10.5px; line-height:1.3; white-space:nowrap;}
-    #modebtn{font-size:11px; padding:4px 9px;}
-    #soundbtn,#statsbtn{font-size:15px; padding:2px;}
+    #headmeta{font-size:var(--fs-xs); line-height:1.3; white-space:nowrap;}
+    #modebtn{font-size:var(--fs-xs); padding:4px 9px;}
+    #soundbtn,#statsbtn{font-size:var(--fs-lg); padding:2px;}
     #chartwrap{padding:5px; margin:8px 0; border-radius:12px;}
     .row{gap:5px; grid-template-columns:84px 1fr 1fr 1fr;}
-    .cell{font-size:12px; padding:9px 6px;}
-    .cell.tk small{font-size:10px;}
+    .cell{font-size:var(--fs-xs); padding:9px 6px;}
+    .cell.tk small{font-size:var(--fs-xs);}
     #hints{gap:5px;}
   }
 </style>
@@ -398,7 +438,7 @@ const DEV = new URLSearchParams(location.search).has("dev");   // ?dev=1 unlocks
 const SHARE_URL = "chartedgame.com";
 const MAXG = 6;
 const EPOCH = "2026-07-20";   // public launch day = puzzle #1; one puzzle per LOCAL calendar day
-const VERSION = "2026-08-01c";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
+const VERSION = "2026-08-04a";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
 const U = DATA.universe, ORD = DATA.bucketOrder, PUZ = DATA.puzzles;
 const BOSSES = DATA.bosses || [];
 const BOSS_EPOCH = "2026-08-02";   // first boss Sunday; bosses rotate weekly from here
@@ -945,6 +985,34 @@ function winCount(m){ return store.get("wins_"+(m||"casual"),0); }
 function rankTitle(m){ const t=RANKS[m==="degen"?"degen":"casual"]; let r=t[0][1]; for(const e of t){ if(winCount(m)>=e[0]) r=e[1]; } return r; }
 function rankUpMsg(m, before){ const t=RANKS[m==="degen"?"degen":"casual"]; let b=t[0][1], a=t[0][1];
   for(const e of t){ if(before>=e[0]) b=e[1]; if(winCount(m)>=e[0]) a=e[1]; } return a!==b ? a : ""; }
+// the rung above you, so the endcard can promise something instead of just reporting
+function nextRank(m){ const t=RANKS[m==="degen"?"degen":"casual"], w=winCount(m);
+  for(const e of t){ if(w<e[0]) return {need:e[0]-w, title:e[1]}; } return null; }
+
+// ---------- the return hook: what tomorrow is worth, and how far away it is ----------
+function habitHTML(m){
+  const st=store.get("streak",0), nr=nextRank(m);
+  return `<div class="habitbox">`+
+    `<div class="hstreak">🔥 ${st} day streak</div>`+
+    `<div class="hprom">Win tomorrow and it's ${st+1}.</div>`+
+    `<div class="pips">${[1,2,3,4,5].map(n=>`<i class="${n<=st?"on":""}"></i>`).join("")}</div>`+
+    `<div class="hrank">${nr ? nr.need+" more win"+(nr.need>1?"s":"")+" → "+nr.title : rankTitle(m)}</div>`+
+  `</div>`;
+}
+function cdTick(){
+  const now=new Date(), mid=new Date(now); mid.setHours(24,0,0,0);
+  let s=Math.floor((mid-now)/1000);
+  const h=String(Math.floor(s/3600)).padStart(2,"0"); s%=3600;
+  const clock=h+":"+String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");
+  const boss = BOSSES.length>0 && mid.getDay()===0;   // mid is tomorrow 00:00, so this asks "is tomorrow Sunday"
+  const n=document.getElementById("cdnum");   if(n) n.textContent=clock;
+  const b=document.getElementById("cdboss");  if(b) b.textContent = boss?"👑 tomorrow is the Sunday Boss":"";
+  const r=document.getElementById("countdown");
+  if(r) r.textContent=`Next chart in ${clock} — `+(boss?"👑 the Sunday Boss drops at midnight.":"come back tomorrow.");
+}
+function startCountdown(){ cdTick(); clearInterval(window._cdTimer); window._cdTimer=setInterval(cdTick,1000); }
+function cdBoxHTML(){ return `<div class="cdbox"><div class="cdlab">NEXT CHART IN</div>`+
+  `<div id="cdnum">--:--:--</div><div id="cdboss"></div></div>`; }
 
 let soundOn = store.get("sound", true);        // sound ON by default (Vlad's call)
 // HTML-media audio: routes through the media channel that plays even when the iPhone
@@ -1078,20 +1146,10 @@ function reveal(fresh){
     `<div class="grid">CHARTED ${tag} · ${modeLabel()} <span class="res">${res}</span>${rep?' <span style="color:var(--muted);font-size:12px">· replay</span>':''}<br>${emojiGrid()}</div>`+
     `<button id="sharebtn">Share</button>`+
     (DEV && day<PUZ.length-1 ? `<button id="nextbtn">Next test day →</button>`:"")+
-    (!DEV ? `<div id="countdown" style="margin-top:12px;color:var(--muted);font-size:12px"></div>`:"");
-  if(!DEV){
-    const cd=document.getElementById("countdown");
-    const tick=()=>{ const now=new Date(), mid=new Date(now); mid.setHours(24,0,0,0);
-      let s=Math.floor((mid-now)/1000);
-      const h=String(Math.floor(s/3600)).padStart(2,"0"); s%=3600;
-      const m=String(Math.floor(s/60)).padStart(2,"0");
-      const bossNext = BOSSES.length>0 && mid.getDay()===0;   // tomorrow is Sunday
-      cd.textContent=`Next chart in ${h}:${m}:${String(s%60).padStart(2,"0")} — `+
-        (bossNext?"👑 the Sunday Boss drops at midnight.":"come back tomorrow.");
-    };
-    tick(); clearInterval(window._cdTimer); window._cdTimer=setInterval(tick,1000);
-  }
-  const shareTxt=`CHARTED ${tag} · ${modeLabel()} ${res}${rep?" · replay":""}\n${emojiGrid()}\n\nWho charted? 👀 ${SHARE_URL} · @chartillect`;
+    (!DEV ? `<div id="countdown" style="margin-top:12px;color:var(--muted);font-size:var(--fs-sm)"></div>`:"");
+  // grid first: it is the only line a non-player finds interesting, and "#123" up top read as noise.
+  // ?ref=sh is picked up by GoatCounter ahead of the referrer header, so shares survive t.co and iMessage.
+  const shareTxt=`${emojiGrid()}\n\nCHARTED ${tag} · ${res} · ${modeLabel()}${rep?" · replay":""}\nThink you can read a chart faster?\n\n${SHARE_URL}/?ref=sh`;
   const QP = mode==="degen" ? {
     win:["Sir, this is a winner's casino. 🎰","Priced in? You WERE the price.","Chart recognized. Position respected. 💎","Tape don't lie. Neither do you.","Alpha. Raw, unlicensed alpha.","You've seen this movie. You wrote it.","Send it to the group chat. 📤"],
     loss:["Down bad on a chart with no money in it.","The candle won. It usually does. 🕯️","Liquidated. Emotionally.","Revenge trade loads at midnight. 🕛","That was the bear trap. You were the bear.","Guessing is a risk asset too, apparently.","Charts 1, degen 0. Run it back."]
@@ -1108,6 +1166,8 @@ function reveal(fresh){
     });
   }
   function doShare(){
+    if(!DEV && window.goatcounter && goatcounter.count)
+      goatcounter.count({path:"share-"+(mode||"casual"), title:"CHARTED shared", event:true});
     document.getElementById("endcard")?.classList.remove("show");   // close the popup if it's open
     if(navigator.share){
       navigator.share({text:shareTxt}).then(()=>showToast(quip())).catch(err=>{
@@ -1131,13 +1191,15 @@ function reveal(fresh){
     `<div class="emeta">CHARTED ${tag} · ${modeLabel()} · ${res}</div>`+
     (rep?`<div class="emeta" style="margin-top:8px">replay — you'd already seen today's chart</div>`:``)+
     `<div class="equip">${quip()}</div>`+
-    `<button id="endshare">Share result</button>`+
-    `<div id="endstreak">${won?"🔥 "+store.get("streak",0)+" day streak · ":""}${rankTitle(M)}</div>`+
+    (won?habitHTML(M):``)+                       // a broken streak has nothing to promise; the countdown carries the loss case
+    cdBoxHTML()+
+    `<button id="endshare"><span class="sb1">Share your run</span><span class="sb2">${emojiGrid()}</span></button>`+
     ((fresh&&pendingRankUp)?`<div class="rankup">⬆ RANK UP — you're now ${pendingRankUp}!</div>`:``)+
-    (won?`<div class="erolo rolodex-open">🗂 ${(fresh&&pendingNewCo)?"$"+answer()+" joins your Rolodex":"Chart Rolodex"} · ${metCount()} met</div>`:``)+
+    (won?`<div class="erolo rolodex-open">🗂 ${(fresh&&pendingNewCo)?"$"+answer()+" joins your Rolodex":"Chart Rolodex"} · ${metCount()} of ${metTotal()} met</div>`:``)+
     `<button id="enddismiss">see the breakdown ↓</button>`;
   document.getElementById("endshare").addEventListener("click", doShare);
   document.getElementById("enddismiss").addEventListener("click", ()=>ec.classList.remove("show"));
+  startCountdown();   // no-ops on whichever element is absent
   if(fresh){ setTimeout(()=>ec.classList.add("show"), 1500); pendingRankUp=""; pendingNewCo=false; }   // auto-pop on fresh finish only; consume flags
   updateStreak();
 }
@@ -1255,6 +1317,7 @@ document.getElementById("stamp").addEventListener("click",e=>e.currentTarget.cla
 function showInfo(k){ sheetcard.innerHTML = INFO[k] + '<button id="sheetclose">Got it</button>'; sheet.classList.add("open"); }
 // ---------- Phase 3: Chart Rolodex (collectible companies) ----------
 function metCount(){ return (store.get("rolodex",[])||[]).length; }
+function metTotal(){ return new Set(PUZ.concat(BOSSES).map(p=>p.answer)).size; }
 function rolodexHTML(){
   const EM={}; PUZ.concat(BOSSES).forEach(p=>{ if(p.co&&p.co.emoji) EM[p.answer]=p.co.emoji; });
   const met=(store.get("rolodex",[])||[]).filter(tk=>U[tk]);
@@ -1264,7 +1327,7 @@ function rolodexHTML(){
   }
   const cards=met.map(tk=>`<div class="rcard got"><div class="remoji">${EM[tk]||"📈"}</div><div class="rtk">$${tk}</div><div class="rnm">${U[tk].name}</div></div>`).join("");
   return `<h3>🗂 Your Chart Rolodex</h3>`+
-    `<div class="sub">You've met ${met.length} ${met.length===1?"company":"companies"} — come back daily to collect more.</div>`+
+    `<div class="sub">${met.length} of ${metTotal()} companies met — come back daily to collect the rest.</div>`+
     `<div class="rgrid">${cards}</div>`;
 }
 function openRolodex(){ sheetcard.innerHTML = rolodexHTML() + '<button id="sheetclose">Close</button>'; sheet.classList.add("open"); }

@@ -21,13 +21,15 @@ jobs:
         run: python3 fetch_data.py
       - name: Build puzzles
         run: python3 build_puzzles.py
+      - name: Render link-preview card from yesterday's chart
+        run: pip install --quiet pillow && python3 gen_og.py
       - name: Bake index.html
         run: python3 build_index.py
       - name: Commit if changed
         run: |
           git config user.name "charted-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add prices_raw.json index.html
+          git add prices_raw.json index.html og.png
           if ! git diff --cached --quiet; then
             git commit -m "nightly data refresh"
             git push
