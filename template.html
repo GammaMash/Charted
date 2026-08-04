@@ -438,7 +438,7 @@ const DEV = new URLSearchParams(location.search).has("dev");   // ?dev=1 unlocks
 const SHARE_URL = "chartedgame.com";
 const MAXG = 6;
 const EPOCH = "2026-07-20";   // public launch day = puzzle #1; one puzzle per LOCAL calendar day
-const VERSION = "2026-08-04a";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
+const VERSION = "2026-08-04b";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
 const U = DATA.universe, ORD = DATA.bucketOrder, PUZ = DATA.puzzles;
 const BOSSES = DATA.bosses || [];
 const BOSS_EPOCH = "2026-08-02";   // first boss Sunday; bosses rotate weekly from here
@@ -1148,8 +1148,10 @@ function reveal(fresh){
     (DEV && day<PUZ.length-1 ? `<button id="nextbtn">Next test day →</button>`:"")+
     (!DEV ? `<div id="countdown" style="margin-top:12px;color:var(--muted);font-size:var(--fs-sm)"></div>`:"");
   // grid first: it is the only line a non-player finds interesting, and "#123" up top read as noise.
-  // ?ref=sh is picked up by GoatCounter ahead of the referrer header, so shares survive t.co and iMessage.
-  const shareTxt=`${emojiGrid()}\n\nCHARTED ${tag} · ${res} · ${modeLabel()}${rep?" · replay":""}\nThink you can read a chart faster?\n\n${SHARE_URL}/?ref=sh`;
+  // NO ?ref tag here on purpose. A friend-to-friend link carries the sender as the endorsement and a
+  // "ref=" suffix reads as affiliate tracking, which undercuts it. Share VOLUME is measured by the
+  // share-<mode> event below instead. Vlad's own public posts still carry ?ref=x / ?ref=tt.
+  const shareTxt=`${emojiGrid()}\n\nCHARTED ${tag} · ${res} · ${modeLabel()}${rep?" · replay":""}\nThink you can read a chart faster?\n\n${SHARE_URL}`;
   const QP = mode==="degen" ? {
     win:["Sir, this is a winner's casino. 🎰","Priced in? You WERE the price.","Chart recognized. Position respected. 💎","Tape don't lie. Neither do you.","Alpha. Raw, unlicensed alpha.","You've seen this movie. You wrote it.","Send it to the group chat. 📤"],
     loss:["Down bad on a chart with no money in it.","The candle won. It usually does. 🕯️","Liquidated. Emotionally.","Revenge trade loads at midnight. 🕛","That was the bear trap. You were the bear.","Guessing is a risk asset too, apparently.","Charts 1, degen 0. Run it back."]
