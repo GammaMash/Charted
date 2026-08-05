@@ -438,7 +438,7 @@ const DEV = new URLSearchParams(location.search).has("dev");   // ?dev=1 unlocks
 const SHARE_URL = "chartedgame.com";
 const MAXG = 6;
 const EPOCH = "2026-07-20";   // public launch day = puzzle #1; one puzzle per LOCAL calendar day
-const VERSION = "2026-08-04b";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
+const VERSION = "2026-08-05a";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
 const U = DATA.universe, ORD = DATA.bucketOrder, PUZ = DATA.puzzles;
 const BOSSES = DATA.bosses || [];
 const BOSS_EPOCH = "2026-08-02";   // first boss Sunday; bosses rotate weekly from here
@@ -451,7 +451,18 @@ function daysSinceEpoch(){
   const e=new Date(y,m-1,dd), t=new Date(); t.setHours(0,0,0,0);
   return Math.max(0, Math.round((t-e)/86400000));
 }
-function todaysPuzzleIndex(){ return daysSinceEpoch() % PUZ.length; }
+function dayNumber(){ return daysSinceEpoch()+1; }   // launch day = #1; monotonic, never repeats
+function todaysPuzzleIndex(){
+  const d=daysSinceEpoch(), n=PUZ.length, cycle=Math.floor(d/n), pos=d%n;
+  if(cycle===0) return pos;              // first pass through keeps the authored running order
+  // The queue is 30 long, so it wraps every 30 days. Reshuffle each cycle so charts at least come
+  // back in a different sequence. Seeded ONLY by the cycle number: no storage, no clock, so every
+  // player on the same day gets the same puzzle, and each chart still appears exactly once per lap.
+  const ord=[...Array(n).keys()];
+  let sd=(cycle*2654435761) % 2147483647 || 1;
+  for(let i=n-1;i>0;i--){ sd=(sd*48271)%2147483647; const j=sd%(i+1); [ord[i],ord[j]]=[ord[j],ord[i]]; }
+  return ord[pos];
+}
 // Sunday Boss: every Sunday BOTH modes get the same legendary chart over its actual
 // historical window, instead of the queue puzzle (which is skipped, not shifted).
 // Preview any boss with ?dev=1&boss=N (1-based) — dev state, nothing counts.
@@ -1124,7 +1135,7 @@ function reveal(fresh){
     window.goatcounter ? send() : setTimeout(send, 3000);
   }
   el.style.display="block";
-  const boss = isBossDay(), tag = boss ? "👑 BOSS #"+p.id : "#"+p.id;
+  const boss = isBossDay(), tag = boss ? "👑 BOSS #"+p.id : "#"+dayNumber();
   // The mode split is about how much HELP you get on the way in, not how much you learn on
   // the way out — by reveal time the round is over, so withholding the payoff from Degen was
   // just deleting the best part for the players most likely to care about it.
@@ -1197,7 +1208,7 @@ function reveal(fresh){
     cdBoxHTML()+
     `<button id="endshare"><span class="sb1">Share your run</span><span class="sb2">${emojiGrid()}</span></button>`+
     ((fresh&&pendingRankUp)?`<div class="rankup">⬆ RANK UP — you're now ${pendingRankUp}!</div>`:``)+
-    (won?`<div class="erolo rolodex-open">🗂 ${(fresh&&pendingNewCo)?"$"+answer()+" joins your Rolodex":"Chart Rolodex"} · ${metCount()} of ${metTotal()} met</div>`:``)+
+    (won?`<div class="erolo rolodex-open">🗂 ${(fresh&&pendingNewCo)?"$"+answer()+" joins your Rolodex":"Chart Rolodex"} · ${metCount()} collected</div>`:``)+
     `<button id="enddismiss">see the breakdown ↓</button>`;
   document.getElementById("endshare").addEventListener("click", doShare);
   document.getElementById("enddismiss").addEventListener("click", ()=>ec.classList.remove("show"));
@@ -1267,7 +1278,7 @@ function renderAll(animLast){
   inp.placeholder = done ? "Round over — next chart tomorrow" : "Type a ticker or company…";
   document.getElementById("daytag").textContent = isBossDay()
     ? "👑 BOSS #"+puzzle().id
-    : "#"+puzzle().id+" · "+new Date().toLocaleString("en",{month:"short",day:"numeric"});
+    : "#"+dayNumber()+" · "+new Date().toLocaleString("en",{month:"short",day:"numeric"});
   drawChart(); renderHints(); renderRows(animLast); updateStreak();
   document.querySelectorAll("#devbar button[data-d]").forEach(b=>b.classList.toggle("on",+b.dataset.d===day));
   if(!done) document.getElementById("reveal").style.display="none";
@@ -1319,7 +1330,6 @@ document.getElementById("stamp").addEventListener("click",e=>e.currentTarget.cla
 function showInfo(k){ sheetcard.innerHTML = INFO[k] + '<button id="sheetclose">Got it</button>'; sheet.classList.add("open"); }
 // ---------- Phase 3: Chart Rolodex (collectible companies) ----------
 function metCount(){ return (store.get("rolodex",[])||[]).length; }
-function metTotal(){ return new Set(PUZ.concat(BOSSES).map(p=>p.answer)).size; }
 function rolodexHTML(){
   const EM={}; PUZ.concat(BOSSES).forEach(p=>{ if(p.co&&p.co.emoji) EM[p.answer]=p.co.emoji; });
   const met=(store.get("rolodex",[])||[]).filter(tk=>U[tk]);
@@ -1329,7 +1339,7 @@ function rolodexHTML(){
   }
   const cards=met.map(tk=>`<div class="rcard got"><div class="remoji">${EM[tk]||"📈"}</div><div class="rtk">$${tk}</div><div class="rnm">${U[tk].name}</div></div>`).join("");
   return `<h3>🗂 Your Chart Rolodex</h3>`+
-    `<div class="sub">${met.length} of ${metTotal()} companies met — come back daily to collect the rest.</div>`+
+    `<div class="sub">${met.length} ${met.length===1?"company":"companies"} collected — a new chart every day.</div>`+
     `<div class="rgrid">${cards}</div>`;
 }
 function openRolodex(){ sheetcard.innerHTML = rolodexHTML() + '<button id="sheetclose">Close</button>'; sheet.classList.add("open"); }
