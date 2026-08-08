@@ -438,7 +438,7 @@ const DEV = new URLSearchParams(location.search).has("dev");   // ?dev=1 unlocks
 const SHARE_URL = "chartedgame.com";
 const MAXG = 6;
 const EPOCH = "2026-07-20";   // public launch day = puzzle #1; one puzzle per LOCAL calendar day
-const VERSION = "2026-08-05a";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
+const VERSION = "2026-08-08a";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
 const U = DATA.universe, ORD = DATA.bucketOrder, PUZ = DATA.puzzles;
 const BOSSES = DATA.bosses || [];
 const BOSS_EPOCH = "2026-08-02";   // first boss Sunday; bosses rotate weekly from here
@@ -748,6 +748,41 @@ const SECTOR_PLAIN = {
   "Energy":"oil, gas and the companies that move it","Materials":"chemicals, metals and mining",
   "Real Estate":"property owners and landlords","Utilities":"power and water — the monthly-bill companies"
 };
+// ---------- rung 3 (degen): the rival clue ----------
+// The old rung 3 said "N% below its 52-week high". Useless: the axis flips to real prices at
+// this same stage (priced = stage()>=3) and the peak is right there, so it restated the chart.
+// Market cap is the one thing a chart CANNOT show — a $30 stock can be a trillion-dollar
+// company. Anchors are household names only; the pair is picked per puzzle so every chart
+// leaves ~14% of the answer pool, instead of 2% for mega caps and 28% for mid caps.
+const RIVALS=["AAPL","NVDA","GOOGL","MSFT","AMZN","META","TSLA","WMT","JPM","XOM","JNJ","COST",
+  "KO","HD","NFLX","DIS","SBUX","NKE","UBER","ABNB","COIN","MRNA","LULU","GME","AMC","F","PYPL","EBAY"];
+const RIVAL_TOP=[["NKE","SBUX","UBER"],["ABNB","SBUX","UBER"]];   // balanced triples: nothing sits above AAPL/NVDA
+function rivalClue(short){
+  const tk=answer(), c=(U[tk]||{}).capB||0;
+  const A=RIVALS.filter(t=>U[t]&&U[t].capB).map(t=>[t,U[t].capB,U[t].name]).sort((a,b)=>a[1]-b[1]);
+  const pool=Object.values(U).filter(v=>v.answer&&v.capB);
+  const cnt=(lo,hi)=>pool.filter(v=>v.capB>=lo&&v.capB<=hi).length;
+  const hash=[...tk].reduce((a,ch)=>a+ch.charCodeAt(0),0);
+  const his=A.filter(a=>a[1]>c*1.08), los=A.filter(a=>a[1]<c*0.92);
+  if(!his.length){                                  // genuinely at the top of the market
+    const p=RIVAL_TOP[hash%RIVAL_TOP.length];
+    return short ? "> "+p.join("+")
+      : "Bigger than "+p.slice(0,-1).map(t=>U[t].name).join(", ")+" and "+U[p[p.length-1]].name+" combined";
+  }
+  const opts=[];
+  for(const L of los.concat([null])) for(const H of his.concat([null])){
+    if(!L&&!H) continue;
+    const n=cnt(L?L[1]:0, H?H[1]:Infinity);
+    if(n<6) continue;                               // never near-decisive
+    opts.push([Math.abs(n-28)+((L&&H)?0:6), L, H]); // penalty keeps one-sided clues a last resort
+  }
+  let best=Infinity; for(const o of opts) if(o[0]<best) best=o[0];
+  const near=opts.filter(o=>o[0]<=best+3);          // variety, without moving the difficulty
+  const L=near[hash%near.length][1], H=near[hash%near.length][2];
+  if(L&&H) return short ? "> "+L[0]+", < "+H[0] : "Bigger than "+L[2]+", smaller than "+H[2];
+  if(H)    return short ? "< "+H[0] : "Smaller than "+H[2];
+  return short ? "> "+L[0] : "Bigger than "+L[2];
+}
 function pctOffHigh(){ const ys=puzzle().closes, hi=Math.max(...ys); return Math.round((1-ys[ys.length-1]/hi)*100); }
 function shapeArch(){
   const ys=puzzle().closes, n=ys.length, base=ys[0], last=ys[n-1], peak=Math.max(...ys);
@@ -773,7 +808,7 @@ const SIZE_CLUE = {
 };
 const LADDERS = {
   casual: ["","Sector","How big","Price","Emoji","Reveal"],
-  degen:  ["","Sector","Event","Price","Shape","Emoji"],
+  degen:  ["","Sector","Event","Scale","Shape","Emoji"],
 };
 function rungName(k){ return (LADDERS[mode==="degen"?"degen":"casual"][k]||""); }
 function hintText(k){
@@ -782,8 +817,8 @@ function hintText(k){
                          : "Sector: "+secL(a.sector)+(SECTOR_PLAIN[a.sector]?" — "+SECTOR_PLAIN[a.sector]:"");
   if(k===2) return degen ? "📍 event marked on the chart"
                          : "How big? "+(SIZE_CLUE[a.cap]||"a well-known company");
-  if(k===3) return degen ? "Price axis · "+(isBossDay()? "ended "+pctOffHigh()+"% below the peak"
-                                                       : pctOffHigh()+"% below its 52-week high")
+  // boss charts are historical windows, so the cap is flagged as present-day
+  if(k===3) return degen ? (isBossDay()?"Scale (today) · ":"Scale · ")+rivalClue(false)
                          : "Price axis revealed · one share ≈ "+relPrice();
   if(degen){
     if(k===4) return "Shape: "+shapeArch();
@@ -798,7 +833,7 @@ function hintCompact(k){          // absorbed hints shrink to a one-line digest 
   const a=U[answer()], p=puzzle(), degen = mode==="degen";
   if(k===1) return "🏷 "+secL(a.sector);
   if(k===2) return degen ? "📍 event" : "⚖️ "+(SIZE_LABEL[a.cap]||"Big");
-  if(k===3) return degen ? "💲 "+(p.window? "peaked $"+fmtP(Math.max(...p.closes)) : pctOffHigh()+"% off high")
+  if(k===3) return degen ? "⚖️ "+rivalClue(true)
                          : "💲 ≈ "+relPrice();
   if(k===4) return degen ? "〰 "+shapeArch() : emojiStr()||"🖼";
   return "";
