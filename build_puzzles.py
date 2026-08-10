@@ -45,7 +45,7 @@ NAME_FIX = {                                   # wrong or too corporate for a ca
     "LULU": "Lululemon", "SNDK": "SanDisk", "QCOM": "Qualcomm", "NKE": "Nike",
     "CVNA": "Carvana", "MRK": "Merck", "JPM": "JPMorgan Chase", "GS": "Goldman Sachs",
     "META": "Meta", "UBER": "Uber", "PLTR": "Palantir", "DELL": "Dell",
-    "HOOD": "Robinhood", "F": "Ford", "MSTR": "Strategy (MicroStrategy)",
+    "HOOD": "Robinhood", "LLY": "Eli Lilly", "F": "Ford", "MSTR": "Strategy (MicroStrategy)",
 }
 def display_name(tk, name):
     if tk in NAME_FIX:
@@ -86,7 +86,7 @@ HAND = {
  "KO":   (lambda t: 5 < t < 40,    "Coke doesn't do drama — barely a dip all year, just the steady grind higher. That calm IS the fingerprint."),
  "DIS":  (lambda t: -30 < t < 0,   "No crisis, no comeback — Disney just leaked lower, one unremarkable month at a time."),
  "AMD":  (lambda t: t > 80,        "AMD nearly tripled — with a gut-check drawdown in the middle that shook out everyone who wasn't sure."),
- "HOOD": (lambda t: t < 5,         "Robinhood got cut in half mid-year, then clawed most of it back — the casino traded like one of its own tickers."),
+ "HOOD": (lambda t: t < 5,         "Robinhood lost more than half from its September high, bottomed in March, and has clawed back about 40% since — the casino trades like one of its own tickers."),
  "COIN": (lambda t: t < -25,       "Crypto winter came back for Coinbase — down by half, with every rally fading inside a month."),
  "LULU": (lambda t: t < -20,       "Lululemon stretched too far — a steady markdown from last year's highs, one red stretch at a time."),
  "BA":   (lambda t: -25 < t < 10,  "Boeing chopped through turbulence all year and landed roughly where it took off."),
@@ -94,17 +94,33 @@ HAND = {
  "RIVN": (lambda t: t > 15,        "Rivian finally strung together an up year — violently. Nothing this stock does is gradual."),
  "DELL": (lambda t: t > 100,       "Dell — yes, Dell — tripled. The beige-box company turned momentum stock, and it's sitting at the highs."),
  "MRVL": (lambda t: t > 60,        "Marvell went vertical, then handed a big piece back — AI-chip beta cuts in both directions."),
- "PLTR": (lambda t: t < -10,       "The cult stock cooled: a year of unwinding, with believers buying every dip on the way down."),
+ "PLTR": (lambda t: abs(t) < 25,   "Palantir looks flat and wasn't: down 44% into a June low, then a 50% climb back out of it. The cult stock spent twelve months going nowhere the hard way."),
  "SMCI": (lambda t: t < -15,       "Supermicro was down two-thirds at the worst — then mounted half a comeback. Momentum in reverse is a different sport."),
- "AVGO": (lambda t: t > 5,         "Broadcom took a full-size correction mid-year and still came out ahead — the quiet giant of the AI trade."),
- "CVNA": (lambda t: -25 < t < 10,  "Carvana's yo-yo year: down 40% at the low, most of the way back by the end. Volatility is the product."),
+ "AVGO": (lambda t: t > 5,         "Broadcom took a 25% correction into March and is back within a few percent of its high — the quiet giant of the AI trade."),
+ "CVNA": (lambda t: -25 < t < 10,  "Carvana is flat over twelve months, which tells you nothing — a January high, a 41% drop into March, and a partial climb back. Volatility is the product."),
  "CRCL": (lambda t: t < -35,       "Post-IPO gravity: Circle issues the stablecoin — the stock is anything but."),
  "GEMI": (lambda t: t < -60,       "Gemini has done little but fall since its debut — the listing everyone wanted, the chart nobody did."),
+ # --- appended 2026-08-09: batch 1. House rule for these: PRESENT TENSE, anchored to "now"
+ # --- or "since last August". The window is a ROLLING twelve months rebuilt nightly, so there
+ # --- is no close and no year-end — "finished the year" is wrong by construction.
+ "GOOGL":(lambda t: t > 40,        "Alphabet did most of its climbing by May and has been handing a slice back ever since — the best chart in Big Tech, minus the summer."),
+ "META": (lambda t: t < -10,       "Meta's high is the first candle on the chart — everything after was a slow give-back into spring, and the bounce never got far."),
+ "ORCL": (lambda t: t < -25,       "Oracle round-tripped an entire AI re-rating — a pop in September, then nearly two-thirds gone from the high. The boring database company is having the least boring twelve months in the game."),
+ "RBLX": (lambda t: t < -50,       "Roblox has lost two-thirds since last August and still hasn't had a real bounce — lower into winter, lower again through summer. A staircase pointed the wrong way."),
+ "HIMS": (lambda t: t < -10,       "Hims fell three-quarters by February, then nearly doubled off the low — the deepest hole in the game, half climbed back out of."),
+ "RIOT": (lambda t: t > 40,        "Riot has nearly doubled since last August, and it still feels like a loss if you bought in June — a 41% drawdown early, a summer top, and a fade ever since."),
+ "QCOM": (lambda t: abs(t) < 20,   "Qualcomm sits almost exactly where it did twelve months ago — which hides a 59% rip into May and a 33% slide back out of it. Flat is not the same as quiet."),
+ "LLY":  (lambda t: t > 40,        "Lilly has climbed for twelve straight months and sits within 2% of its high — no drama, no give-back, just up."),
+ "JPM":  (lambda t: 10 < t < 40,   "JPMorgan is at its highest price in twelve months right now — a spring dip, then a straight line up. Banks are supposed to be boring; this one is boringly good."),
+ "UBER": (lambda t: t < -10,       "Uber gave back a fifth of its value with no single bad week to blame — a long grind lower, and a bounce that only started in July."),
 }
 
 QUEUE = ["GME","AAPL","TSLA","NFLX","MU","SBUX","KO","DIS","INTC","NKE",
          "MSFT","CAT","AMD","HOOD","COIN","LULU","BA","IBM","RIVN","DELL",
-         "MRVL","PLTR","SMCI","AVGO","CVNA","MSTR","CRCL","GEMI","SNDK","NVDA"]
+         "MRVL","PLTR","SMCI","AVGO","CVNA","MSTR","CRCL","GEMI","SNDK","NVDA",
+         # --- appended 2026-08-09: batch 1 of the queue expansion. Ordered for shape variety
+         # --- so the run doesn't serve five staircases back to back.
+         "GOOGL","RBLX","JPM","HIMS","ORCL","LLY","RIOT","UBER","QCOM","META"]
 
 def story(tk, ys):
     tot, big, dd = stats(ys)
@@ -113,6 +129,34 @@ def story(tk, ys):
     if narr and cond(tot):
         return narr + nums
     return f"{uni[tk]['name']} — now you'll recognize this chart next time." + nums
+
+# ---------------------------------------------------------------- sector-relative return
+# Rung 4 used to be the chart SHAPE alone, which names something the player is already
+# looking at. This adds the one thing the picture cannot contain: how the company did
+# against its own sector. Must be computed here — the browser only receives universe
+# metadata plus each puzzle's own closes, never the other 500 tickers' prices.
+def _ret(tk):
+    pts = prices.get(tk) or []
+    return None if len(pts) < 10 else pts[-1][1] / pts[0][1] - 1
+
+_SEC = {}
+for _t, _v in uni.items():
+    if _v.get("answer") and _ret(_t) is not None:
+        _SEC.setdefault(_v["sector"], []).append((_t, _ret(_t)))
+
+def sector_rel(tk):
+    """Thirds: led / middle / lagged. Small sectors are ranked as-is, no merging."""
+    peers = _SEC.get(uni[tk]["sector"], [])
+    if len(peers) < 3:
+        return ""
+    r = _ret(tk)
+    if r is None:
+        return ""
+    better = sum(1 for _, pr in peers if pr > r)
+    pct = better / max(len(peers) - 1, 1)
+    return ("led its sector this year" if pct <= 0.33 else
+            "middle of its sector this year" if pct <= 0.66 else
+            "lagged its sector this year")
 
 out = []
 for i, tk in enumerate(QUEUE):
@@ -125,7 +169,7 @@ for i, tk in enumerate(QUEUE):
       "id": i+1, "answer": tk, "story": story(tk, ys), "co": CO[tk],
       "dates": ds, "closes": [round(y, 2) for y in ys],
       "annot": {"i": ds.index(big[0]), "label": f"biggest week of the year: {big[1]*100:+.0f}%"},
-      "long": LONG.get(tk),
+      "long": LONG.get(tk), "secrel": sector_rel(tk),
     })
 
 # Sunday bosses: static curated file (own historical windows); embedded as-is when present

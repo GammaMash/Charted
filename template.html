@@ -71,11 +71,15 @@
   #headmeta{margin-left:auto; text-align:right; font-size:var(--fs-sm); font-weight:600; line-height:1.6; color:var(--muted);}
   #themebtn{flex:none; font:inherit; font-size:var(--fs-lg); width:34px; height:34px; border-radius:50%;
     border:1px solid var(--border); background:var(--panel); color:var(--txt); cursor:pointer;}
-  #themebtn:hover{border-color:var(--accent);}
+  /* iOS has no pointer to move away, so :hover sticks to whatever was tapped last. The
+     option grid is rebuilt with innerHTML on every guess, so the stuck state landed on a
+     fresh chip and looked like a selected answer. 91% of players are on phones; hover is a
+     desktop-only affordance, so gate the lot behind a real pointer. */
+  @media (hover:hover){ #themebtn:hover{border-color:var(--accent);} }
   #howto{font-size:var(--fs-sm); line-height:1.6; font-weight:500; background:var(--panel); border:1px solid var(--border);
     border-radius:12px; padding:10px 13px; margin:10px 0; box-shadow:var(--shadow);}
   #howto{cursor:pointer; transition:border-color .15s;}
-  #howto:hover{border-color:var(--accent);}
+  @media (hover:hover){ #howto:hover{border-color:var(--accent);} }
   #howtohead{display:flex; justify-content:space-between; align-items:center; gap:8px; user-select:none;}
   /* the bar used to expand inline, which showed a WORSE explanation than the overlay.
      Now it's a third door into the same how-to, and it says so. */
@@ -95,7 +99,7 @@
     border:1px dashed var(--border); border-radius:10px; padding:6px 9px; margin:10px 0;}
   #devbar button{font:inherit; background:var(--panel2); color:var(--txt); border:1px solid var(--border);
     border-radius:7px; padding:3px 8px; cursor:pointer; transition:all .15s;}
-  #devbar button:hover{border-color:var(--accent);}
+  @media (hover:hover){ #devbar button:hover{border-color:var(--accent);} }
   #devbar button.on{background:var(--accent); color:var(--accent-ink); border-color:var(--accent); font-weight:bold;}
   #ask{font-size:var(--fs-xl); font-weight:700; color:var(--ink); letter-spacing:-.2px; line-height:1.25; margin:6px 2px 2px;}
   #asksub{font-size:var(--fs-sm); color:var(--muted); margin:0 2px 9px;}
@@ -111,7 +115,7 @@
   #opts{display:grid; grid-template-columns:1fr 1fr; gap:7px;}
   .opt{background:var(--panel); border:1.5px solid var(--chartbd); border-radius:12px; padding:9px 10px;
     text-align:left; font:inherit; color:var(--txt); cursor:pointer; min-height:58px; transition:.14s;}
-  .opt:hover{border-color:var(--accent); transform:translateY(-1px);}
+  @media (hover:hover){ .opt:hover{border-color:var(--accent); transform:translateY(-1px);} }
   .opt .nm{font-size:var(--fs-md); font-weight:650; color:var(--ink); display:block; line-height:1.2;}
   .opt .tk{font-size:var(--fs-xs); color:var(--muted); font-weight:700; display:block; margin-top:3px;}
   .opt.dead{opacity:.62; border-color:var(--border); background:var(--bg2); cursor:default; transform:none;}
@@ -154,7 +158,8 @@
     border:1px solid var(--border); border-radius:10px; margin-top:4px; overflow:hidden;
     display:none; box-shadow:var(--shadow);}
   .acrow{padding:10px 13px; font-size:var(--fs-md); cursor:pointer; display:flex; justify-content:space-between; color:var(--ink);}
-  .acrow.sel,.acrow:hover{background:var(--chip-accent);}
+  .acrow.sel{background:var(--chip-accent);}
+  @media (hover:hover){ .acrow:hover{background:var(--chip-accent);} }
   .acrow .nm{color:var(--muted); font-size:var(--fs-xs); margin-left:10px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   #rows{display:flex; flex-direction:column; gap:6px; margin-top:10px;}
   .row{display:grid; grid-template-columns:92px 1fr 1fr 1fr; gap:6px; font-size:var(--fs-sm);}
@@ -201,7 +206,7 @@
     background:linear-gradient(135deg,var(--accent), color-mix(in oklab, var(--accent), var(--green) 45%));
     color:var(--accent-ink); font-weight:bold; border:none; border-radius:10px;
     padding:10px 16px; cursor:pointer; transition:transform .1s;}
-  #sharebtn:hover,#nextbtn:hover{transform:translateY(-1px);}
+  @media (hover:hover){ #sharebtn:hover,#nextbtn:hover{transform:translateY(-1px);} }
   #nextbtn{background:var(--panel2); color:var(--txt); border:1px solid var(--border);}
   .infotap{cursor:pointer; text-decoration:underline dotted; text-underline-offset:3px;}
   /* above #chooser (70) — the sector/size explainers are reachable FROM the how-to overlay,
@@ -231,7 +236,7 @@
   #stamp.lose #stamptxt{color:var(--red); border-color:var(--red);}
   @keyframes stampin{0%{transform:rotate(-5deg) scale(2.2); opacity:0;} 100%{transform:rotate(-5deg) scale(1); opacity:1;}}
   .rowstoggle{font-size:var(--fs-sm); color:var(--muted); cursor:pointer; padding:9px 6px; user-select:none; font-weight:600;}
-  .rowstoggle:hover{color:var(--txt);}
+  @media (hover:hover){ .rowstoggle:hover{color:var(--txt);} }
   .wordsrow{margin:0 0 12px; font-size:var(--fs-sm);}
   .wordsrow .infotap{color:var(--accent);}
   #toast{position:fixed; bottom:40px; left:50%; transform:translateX(-50%) translateY(14px) scale(.92); background:var(--accent);
@@ -263,7 +268,7 @@
     color:var(--accent-ink); display:flex; flex-direction:column; align-items:center; gap:3px;}
   #endshare .sb1{font-size:var(--fs-lg); font-weight:800; letter-spacing:.3px;}
   #endshare .sb2{font-family:var(--mono); font-size:19px; letter-spacing:4px;}
-  #endshare:hover{transform:translateY(-1px);}
+  @media (hover:hover){ #endshare:hover{transform:translateY(-1px);} }
   /* The endcard is the only screen every finisher sees, and it used to celebrate and stop.
      80% of first-time winners never came back for a second win, so these two blocks exist to
      point at tomorrow: what the streak becomes if they return, and how long until it can. */
@@ -286,7 +291,7 @@
     background:none; border:none; cursor:pointer; text-decoration:underline dotted; text-underline-offset:3px;}
   #modebtn{font:inherit; font-size:var(--fs-sm); font-weight:700; background:var(--panel2); color:var(--txt);
     border:1px solid var(--border); border-radius:20px; padding:5px 12px; cursor:pointer; white-space:nowrap;}
-  #modebtn:hover{border-color:var(--accent);}
+  @media (hover:hover){ #modebtn:hover{border-color:var(--accent);} }
   #soundbtn,#statsbtn{background:none; border:none; cursor:pointer; font-size:var(--fs-lg); padding:2px 4px; line-height:1;}
   #helpbtn{flex:none; font:inherit; font-size:var(--fs-sm); font-weight:800; width:26px; height:26px; border-radius:50%;
     border:1px solid var(--accent); background:var(--panel); color:var(--accent); cursor:pointer; line-height:1;}
@@ -339,11 +344,11 @@
     color:var(--accent-ink);}
   .modecard.casual .mc-h{color:var(--accent-ink);}
   .modecard.casual .mc-d{color:var(--accent-ink); opacity:.82;}
-  .modecard.casual:hover{transform:translateY(-1px);}
+  @media (hover:hover){ .modecard.casual:hover{transform:translateY(-1px);} }
   .modecard.degen{background:var(--panel2); border-color:var(--chartbd); color:var(--ink);}
   .modecard.degen .mc-h{color:var(--ink);}
   .modecard.degen .mc-d{color:var(--muted);}
-  .modecard.degen:hover{border-color:var(--accent);}
+  @media (hover:hover){ .modecard.degen:hover{border-color:var(--accent);} }
   .modecard.cur{outline:2px solid var(--green); outline-offset:2px;}
   footer{margin-top:20px; font-size:var(--fs-xs); color:var(--muted); text-align:center;}
   @media (max-width:480px){
@@ -438,7 +443,7 @@ const DEV = new URLSearchParams(location.search).has("dev");   // ?dev=1 unlocks
 const SHARE_URL = "chartedgame.com";
 const MAXG = 6;
 const EPOCH = "2026-07-20";   // public launch day = puzzle #1; one puzzle per LOCAL calendar day
-const VERSION = "2026-08-08a";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
+const VERSION = "2026-08-09b";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
 const U = DATA.universe, ORD = DATA.bucketOrder, PUZ = DATA.puzzles;
 const BOSSES = DATA.bosses || [];
 const BOSS_EPOCH = "2026-08-02";   // first boss Sunday; bosses rotate weekly from here
@@ -821,7 +826,9 @@ function hintText(k){
   if(k===3) return degen ? (isBossDay()?"Scale (today) · ":"Scale · ")+rivalClue(false)
                          : "Price axis revealed · one share ≈ "+relPrice();
   if(degen){
-    if(k===4) return "Shape: "+shapeArch();
+    // shape alone named something already on screen; secrel adds what the picture can't show.
+    // Baked by build_puzzles.py — bosses have no secrel (historical window, no peer data).
+    if(k===4){ const sr=p.secrel; return "Shape: "+shapeArch()+(sr?" · "+sr:""); }
     if(k===5) return emojiStr();                                     // emoji only — you decode it
   } else {
     if(k===4) return (emojiStr()?emojiStr()+"  ":"")+"picture what they make…";
@@ -835,7 +842,7 @@ function hintCompact(k){          // absorbed hints shrink to a one-line digest 
   if(k===2) return degen ? "📍 event" : "⚖️ "+(SIZE_LABEL[a.cap]||"Big");
   if(k===3) return degen ? "⚖️ "+rivalClue(true)
                          : "💲 ≈ "+relPrice();
-  if(k===4) return degen ? "〰 "+shapeArch() : emojiStr()||"🖼";
+  if(k===4) return degen ? "〰 "+shapeArch()+(p.secrel?" · "+p.secrel.split(" ")[0]:"") : emojiStr()||"🖼";
   return "";
 }
 // Teaches vocabulary off TODAY's chart. Deliberately not a hint rung — a player who just
