@@ -443,7 +443,7 @@ const DEV = new URLSearchParams(location.search).has("dev");   // ?dev=1 unlocks
 const SHARE_URL = "chartedgame.com";
 const MAXG = 6;
 const EPOCH = "2026-07-20";   // public launch day = puzzle #1; one puzzle per LOCAL calendar day
-const VERSION = "2026-08-09b";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
+const VERSION = "2026-08-09d";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
 const U = DATA.universe, ORD = DATA.bucketOrder, PUZ = DATA.puzzles;
 const BOSSES = DATA.bosses || [];
 const BOSS_EPOCH = "2026-08-02";   // first boss Sunday; bosses rotate weekly from here
@@ -800,6 +800,26 @@ function shapeArch(){
   if(ret<-15) return "Slow Bleed";
   return "Chop";
 }
+const WHERE_CLUE = {
+  store: ["Where you'd find them: you could walk into one of their locations today.", "🏬 walk-in"],
+  home:  ["Where you'd find them: you've probably used their product — but there's nowhere to visit.", "🛒 you've used it"],
+  hidden:["Where you'd find them: you've almost certainly never been their customer.", "🔧 behind the scenes"],
+};
+// Casual rung 3 used to be the share price ("a nice dinner out"). Two problems: share price is
+// an artifact of share count, so it says nothing about WHICH company it is, and the chart's axis
+// unmasks real dollar prices at this same rung anyway. Non-investors reason about companies by
+// whether they've ever dealt with them — so that is what this rung asks now.
+// degen rung 2 / casual rung 4. Optional per card — anything without one falls back to the old
+// text, so a half-written queue degrades gracefully instead of showing a blank rung.
+function factClue(short){
+  const f=(puzzle().co||{}).fact;
+  if(!f) return "";
+  return short ? "💡 "+(f.length>46 ? f.slice(0,45).trimEnd()+"…" : f.replace(/\.$/,"")) : "💡 "+f;
+}
+function whereClue(short){
+  const w=(puzzle().co||{}).where;
+  return WHERE_CLUE[w] ? WHERE_CLUE[w][short?1:0] : "";
+}
 function relPrice(){
   const p=U[answer()].price||0;
   return p<20?"a couple coffees":p<75?"a nice lunch":p<200?"a nice dinner out":p<500?"a fancy dinner for two":p<1500?"a weekend getaway":"a used car";
@@ -812,26 +832,27 @@ const SIZE_CLUE = {
   SMALL:"a smaller, more niche company"
 };
 const LADDERS = {
-  casual: ["","Sector","How big","Price","Emoji","Reveal"],
-  degen:  ["","Sector","Event","Scale","Shape","Emoji"],
+  casual: ["","Sector","How big","Where","Emoji","Reveal"],
+  degen:  ["","Sector","Fact","Scale","Shape","Emoji"],
 };
 function rungName(k){ return (LADDERS[mode==="degen"?"degen":"casual"][k]||""); }
 function hintText(k){
   const a=U[answer()], p=puzzle(), degen = mode==="degen";
   if(k===1) return degen ? "Sector · "+secL(a.sector)
                          : "Sector: "+secL(a.sector)+(SECTOR_PLAIN[a.sector]?" — "+SECTOR_PLAIN[a.sector]:"");
-  if(k===2) return degen ? "📍 event marked on the chart"
+  // the chart annotation still unlocks on its own stage gate, so degen gets the marker AND this
+  if(k===2) return degen ? (factClue(false) || "📍 event marked on the chart")
                          : "How big? "+(SIZE_CLUE[a.cap]||"a well-known company");
   // boss charts are historical windows, so the cap is flagged as present-day
   if(k===3) return degen ? (isBossDay()?"Scale (today) · ":"Scale · ")+rivalClue(false)
-                         : "Price axis revealed · one share ≈ "+relPrice();
+                         : (whereClue(false) || "Price axis revealed · one share ≈ "+relPrice());
   if(degen){
     // shape alone named something already on screen; secrel adds what the picture can't show.
     // Baked by build_puzzles.py — bosses have no secrel (historical window, no peer data).
     if(k===4){ const sr=p.secrel; return "Shape: "+shapeArch()+(sr?" · "+sr:""); }
     if(k===5) return emojiStr();                                     // emoji only — you decode it
   } else {
-    if(k===4) return (emojiStr()?emojiStr()+"  ":"")+"picture what they make…";
+    if(k===4) return (emojiStr()?emojiStr()+"  ":"")+(factClue(false) || "picture what they make…");
     // no first-letter clue in casual: against 12 visible names it's the answer, not a hint.
     if(k===5) return p.co ? "You might know them from: "+p.co.hint : "One last look at the chart…";
   }
@@ -839,9 +860,9 @@ function hintText(k){
 function hintCompact(k){          // absorbed hints shrink to a one-line digest — page stays calm
   const a=U[answer()], p=puzzle(), degen = mode==="degen";
   if(k===1) return "🏷 "+secL(a.sector);
-  if(k===2) return degen ? "📍 event" : "⚖️ "+(SIZE_LABEL[a.cap]||"Big");
+  if(k===2) return degen ? (factClue(true) || "📍 event") : "⚖️ "+(SIZE_LABEL[a.cap]||"Big");
   if(k===3) return degen ? "⚖️ "+rivalClue(true)
-                         : "💲 ≈ "+relPrice();
+                         : (whereClue(true) || "💲 ≈ "+relPrice());
   if(k===4) return degen ? "〰 "+shapeArch()+(p.secrel?" · "+p.secrel.split(" ")[0]:"") : emojiStr()||"🖼";
   return "";
 }

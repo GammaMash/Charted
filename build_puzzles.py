@@ -203,11 +203,14 @@ def mc_options(tk, pid):
     cand = [t for t in MC_POOL if t != tk and t in uni]
     rnd.shuffle(cand)
     same = [t for t in cand if uni[t]["sector"] == a["sector"]]
-    picks = same[:2]                                     # sector hint must leave >=3 live names
+    picks = same[:4]                                     # 2026-08-09: was same[:2]. Casual was a 94%
+                                                         # win rate with 56% solving by guess two —
+                                                         # the sector clue killed 9 of 12 instantly and
+                                                         # the rest of the ladder never got used.
     picks += [t for t in cand if t not in picks][: MC_N - 1 - len(picks)]
 
     def caps_of(ps): return {a["cap"]} | {uni[t]["cap"] for t in ps}
-    swappable = [t for t in picks if t not in same[:2]]
+    swappable = [t for t in picks if t not in same[:4]]
     for need in [c for c in ("MEGA", "LARGE", "MID") if c != a["cap"]]:
         if len(caps_of(picks)) >= 3:
             break
