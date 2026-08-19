@@ -113,6 +113,28 @@ HAND = {
  "LLY":  (lambda t: t > 40,        "Lilly has climbed for twelve straight months and sits within 2% of its high — no drama, no give-back, just up."),
  "JPM":  (lambda t: 10 < t < 40,   "JPMorgan is at its highest price in twelve months right now — a spring dip, then a straight line up. Banks are supposed to be boring; this one is boringly good."),
  "UBER": (lambda t: t < -10,       "Uber gave back a fifth of its value with no single bad week to blame — a long grind lower, and a bounce that only started in July."),
+ # --- batch 2, added 2026-08-19. Present tense anchored to "now" / "since last August";
+ # --- no finish-line words, the window rolls nightly.
+ "AMZN": (lambda t: t > 10,        "Amazon is up almost a fifth since last August — and nearly all of it arrived in one 17% week in July. Take that week out and this is a flat chart."),
+ "MCD":  (lambda t: t < -5,        "McDonald's is down about a tenth since last August and is sitting a few percent off its low. No crash, no rebound, just a slow bleed nobody is talking about."),
+ "HD":   (lambda t: t < -5,        "Home Depot fell almost a third from its high, then clawed a fifth of it back. When housing turned, it took the whole aisle with it."),
+ "ABNB": (lambda t: t > 25,        "Airbnb is up more than 40% since last August, never fell more than 13% along the way, and had its biggest week of the year this month."),
+ "CMG":  (lambda t: t < -15,       "Chipotle lost 23% in a single week last October and has spent every month since failing to win it back."),
+ "DASH": (lambda t: t < -5,        "DoorDash nearly halved, then rallied almost 50% off the low — and is still underwater. A round trip that went the wrong way first."),
+ "COST": (lambda t: abs(t) < 10,   "Costco is almost exactly where it was last August. Twelve months, a 13% dip, and a full recovery back to nowhere."),
+ "WMT":  (lambda t: t > 5,         "Walmart is up double digits since last August despite an 18% drawdown in between — the dip nobody remembers."),
+ "PEP":  (lambda t: t < -3,        "Pepsi is down since last August and sits within a couple of percent of its low. Defensive stocks are supposed to defend."),
+ "TGT":  (lambda t: t > 30,        "Target is up 45% since last August and 75% off its low — the comeback almost nobody was positioned for."),
+ "HSY":  (lambda t: abs(t) < 12,   "Hershey fell 27%, then ripped 19% in a single week in February, and after all that it is roughly flat since last August."),
+ "V":    (lambda t: 0 < t < 15,    "Visa is up single digits since last August, which undersells the ride: a 17% drawdown and a 23% climb back out of it."),
+ "PYPL": (lambda t: t < -5,        "PayPal lost 23% in one week in February, bottomed 43% down, and has since won back nearly half of it. Still underwater."),
+ "GS":   (lambda t: t > 25,        "Goldman Sachs is up more than 40% since last August, with one 19% drawdown in the spring that it has completely undone."),
+ "PFE":  (lambda t: 0 < t < 15,    "Pfizer jumped 15% in a single week last September and has drifted sideways ever since. Almost the entire year's gain arrived in five days."),
+ "CVS":  (lambda t: t > 25,        "CVS is up about 40% since last August — one of the strongest runs in healthcare, from a company most people picture as a place to buy shampoo."),
+ "NVO":  (lambda t: t < -3,        "Novo Nordisk fell 21% in a single week in February, bottomed more than 40% down, and has climbed about a third of the way back."),
+ "DAL":  (lambda t: t > 30,        "Delta is up more than half since last August. Airlines are the most cyclical thing in the market, and this is what the good half of the cycle looks like."),
+ "UPS":  (lambda t: t > 8,         "UPS lost 12% in a single week in March and is still up nearly a fifth since last August. The recovery did all the work."),
+ "SPOT": (lambda t: t < -20,       "Spotify is down a third since last August, with a 19% bounce in May that did not hold."),
 }
 
 QUEUE = ["GME","AAPL","TSLA","NFLX","MU","SBUX","KO","DIS","INTC","NKE",
@@ -120,7 +142,12 @@ QUEUE = ["GME","AAPL","TSLA","NFLX","MU","SBUX","KO","DIS","INTC","NKE",
          "MRVL","PLTR","SMCI","AVGO","CVNA","MSTR","CRCL","GEMI","SNDK","NVDA",
          # --- appended 2026-08-09: batch 1 of the queue expansion. Ordered for shape variety
          # --- so the run doesn't serve five staircases back to back.
-         "GOOGL","RBLX","JPM","HIMS","ORCL","LLY","RIOT","UBER","QCOM","META"]
+         "GOOGL","RBLX","JPM","HIMS","ORCL","LLY","RIOT","UBER","QCOM","META",
+         # --- appended 2026-08-19: batch 2. Household brands, deliberately light on tech —
+         # --- batch 1 left the queue 53% Tech/Semis/Crypto. Ordered so no two adjacent
+         # --- puzzles share a chart shape (spike, crash, comeback, flat, grind).
+         "AMZN","CMG","TGT","COST","NVO","DAL","MCD","V","SPOT","WMT",
+         "PYPL","HSY","ABNB","HD","GS","PEP","UPS","DASH","PFE","CVS"]
 
 def story(tk, ys):
     tot, big, dd = stats(ys)
@@ -228,6 +255,62 @@ def mc_options(tk, pid):
     return opts
 
 BOSSES = json.load(open(f"{D}/bosses.json")) if os.path.exists(f"{D}/bosses.json") else []
+
+# ---------------------------------------------------------------- boss/daily collision guard
+# bosses.json and QUEUE had no knowledge of each other, so any ticker in both eventually
+# collided. It happened twice before this guard existed: GME (daily Jul 20 -> boss Aug 2,
+# 13 days) and NVDA (boss Sun Aug 16 -> daily Tue Aug 18, TWO days — the boss reveal handed
+# players Tuesday's answer). Both shipped live. This turns a silent content collision into a
+# build that refuses to run.
+MIN_GAP_DAYS = 21
+
+def _sched_dates():
+    """Read the epochs out of template.html so they can never drift from the game itself."""
+    import datetime as _dt, re as _re
+    src = open(f"{D}/template.html").read()
+    def _c(name):
+        m = _re.search(rf'const {name} = "(\d{{4}}-\d{{2}}-\d{{2}})"', src)
+        assert m, f"{name} not found in template.html — schedule guard cannot verify"
+        return _dt.date.fromisoformat(m.group(1))
+    epoch, boss_epoch = _c("EPOCH"), _c("BOSS_EPOCH")
+
+    daily = {}                                   # ticker -> [dates it plays in cycle 0]
+    for i, tk in enumerate(QUEUE):
+        d = epoch + _dt.timedelta(days=i)
+        if d.weekday() != 6 or d < boss_epoch:   # Sundays are replaced by the boss
+            daily.setdefault(tk, []).append(d)
+    boss = {}                                    # ticker -> [Sundays it plays in cycle 0]
+    for w in range(len(BOSSES)):
+        b = BOSSES[w]["answer"]
+        d = boss_epoch + _dt.timedelta(days=7 * w)
+        while d.weekday() != 6:
+            d += _dt.timedelta(days=1)
+        boss.setdefault(b, []).append(d)
+    return daily, boss
+
+if BOSSES:
+    import datetime as _dtm
+    _today = _dtm.date.today()
+    _daily, _boss = _sched_dates()
+    _future, _past = [], []
+    for tk, bdates in _boss.items():
+        for bd in bdates:
+            for dd in _daily.get(tk, []):
+                gap = abs((bd - dd).days)
+                if gap >= MIN_GAP_DAYS:
+                    continue
+                line = f"{tk}: boss {bd} vs daily {dd} — {gap} days apart"
+                # Only a collision whose second half is still ahead can be prevented. Failing
+                # the nightly build over one that already shipped would take the site down for
+                # something nobody can fix.
+                (_future if max(bd, dd) >= _today else _past).append(line)
+    for line in _past:
+        print(f"  note: past collision, already played — {line}")
+    assert not _future, (
+        "BOSS/DAILY COLLISION AHEAD — the same ticker plays twice inside "
+        f"{MIN_GAP_DAYS} days:\n  " + "\n  ".join(_future) +
+        "\nFix by reordering bosses.json or moving the ticker in QUEUE.")
+    print(f"schedule guard OK — no upcoming ticker repeats within {MIN_GAP_DAYS} days")
 
 # pixelated-logo clue: tiny pre-baked data URIs (see gen_pixlogos.py) — pure JSON here,
 # so the nightly Action needs no image libraries. Missing ticker -> clue just doesn't show.
