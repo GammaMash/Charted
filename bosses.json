@@ -8,7 +8,8 @@
    "where": "store",
    "emoji": "🎮🕹️🚀",
    "what": "GameStop is the mall video-game retailer that became the most famous meme stock on earth in 2021.",
-   "hint": "the mall video-game store that broke Wall Street in 2021"
+   "hint": "the mall video-game store that broke Wall Street in 2021",
+   "fact": "At the peak of the mania, more shares were sold short than actually existed to borrow."
   },
   "dates": [
    "2020-09-28",
@@ -108,7 +109,8 @@
    "where": "hidden",
    "emoji": "🌐🔌📶",
    "what": "Cisco builds the routers and switches that carry the internet's traffic — the plumbing of the web.",
-   "hint": "the gear behind office networks — and the dot-com era's superstar stock"
+   "hint": "the gear behind office networks — and the dot-com era's superstar stock",
+   "fact": "For a brief moment it was the most valuable company on earth, and it took roughly a quarter of a century to see that price again."
   },
   "dates": [
    "1999-01-01",
@@ -442,7 +444,8 @@
    "where": "home",
    "emoji": "🎮🤖💚",
    "what": "Nvidia designs the AI chips every tech giant is fighting over — the most valuable company boom of the AI era.",
-   "hint": "the AI chip everyone on earth is fighting over"
+   "hint": "the AI chip everyone on earth is fighting over",
+   "fact": "The chips that made it famous were designed for video games long before anyone used them to train AI."
   },
   "dates": [
    "2022-09-26",
@@ -646,7 +649,8 @@
    "where": "store",
    "emoji": "🎬🍿🦍",
    "what": "AMC is the world's biggest movie-theater chain — and 2021's other famous meme stock.",
-   "hint": "where you saw the last blockbuster — the apes' second favorite"
+   "hint": "where you saw the last blockbuster — the apes' second favorite",
+   "fact": "It survived by selling stock directly to the retail traders who were pushing the price up."
   },
   "dates": [
    "2021-01-01",
@@ -772,7 +776,8 @@
    "where": "home",
    "emoji": "💉🧬🧪",
    "what": "Moderna makes mRNA vaccines — its COVID shot went from lab design to arms in under a year.",
-   "hint": "one of the two COVID-vaccine names everyone knows"
+   "hint": "one of the two COVID-vaccine names everyone knows",
+   "fact": "Before this window it had never brought a single product to market."
   },
   "dates": [
    "2020-01-01",
@@ -1002,7 +1007,8 @@
    "where": "hidden",
    "emoji": "🟠📊🏦",
    "what": "Strategy (MicroStrategy) is a software company that turned itself into the market's biggest leveraged Bitcoin bet.",
-   "hint": "the software company that became a Bitcoin holding vehicle"
+   "hint": "the software company that became a Bitcoin holding vehicle",
+   "fact": "It spent two decades selling business software before deciding its real product was its balance sheet."
   },
   "dates": [
    "2024-01-01",
