@@ -135,11 +135,31 @@ HAND = {
  "DAL":  (lambda t: t > 30,        "Delta is up more than half since last August. Airlines are the most cyclical thing in the market, and this is what the good half of the cycle looks like."),
  "UPS":  (lambda t: t > 8,         "UPS lost 12% in a single week in March and is still up nearly a fifth since last August. The recovery did all the work."),
  "SPOT": (lambda t: t < -20,       "Spotify is down a third since last August, with a 19% bounce in May that did not hold."),
+ # --- added 2026-09-17: batch 3. Same contract: qualitative, no hand-written numbers
+ # --- (the computed stat line is appended), validity condition on the 12-mo return.
+ "WDC":  (lambda t: t > 150,       "Western Digital nearly quadrupled on the same memory supercycle that took SanDisk vertical \u2014 then handed back a big piece of it after the June '26 peak."),
+ "UNH":  (lambda t: abs(t) < 30,   "UnitedHealth lost a fifth of its value in one week in January '26, bottomed in March, and has ground back ever since. Twelve months of violence to finish near where it started."),
+ "XOM":  (lambda t: t > 15,        "ExxonMobil climbed all year while the market's attention was somewhere else entirely \u2014 a spring peak, a summer dip, and a finish back near the top."),
+ "ADBE": (lambda t: t < -12,       "Adobe spent the year being repriced for a world where its software matters less. A long slide from the September '25 high, and a summer bounce that has not come close to undoing it."),
+ "CVX":  (lambda t: t > 12,        "Chevron gave back a chunk into the summer of '26 and then erased all of it. The year finishes at the highs, which is the only part anyone will remember."),
+ "ROKU": (lambda t: t > 25,        "Roku bottomed in February '26 and never really looked back \u2014 the streaming box nobody talks about quietly had one of the better years on the board."),
+ "DKNG": (lambda t: t < -25,       "DraftKings peaked in September '25 and has not been close since: a crash in February '26, a March low, and a recovery that stalled out."),
+ "DE":   (lambda t: t > 20,        "Deere bottomed in October '25 and climbed for the rest of the year. One spring pause, then straight back to the highs \u2014 a tractor company with a momentum chart."),
+ "JNJ":  (lambda t: t > 25,        "Johnson & Johnson climbed all year and barely dipped doing it. The calm IS the fingerprint \u2014 this is what a mega cap with nothing to prove looks like."),
+ "F":    (lambda t: abs(t) < 30,   "Ford ripped on one enormous week in the spring of '26 and then gave most of it back. A year shaped like a mountain that ends up close to where it began."),
+ "CHWY": (lambda t: t < -25,       "Chewy spent the whole year sliding from its September '25 high, bottomed in the summer of '26, and never mounted a real recovery."),
+ "C":    (lambda t: t > 12,        "Citigroup climbed most of the year with one February '26 scare that it shrugged off inside a month \u2014 the quiet re-rating of a bank nobody was excited about."),
+ "GM":   (lambda t: t > 15,        "General Motors bottomed in October '25 and climbed for the rest of the year \u2014 the old-economy carmaker quietly outrunning most of what it shares a chart board with."),
+ "LOW":  (lambda t: t < -12,       "Lowe's peaked in February '26 and has leaked lower ever since, finishing the year at its low. Housing turned, and the whole aisle went with it."),
+ "MS":   (lambda t: t > 12,        "Morgan Stanley spent the year grinding up with one spring '26 wobble it erased inside a quarter \u2014 the calm chart of a bank that stopped depending on trading."),
 }
 
-QUEUE = ["GME","AAPL","TSLA","NFLX","MU","SBUX","KO","DIS","INTC","NKE",
+
+
+
+QUEUE = ["GM","AAPL","TSLA","NFLX","MU","SBUX","KO","DIS","INTC","NKE",
          "MSFT","CAT","AMD","HOOD","COIN","LULU","BA","IBM","RIVN","DELL",
-         "MRVL","PLTR","SMCI","AVGO","CVNA","MSTR","CRCL","GEMI","SNDK","NVDA",
+         "MRVL","PLTR","SMCI","AVGO","CVNA","MS","CRCL","GEMI","SNDK","LOW",
          # --- appended 2026-08-09: batch 1 of the queue expansion. Ordered for shape variety
          # --- so the run doesn't serve five staircases back to back.
          "GOOGL","RBLX","JPM","HIMS","ORCL","LLY","RIOT","UBER","QCOM","META",
@@ -147,7 +167,14 @@ QUEUE = ["GME","AAPL","TSLA","NFLX","MU","SBUX","KO","DIS","INTC","NKE",
          # --- batch 1 left the queue 53% Tech/Semis/Crypto. Ordered so no two adjacent
          # --- puzzles share a chart shape (spike, crash, comeback, flat, grind).
          "AMZN","CMG","TGT","COST","NVO","DAL","MCD","V","SPOT","WMT",
-         "PYPL","HSY","ABNB","HD","GS","PEP","UPS","DASH","PFE","CVS"]
+         "PYPL","HSY","ABNB","HD","GS","PEP","UPS","DASH","PFE","CVS",
+         # --- appended 2026-09-17: batch 3. The queue had ZERO Energy and was thin on
+         # --- Healthcare, Industrials and Autos; this fills those. Ordered so no two
+         # --- adjacent puzzles share a shape. Wraps 2026-09-28.
+         "WDC","UNH","XOM","ADBE","CVX","ROKU","DKNG","DE","JNJ","F",
+         # --- +2 on 2026-09-17: XOM and F land on boss Sundays and get skipped, so these
+         # --- two make the batch net out at ten actually served.
+         "CHWY","C"]
 
 def story(tk, ys):
     tot, big, dd = stats(ys)
@@ -262,6 +289,16 @@ BOSSES = json.load(open(f"{D}/bosses.json")) if os.path.exists(f"{D}/bosses.json
 # 13 days) and NVDA (boss Sun Aug 16 -> daily Tue Aug 18, TWO days — the boss reveal handed
 # players Tuesday's answer). Both shipped live. This turns a silent content collision into a
 # build that refuses to run.
+# A ticker in both bosses.json and QUEUE collides forever — the Sunday reveal hands players
+# the answer to a weekday. GME, NVDA and MSTR were in both, which is what produced the
+# Aug 2026 collisions. The date-based guard below only sees the queue's first pass, so it
+# cannot catch a collision created by the wrap reshuffle. This makes the overlap impossible.
+_boss_tickers = {b["answer"] for b in BOSSES}
+_overlap = sorted(_boss_tickers & set(QUEUE))
+assert not _overlap, (
+    f"{_overlap} appear as BOTH a Sunday boss and a daily puzzle. "
+    "A boss ticker must not be in QUEUE — swap it for another ticker.")
+
 MIN_GAP_DAYS = 21
 
 def _sched_dates():
