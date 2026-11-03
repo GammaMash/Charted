@@ -152,6 +152,28 @@ HAND = {
  "GM":   (lambda t: t > 15,        "General Motors bottomed in October '25 and climbed for the rest of the year \u2014 the old-economy carmaker quietly outrunning most of what it shares a chart board with."),
  "LOW":  (lambda t: t < -12,       "Lowe's peaked in February '26 and has leaked lower ever since, finishing the year at its low. Housing turned, and the whole aisle went with it."),
  "MS":   (lambda t: t > 12,        "Morgan Stanley spent the year grinding up with one spring '26 wobble it erased inside a quarter \u2014 the calm chart of a bank that stopped depending on trading."),
+ # --- batch 4 (2026-11-03). Bands are loose on purpose: the window rolls nightly and each
+ # --- narrative only has to stay true for the ~4 weeks until its first appearance.
+ "CRWD": (lambda t: t > 40,        "CrowdStrike bottomed in March '26 and then nearly tripled into October — the cybersecurity name that went from forgotten to the top of the board in seven months."),
+ "GIS":  (lambda t: t < -15,       "General Mills slid all year: a hard March '26 drop, a summer bounce that went nowhere, and a fresh low in late September. The cereal aisle has not been a growth story for a while."),
+ "MAR":  (lambda t: t > 25,        "Marriott climbed almost the entire year, shrugged off one summer dip, and finished right at its 12-month high — one of the smoothest staircases on the board."),
+ "RKLB": (lambda t: -40 < t < 80,  "Rocket Lab more than tripled into its May '26 peak, then gave back about two thirds of it. Few charts on the board travel this far in both directions."),
+ "PG":   (lambda t: t > 0,         "Procter & Gamble went nowhere for months — a February pop, a March drop, a long sideways summer — then ripped back to the top of its range in October '26."),
+ "FDX":  (lambda t: t > 5,         "FedEx climbed for six straight months into a May '26 peak, then lost a fifth of its value in a single week in June. It has spent the rest of the year working its way back."),
+ "OXY":  (lambda t: t > 20,        "Occidental rallied hard into a March '26 peak, dipped through the early summer, and climbed back near the highs by fall — an oil chart with a strong year behind it."),
+ "ISRG": (lambda t: t < 0,         "Intuitive Surgical slid for six months from its January '26 high and bottomed in July, down about 40%. The rebound since has clawed back part of it."),
+ "ULTA": (lambda t: t > 5,         "Ulta Beauty lost a third of its value between February and June '26, then rallied straight back to within reach of its high."),
+ "LMT":  (lambda t: t > 15,        "Lockheed Martin jumped in January '26, peaked in March, slid through the spring, then surged again in October to finish near the top."),
+ "BAC":  (lambda t: abs(t) < 25,   "Bank of America climbed steadily from a March '26 low to an August high, then gave back most of it in two months."),
+ "UAL":  (lambda t: t > -10,       "United Airlines bottomed in March '26 and rocketed into a June peak — one week alone was +15% — then drifted lower through the fall."),
+ "SHOP": (lambda t: t > -20,       "Shopify slid for six months into a May '26 low, then rallied about 70% to an October high — one August week alone was +29%."),
+ "KR":   (lambda t: abs(t) < 20,   "Kroger rose into a March '26 high, lost a quarter of its value by June — including a −13% week — and then rebuilt most of it in October."),
+ "RCL":  (lambda t: t > 5,         "Royal Caribbean set its high in February '26, sank 30% by late September, and then posted its best week of the year to start a sharp rebound."),
+ "CRM":  (lambda t: abs(t) < 30,   "Salesforce slid more than 40% from its December '25 high into a June low, then jumped 22% in a single August week and has held most of it."),
+ "YUM":  (lambda t: abs(t) < 20,   "Yum! Brands chopped sideways all year in a tight range — a February high, a September low — the kind of chart that hides in plain sight."),
+ "GE":   (lambda t: abs(t) < 25,   "GE Aerospace fell to a March '26 low, climbed more than a third into a June high, and faded through the fall."),
+ "AXP":  (lambda t: abs(t) < 25,   "American Express fell from its December '25 high to a March low, bounced, faded again into September, and is grinding back."),
+ "TTWO": (lambda t: t < 5,         "Take-Two slid into a March '26 low, rallied to a June high, then gave it all back through the fall — a publisher whose chart waits on one release."),
 }
 
 
@@ -174,7 +196,12 @@ QUEUE = ["GM","AAPL","TSLA","NFLX","MU","SBUX","KO","DIS","INTC","NKE",
          "WDC","UNH","XOM","ADBE","CVX","ROKU","DKNG","DE","JNJ","F",
          # --- +2 on 2026-09-17: XOM and F land on boss Sundays and get skipped, so these
          # --- two make the batch net out at ten actually served.
-         "CHWY","C"]
+         "CHWY","C",
+         # --- appended 2026-11-03: batch 4. The game was already on its shuffled second lap,
+         # --- so appending alone would re-deal today's puzzle. template.html BATCH4 plays these
+         # --- 20 first, in this order (one per non-Sunday from 2026-11-04), then laps all 92.
+         "CRWD","GIS","MAR","RKLB","PG","FDX","OXY","ISRG","ULTA","LMT",
+         "BAC","UAL","SHOP","KR","RCL","CRM","YUM","GE","AXP","TTWO"]
 
 def story(tk, ys):
     tot, big, dd = stats(ys)

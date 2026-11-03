@@ -443,7 +443,7 @@ const DEV = new URLSearchParams(location.search).has("dev");   // ?dev=1 unlocks
 const SHARE_URL = "chartedgame.com";
 const MAXG = 6;
 const EPOCH = "2026-07-20";   // public launch day = puzzle #1; one puzzle per LOCAL calendar day
-const VERSION = "2026-09-17a";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
+const VERSION = "2026-11-03a";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
 const U = DATA.universe, ORD = DATA.bucketOrder, PUZ = DATA.puzzles;
 const BOSSES = DATA.bosses || [];
 const BOSS_EPOCH = "2026-08-02";   // first boss Sunday; bosses rotate weekly from here
@@ -457,16 +457,49 @@ function daysSinceEpoch(){
   return Math.max(0, Math.round((t-e)/86400000));
 }
 function dayNumber(){ return daysSinceEpoch()+1; }   // launch day = #1; monotonic, never repeats
-function todaysPuzzleIndex(){
-  const d=daysSinceEpoch(), n=PUZ.length, cycle=Math.floor(d/n), pos=d%n;
-  if(cycle===0) return pos;              // first pass through keeps the authored running order
-  // The queue is 30 long, so it wraps every 30 days. Reshuffle each cycle so charts at least come
-  // back in a different sequence. Seeded ONLY by the cycle number: no storage, no clock, so every
-  // player on the same day gets the same puzzle, and each chart still appears exactly once per lap.
+// Batch 4 (2026-11-03): 20 dailies appended while the game was already on its shuffled second
+// lap. The lap shuffle depends on the queue length, so a plain append would have re-dealt the
+// live puzzle. Instead: before BATCH4.start nothing changes (laps over the original 72); from
+// that day the 20 new charts play first, one per non-Sunday (Sundays are boss days, so a new
+// chart is never lost to one); after the last of them, shuffled laps over the whole queue.
+const BATCH4 = {start:"2026-11-04", from:72};
+function shuffledLap(n, seed){
   const ord=[...Array(n).keys()];
-  let sd=(cycle*2654435761) % 2147483647 || 1;
+  let sd=(seed*2654435761) % 2147483647 || 1;
   for(let i=n-1;i>0;i--){ sd=(sd*48271)%2147483647; const j=sd%(i+1); [ord[i],ord[j]]=[ord[j],ord[i]]; }
-  return ord[pos];
+  return ord;
+}
+function todaysPuzzleIndex(){
+  const [by,bm,bd]=BATCH4.start.split("-").map(Number);
+  const s=new Date(by,bm-1,bd), t=new Date(); t.setHours(0,0,0,0);
+  const c=Math.round((t-s)/86400000);
+  if(c<0){
+    // unchanged pre-batch behaviour: laps over the first BATCH4.from puzzles
+    const d=daysSinceEpoch(), n=BATCH4.from, cycle=Math.floor(d/n), pos=d%n;
+    if(cycle===0) return pos;             // first pass keeps the authored running order
+    return shuffledLap(n, cycle)[pos];    // seeded only by the cycle: same puzzle for everyone
+  }
+  const nb=PUZ.length-BATCH4.from;
+  let k=0, e=0;                           // k = non-Sundays before today; e = day the batch ends
+  for(let i=0;i<c;i++){ const x=new Date(by,bm-1,bd+i); if(x.getDay()!==0) k++; }
+  if(k<nb) return BATCH4.from+k;          // new batch, authored order
+  for(let n2=0;n2<nb;e++){ const x=new Date(by,bm-1,bd+e); if(x.getDay()!==0) n2++; }
+  // First lap after the batch resumes the lap that was interrupted, where it left off, then the
+  // charts it had already served that lap, then the 20 new ones last — so nothing repeats soon.
+  const [ey,em,ed]=EPOCH.split("-").map(Number);
+  const d0=Math.round((s-new Date(ey,em-1,ed))/86400000), m=BATCH4.from;
+  const cyc=Math.floor(d0/m), p0=d0%m;
+  const prev=cyc===0 ? [...Array(m).keys()] : shuffledLap(m, cyc);
+  const d2=c-e, n=PUZ.length;
+  const laps=[[...prev.slice(p0), ...prev.slice(0,p0), ...Array.from({length:nb},(_,i)=>m+i)]];
+  const lap=Math.floor(d2/n);
+  // Later laps are fresh shuffles, except anything from the last 30 slots of the lap before is
+  // pushed to the back — otherwise a chart can come round again a few days after it last played.
+  for(let j=1;j<=lap;j++){
+    const base=shuffledLap(n, 100+j), tail=new Set(laps[j-1].slice(-30));
+    laps.push([...base.filter(x=>!tail.has(x)), ...base.filter(x=>tail.has(x))]);
+  }
+  return laps[lap][d2%n];
 }
 // Sunday Boss: every Sunday BOTH modes get the same legendary chart over its actual
 // historical window, instead of the queue puzzle (which is skipped, not shifted).
