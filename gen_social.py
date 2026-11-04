@@ -1,18 +1,21 @@
-"""Write the morning social card: social/today.png and social/today.json.
+"""Write the morning social card, and later the answer for a finished day.
 
-The nightly job runs at 05:30 UTC. On the East Coast that is already the
-morning the @chartillect account posts, at 7:00am. The chart is whichever
-puzzle todaysPuzzleIndex() in template.html serves that calendar day —
-schedule_eval.js runs the function, the same way the archive does. This file
-does not reimplement BATCH4 or Sunday bosses.
+The 05:30 UTC job writes social/today.png and social/today.json for the chart
+the game serves that Eastern morning. On the East Coast that is already the
+day of the 7:00am post. West of there, the previous puzzle is still live, so
+this file names no company.
 
-The picture is the opening view of the game: dark theme, percent axis, no
-dollar prices, no ticker, no company name. Yesterday's answer is included in
-the JSON because that puzzle is the one the account replies about. Today's
-answer is not written anywhere.
+social/yesterday.json is written by the 12:05 UTC job. That is just after
+midnight in UTC−12, the same cutoff build_archive.py uses, so the date is
+over everywhere the archive will publish it. The archive page for that date
+is built in the same job, and the answer file points at it.
+
+Which puzzle a date is comes from todaysPuzzleIndex() in template.html, via
+schedule_eval.js — the same path the archive uses. This file does not
+reimplement BATCH4 or Sunday bosses.
 """
-import json, os, re
-from datetime import date, datetime, timedelta
+import json, os, re, sys
+from datetime import date, datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
@@ -125,26 +128,6 @@ def leaks(text, ticker, name):
     if ticker and re.search(rf"(?<![A-Za-z]){re.escape(ticker)}(?![A-Za-z])", text):
         return ticker
     return None
-
-
-def raw_without_yesterday(raw):
-    start = raw.find('"yesterday"')
-    if start < 0:
-        raise SystemExit("today.json has no yesterday block")
-    brace = raw.find("{", start)
-    depth = 0
-    end = None
-    for i, ch in enumerate(raw[brace:], brace):
-        if ch == "{":
-            depth += 1
-        elif ch == "}":
-            depth -= 1
-            if depth == 0:
-                end = i + 1
-                break
-    if end is None:
-        raise SystemExit("yesterday block did not close")
-    return raw[:start] + raw[end:]
 
 
 def pct_label(v):
@@ -378,41 +361,73 @@ def paint(closes, dates, when, day_number, boss):
     return out
 
 
-def payload_for(today_row, yest_row):
+def today_payload(today_row):
+    """Morning file. No ticker and no company name, including yesterday's."""
     when = date.fromisoformat(today_row["d"])
     boss = bool(today_row["boss"])
-    return {
+    payload = {
         "date": today_row["d"],
         "day_number": int(today_row["day"]),
         "is_sunday_boss": boss,
         "play_url": PLAY_URL,
         "suggested_caption": suggested_caption(when, boss),
-        "yesterday": {
-            "date": yest_row["d"],
-            "ticker": yest_row["t"],
-            "name": yest_row["name"],
-            "archive_url": f"{SITE}/archive/{yest_row['d']}/",
-        },
+    }
+    if "ticker" in payload or "yesterday" in payload:
+        raise SystemExit("morning file grew an answer")
+    return payload
+
+
+def assert_answer_is_over(when, now):
+    """The archive's own gate. A date that fails this is still in progress somewhere."""
+    if now.tzinfo is None:
+        raise ValueError("now must be timezone-aware")
+    arch.assert_past([when], now.astimezone(timezone.utc))
+
+
+def revealed_date(now):
+    """Newest puzzle date the archive would already publish. None before launch ends."""
+    if now.tzinfo is None:
+        raise ValueError("now must be timezone-aware")
+    now_utc = now.astimezone(timezone.utc)
+    latest = arch.cutoff_date(now_utc) - timedelta(days=1)
+    if latest < arch.epoch_from_template():
+        return None
+    assert_answer_is_over(latest, now_utc)
+    return latest
+
+
+def answer_payload(now):
+    when = revealed_date(now)
+    if when is None:
+        raise SystemExit("no puzzle is over everywhere yet")
+    assert_answer_is_over(when, now)
+    row = arch.query_schedule([when])[0]
+    got = date.fromisoformat(row["d"])
+    if got != when:
+        raise SystemExit("schedule date mismatch")
+    assert_answer_is_over(got, now)
+    return {
+        "date": row["d"],
+        "ticker": row["t"],
+        "name": row["name"],
+        "archive_url": f"{SITE}/archive/{row['d']}/",
     }
 
 
 def build_for(when):
     epoch = arch.epoch_from_template()
-    yday = when - timedelta(days=1)
     if when < epoch:
         raise SystemExit(f"{when} is before launch {epoch}")
-    if yday < epoch:
-        raise SystemExit(f"no yesterday puzzle before launch {epoch}")
-    yest_row, today_row = arch.query_schedule([yday, when])
-    if today_row["d"] != when.isoformat() or yest_row["d"] != yday.isoformat():
-        raise SystemExit("schedule returned the wrong dates")
+    today_row = arch.query_schedule([when])[0]
+    if today_row["d"] != when.isoformat():
+        raise SystemExit("schedule returned the wrong date")
     img = paint(
         today_row["closes"], today_row.get("dates") or [], when,
         int(today_row["day"]), bool(today_row["boss"]),
     )
-    payload = payload_for(today_row, yest_row)
+    payload = today_payload(today_row)
     assert_card(payload, img, today_row)
-    return payload, img, today_row, yest_row
+    return payload, img, today_row
 
 
 def assert_card(payload, img, today_row):
@@ -427,15 +442,12 @@ def assert_card(payload, img, today_row):
         raise SystemExit("card shows a dollar price")
     if not any(lab.endswith("%") for lab in img.charted_labels):
         raise SystemExit("card is missing the percent axis")
-    dumped = json.dumps({k: v for k, v in payload.items() if k != "yesterday"}, ensure_ascii=False)
+    if "yesterday" in payload or "ticker" in payload:
+        raise SystemExit("morning payload carries an answer")
+    dumped = json.dumps(payload, ensure_ascii=False)
     hit = leaks(dumped, today_row["t"], today_row["name"])
     if hit:
-        raise SystemExit(f"today's answer {hit!r} is outside the yesterday block")
-    y = payload["yesterday"]
-    if y["ticker"] == today_row["t"] or y["name"] == today_row["name"]:
-        # Same company two days running would make the public yesterday block
-        # equal today's answer. Refuse rather than publish it.
-        raise SystemExit(f"{payload['date']} repeats yesterday's answer")
+        raise SystemExit(f"today's answer {hit!r} is in the morning file")
     if img.charted_hash != arch.chart_hash(today_row["closes"]):
         raise SystemExit("chart hash mismatch")
 
@@ -460,10 +472,11 @@ def assert_files(today_row):
         raise SystemExit("today.png pixels are not today's chart")
     raw = open(json_path, encoding="utf-8").read()
     doc = json.loads(raw)
-    bare = raw_without_yesterday(raw)
-    hit = leaks(bare, today_row["t"], today_row["name"])
+    if "yesterday" in doc or "ticker" in doc or "name" in doc:
+        raise SystemExit("today.json carries an answer")
+    hit = leaks(raw, today_row["t"], today_row["name"])
     if hit:
-        raise SystemExit(f"today's answer {hit!r} appears outside yesterday in today.json")
+        raise SystemExit(f"today's answer {hit!r} is in today.json")
     meta_text = "\n".join(str(v) for v in img.info.values())
     hit = leaks(meta_text, today_row["t"], today_row["name"])
     if hit:
@@ -475,16 +488,12 @@ def assert_files(today_row):
         raise SystemExit("today.json boss flag does not match the schedule")
     if doc["play_url"] != PLAY_URL:
         raise SystemExit("play_url changed")
-    y = doc["yesterday"]
-    for key in ("date", "ticker", "name", "archive_url"):
-        if key not in y:
-            raise SystemExit(f"yesterday is missing {key}")
     return doc
 
 
 def write_outputs(when=None):
     when = when or et_today()
-    payload, img, today_row, _yest = build_for(when)
+    payload, img, today_row = build_for(when)
     folder = os.path.join(D, "social")
     os.makedirs(folder, exist_ok=True)
     img.save(os.path.join(folder, "today.png"), "PNG", optimize=True, pnginfo=img.charted_meta)
@@ -500,8 +509,32 @@ def write_outputs(when=None):
     return payload
 
 
+def write_yesterday(now=None, path=None):
+    """Publish the answer for the newest date that is over everywhere."""
+    now = now or datetime.now(timezone.utc)
+    payload = answer_payload(now)
+    assert_answer_is_over(date.fromisoformat(payload["date"]), now)
+    folder = os.path.join(D, "social")
+    os.makedirs(folder, exist_ok=True)
+    dest = path or os.path.join(folder, "yesterday.json")
+    with open(dest, "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+        f.write("\n")
+    got = json.loads(open(dest, encoding="utf-8").read())
+    assert_answer_is_over(date.fromisoformat(got["date"]), now)
+    if got["date"] != payload["date"] or got["ticker"] != payload["ticker"]:
+        raise SystemExit("yesterday.json does not match the finished puzzle")
+    print(f"yesterday: {got['date']} is over everywhere")
+    return got
+
+
 def main():
-    write_outputs()
+    if len(sys.argv) > 2 or (len(sys.argv) == 2 and sys.argv[1] != "reveal"):
+        raise SystemExit("usage: gen_social.py [reveal]")
+    if len(sys.argv) == 2:
+        write_yesterday()
+    else:
+        write_outputs()
 
 
 if __name__ == "__main__":

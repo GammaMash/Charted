@@ -4,6 +4,8 @@ name: nightly-rebuild
 # If the price fetch fails badly, fetch_data.py exits non-zero and nothing is
 # committed — the site simply keeps yesterday's build.
 # The same run writes social/today.png and social/today.json for the 7:00am ET post.
+# It does not name a company. Yesterday's answer is a later job (reveal.yml),
+# after that date is over in UTC−12, the same cutoff as the archive.
 on:
   schedule:
     - cron: "30 5 * * *"   # 05:30 UTC ≈ 1:30am ET, after US close + data settle

@@ -2,9 +2,10 @@
 
 The picture for a date has to be the puzzle todaysPuzzleIndex() returns.
 schedule_eval.js runs that function; this file does not reimplement it.
-Today's ticker and company name may show up only inside the yesterday block.
+An answer is published only for a date the archive already considers over
+everywhere (UTC−12). The morning file names no company.
 """
-import json, os, subprocess, sys
+import json, os, subprocess, sys, tempfile
 from datetime import date, datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
@@ -85,10 +86,7 @@ def test_files_and_no_spoiler():
 
     truth = node_schedule([when - timedelta(days=1), when])
     yest, today = truth
-    assert doc["yesterday"]["date"] == yest["d"]
-    assert doc["yesterday"]["ticker"] == yest["t"]
-    assert doc["yesterday"]["name"] == yest["name"]
-    assert doc["yesterday"]["archive_url"] == f"https://chartedgame.com/archive/{yest['d']}/"
+    assert "yesterday" not in doc and "ticker" not in doc and "name" not in doc
     assert int(doc["day_number"]) == int(today["day"])
     assert bool(doc["is_sunday_boss"]) == bool(today["boss"])
     assert img.info.get("charted-date") == today["d"]
@@ -98,20 +96,14 @@ def test_files_and_no_spoiler():
     assert fresh.charted_hash == arch.chart_hash(today["closes"])
     assert img.convert("RGB").tobytes() == fresh.tobytes()
 
-    bare = social.raw_without_yesterday(raw)
-    hit = social.leaks(bare, today["t"], today["name"])
-    if hit:
-        raise SystemExit(f"today's answer {hit!r} leaked outside yesterday")
-    # The answer block really is the only place the name is allowed.
-    assert today["t"] not in bare
-    assert today["name"] not in bare
+    for row in (today, yest):
+        hit = social.leaks(raw, row["t"], row["name"])
+        if hit:
+            raise SystemExit(f"today.json names {row['d']} ({hit})")
     meta = "\n".join(str(v) for v in img.info.values())
     hit = social.leaks(meta, today["t"], today["name"])
     if hit:
         raise SystemExit(f"today's answer {hit!r} is stored in the image")
-    # Yesterday's answer is supposed to be present, and only there.
-    assert yest["t"] in raw and yest["name"] in raw
-    assert yest["t"] not in bare and yest["name"] not in bare
 
 
 def test_next_60_dates_match_puzzle_index():
@@ -155,51 +147,99 @@ def test_next_60_dates_match_puzzle_index():
     assert len(captions) > 1
 
 
-def test_real_yesterday_stays_in_its_block():
-    """The published file's yesterday is the real previous puzzle, and the
-    next 60 mornings keep today's answer out of every other field."""
-    start = social.et_today()
-    dates = [start - timedelta(days=1)] + [start + timedelta(days=i) for i in range(60)]
-    rows = {r["d"]: r for r in node_schedule(dates)}
-    for i in range(60):
-        when = start + timedelta(days=i)
-        yday = when - timedelta(days=1)
-        today, yest = rows[when.isoformat()], rows[yday.isoformat()]
-        payload = social.payload_for(today, yest)
-        assert payload["is_sunday_boss"] is bool(today["boss"])
-        assert payload["date"] == today["d"]
-        assert int(payload["day_number"]) == int(today["day"])
-        raw = json.dumps(payload, ensure_ascii=False, indent=2)
-        bare = social.raw_without_yesterday(raw)
-        hit = social.leaks(bare, today["t"], today["name"])
-        if hit:
-            raise SystemExit(f"{when}: {hit!r} escaped the yesterday block")
-        assert payload["yesterday"]["ticker"] == yest["t"]
-        assert payload["yesterday"]["name"] == yest["name"]
-        assert payload["yesterday"]["archive_url"].endswith(f"/archive/{yday.isoformat()}/")
-        if today["t"] == yest["t"] or today["name"] == yest["name"]:
-            raise SystemExit(f"{when} would publish today's answer as yesterday")
+def _refuses(when, now):
+    try:
+        social.assert_answer_is_over(when, now)
+    except SystemExit:
+        return True
+    return False
+
+
+def test_answer_waits_until_the_archive_cutoff():
+    """05:30 UTC and 10:30 UTC are both too early. 12:05 UTC is the first run
+    where UTC−12 has rolled, which is when the archive will publish the page."""
+    early = datetime(2026, 11, 5, 5, 30, tzinfo=timezone.utc)
+    hawaii = datetime(2026, 11, 5, 10, 30, tzinfo=timezone.utc)
+    ready = datetime(2026, 11, 5, 12, 5, tzinfo=timezone.utc)
+    live = date(2026, 11, 4)
+    assert _refuses(live, early)
+    assert _refuses(live, hawaii)
+    assert social.revealed_date(early) == date(2026, 11, 3)
+    assert social.revealed_date(hawaii) == date(2026, 11, 3)
+    assert social.revealed_date(ready) == live
+    social.assert_answer_is_over(live, ready)
+    # The archive build includes exactly the dates before the cutoff, so the
+    # reveal link exists only once this same gate has opened.
+    epoch = arch.epoch_from_template()
+    assert live in list(arch.daterange(epoch, arch.cutoff_date(ready)))
+    assert live not in list(arch.daterange(epoch, arch.cutoff_date(hawaii)))
+    assert live not in list(arch.daterange(epoch, arch.cutoff_date(early)))
+    # The morning card for Nov 5 still must not carry Nov 4's answer.
+    morning = social.today_payload(node_schedule([date(2026, 11, 5)])[0])
+    raw = json.dumps(morning)
+    nov4 = node_schedule([live])[0]
+    assert "yesterday" not in morning and "ticker" not in morning
+    hit = social.leaks(raw, nov4["t"], nov4["name"])
+    if hit:
+        raise SystemExit(f"morning file names a live puzzle ({hit})")
+    # Writing the answer at 12:05 publishes Nov 4, and only because it is over.
+    with tempfile.TemporaryDirectory() as tmp:
+        path = os.path.join(tmp, "yesterday.json")
+        got = social.write_yesterday(ready, path)
+        assert got["date"] == live.isoformat()
+        assert got["ticker"] == nov4["t"] and got["name"] == nov4["name"]
+        assert got["archive_url"] == f"https://chartedgame.com/archive/{live.isoformat()}/"
+        social.assert_answer_is_over(date.fromisoformat(got["date"]), ready)
+        too_soon = social.write_yesterday(hawaii, os.path.join(tmp, "early.json"))
+        assert too_soon["date"] == "2026-11-03"
+        assert too_soon["date"] != live.isoformat()
+
+
+def test_yesterday_file_is_over():
+    path = os.path.join(D, "social", "yesterday.json")
+    assert os.path.isfile(path), "social/yesterday.json missing — run gen_social.py reveal"
+    doc = json.loads(open(path, encoding="utf-8").read())
+    now = datetime.now(timezone.utc)
+    when = date.fromisoformat(doc["date"])
+    social.assert_answer_is_over(when, now)
+    assert social.revealed_date(now) == when
+    row = node_schedule([when])[0]
+    assert doc["ticker"] == row["t"] and doc["name"] == row["name"]
+    assert doc["archive_url"] == f"https://chartedgame.com/archive/{when.isoformat()}/"
 
 
 def test_workflow_publishes_the_card():
     yml = open(os.path.join(D, ".github", "workflows", "rebuild.yml"), encoding="utf-8").read()
+    reveal = open(os.path.join(D, ".github", "workflows", "reveal.yml"), encoding="utf-8").read()
     assert "python3 gen_social.py" in yml
+    assert "python3 gen_social.py reveal" not in yml
     assert "python3 test_social.py" in yml
     assert "social/today.png" in yml
     assert "social/today.json" in yml
+    assert "social/yesterday.json" not in yml
     assert "264815017+GammaMash@users.noreply.github.com" in yml
-    # The card is written before the commit step, on the same job as the
-    # nightly data refresh, so it is in the commit that goes live.
     assert yml.index("gen_social.py") < yml.index("git commit")
     assert yml.index("test_social.py") < yml.index("git commit")
+    assert 'cron: "5 12 * * *"' in reveal
+    assert "python3 gen_social.py reveal" in reveal
+    assert "python3 build_archive.py" in reveal
+    assert "social/yesterday.json" in reveal
+    assert "264815017+GammaMash@users.noreply.github.com" in reveal
+    assert reveal.index("gen_social.py reveal") < reveal.index("git commit")
 
 
 def main():
+    only = sys.argv[1] if len(sys.argv) > 1 else ""
+    test_answer_waits_until_the_archive_cutoff()
+    if only == "reveal":
+        test_yesterday_file_is_over()
+        print("reveal tests passed")
+        return
     test_et_morning_is_the_post_date()
     test_captions()
     test_files_and_no_spoiler()
+    test_yesterday_file_is_over()
     test_next_60_dates_match_puzzle_index()
-    test_real_yesterday_stays_in_its_block()
     test_workflow_publishes_the_card()
     print("social tests passed")
 
