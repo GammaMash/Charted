@@ -74,70 +74,70 @@ HAND = {
  "GME":  (lambda t: abs(t) < 60,   "GameStop: multiple squeezes, zero trend — a year of violent round trips."),
  "MSFT": (lambda t: t < 0,         "A rare down year for the market's favorite safe-haven mega cap — while memory and moonshot names tripled."),
  "NKE":  (lambda t: t < -15,       "Nike's slow bleed: no crash, no headline week — just 52 weeks of lower highs."),
- "CAT":  (lambda t: t > 40,        "Caterpillar quietly compounded — the kind of chart nobody screenshots and everybody wishes they owned."),
+ "CAT":  (lambda t: t > -15,          "Caterpillar rose more than 80% from November '25 into a June '26 peak, then gave back almost 40% — much of it in a single October slide."),
  "SNDK": (lambda t: t > 300,       "SanDisk, the other memory stock — the single most vertical chart in the whole universe."),
  "NVDA": (lambda t: abs(t) < 40,   "The most talked-about stock on earth, with one of the least dramatic charts in the game. Hard mode."),
  # --- added 2026-07-31: the rest of the queue. Same contract: shape-driven narrative,
  # --- validity condition on the 12-mo return, computed stat line appended automatically.
- "AAPL": (lambda t: t > 25,        "Apple spent half the year going sideways — then woke up in spring and did a year's work in three months."),
+ "AAPL": (lambda t: t > 10,           "Apple bottomed in March '26 and climbed almost without a break into an October high — a quiet, steady re-rating of the name everyone already owns."),
  "TSLA": (lambda t: -25 < t < 10,  "A round trip drawn in real time: Tesla ripped into winter, then spent the rest of the year giving it back."),
  "NFLX": (lambda t: t < -25,       "The year every bounce got sold — Netflix made lower highs for twelve straight months."),
  "SBUX": (lambda t: 0 < t < 35,    "Starbucks kept it boring on purpose: one dip, one recovery, and a quiet finish near the highs."),
  "KO":   (lambda t: 5 < t < 40,    "Coke doesn't do drama — barely a dip all year, just the steady grind higher. That calm IS the fingerprint."),
- "DIS":  (lambda t: -30 < t < 0,   "No crisis, no comeback — Disney just leaked lower, one unremarkable month at a time."),
+ "DIS":  (lambda t: abs(t) < 25,      "Disney topped out in January '26, slid to a March low, went sideways all summer, then rallied back to its highs in the fall."),
  "AMD":  (lambda t: t > 80,        "AMD nearly tripled — with a gut-check drawdown in the middle that shook out everyone who wasn't sure."),
  "HOOD": (lambda t: t < 5,         "Robinhood lost more than half from its September high, bottomed in March, and has clawed back about 40% since — the casino trades like one of its own tickers."),
  "COIN": (lambda t: t < -25,       "Crypto winter came back for Coinbase — down by half, with every rally fading inside a month."),
  "LULU": (lambda t: t < -20,       "Lululemon stretched too far — a steady markdown from last year's highs, one red stretch at a time."),
  "BA":   (lambda t: -25 < t < 10,  "Boeing chopped through turbulence all year and landed roughly where it took off."),
  "IBM":  (lambda t: t < 0,         "Two air pockets in an otherwise sleepy year — when Big Blue drops, it drops all at once."),
- "RIVN": (lambda t: t > 15,        "Rivian finally strung together an up year — violently. Nothing this stock does is gradual."),
+ "RIVN": (lambda t: t < 5,            "Rivian peaked in December '25 and drifted lower for most of the year, hitting its low in October '26 with nearly half its value gone."),
  "DELL": (lambda t: t > 100,       "Dell — yes, Dell — tripled. The beige-box company turned momentum stock, and it's sitting at the highs."),
  "MRVL": (lambda t: t > 60,        "Marvell went vertical, then handed a big piece back — AI-chip beta cuts in both directions."),
  "PLTR": (lambda t: abs(t) < 25,   "Palantir looks flat and wasn't: down 44% into a June low, then a 50% climb back out of it. The cult stock spent twelve months going nowhere the hard way."),
  "SMCI": (lambda t: t < -15,       "Supermicro was down two-thirds at the worst — then mounted half a comeback. Momentum in reverse is a different sport."),
- "AVGO": (lambda t: t > 5,         "Broadcom took a 25% correction into March and is back within a few percent of its high — the quiet giant of the AI trade."),
- "CVNA": (lambda t: -25 < t < 10,  "Carvana is flat over twelve months, which tells you nothing — a January high, a 41% drop into March, and a partial climb back. Volatility is the product."),
- "CRCL": (lambda t: t < -35,       "Post-IPO gravity: Circle issues the stablecoin — the stock is anything but."),
+ "AVGO": (lambda t: abs(t) < 30,      "Broadcom fell to a March '26 low, ripped almost 50% into a May peak, and has slid back down ever since."),
+ "CVNA": (lambda t: abs(t) < 30,      "Carvana peaked in January '26, crashed 40% into March, and has bounced around a wide range ever since."),
+ "CRCL": (lambda t: abs(t) < 35,      "Circle more than doubled in six weeks off its February '26 low — one week alone was +32% — then swung through a summer crash and an August rebound."),
  "GEMI": (lambda t: t < -60,       "Gemini has done little but fall since its debut — the listing everyone wanted, the chart nobody did."),
  # --- appended 2026-08-09: batch 1. House rule for these: PRESENT TENSE, anchored to "now"
  # --- or "since last August". The window is a ROLLING twelve months rebuilt nightly, so there
  # --- is no close and no year-end — "finished the year" is wrong by construction.
- "GOOGL":(lambda t: t > 40,        "Alphabet did most of its climbing by May and has been handing a slice back ever since — the best chart in Big Tech, minus the summer."),
- "META": (lambda t: t < -10,       "Meta's high is the first candle on the chart — everything after was a slow give-back into spring, and the bounce never got far."),
+ "GOOGL": (lambda t: abs(t) < 25,     "Alphabet jumped from a March '26 low to a May peak, drifted through the summer, then dropped 13% in a single late-October week."),
+ "META": (lambda t: abs(t) < 25,      "Meta fell to a March '26 low, climbed back to a September high, then gave back much of that gain in October."),
  "ORCL": (lambda t: t < -25,       "Oracle round-tripped an entire AI re-rating — a pop in September, then nearly two-thirds gone from the high. The boring database company is having the least boring twelve months in the game."),
  "RBLX": (lambda t: t < -50,       "Roblox has lost two-thirds since last August and still hasn't had a real bounce — lower into winter, lower again through summer. A staircase pointed the wrong way."),
  "HIMS": (lambda t: t < -10,       "Hims fell three-quarters by February, then nearly doubled off the low — the deepest hole in the game, half climbed back out of."),
- "RIOT": (lambda t: t > 40,        "Riot has nearly doubled since last August, and it still feels like a loss if you bought in June — a 41% drawdown early, a summer top, and a fade ever since."),
+ "RIOT": (lambda t: t < 10,           "Riot more than doubled from its March '26 low into a June peak, then slid all the way back to finish at its 12-month low."),
  "QCOM": (lambda t: abs(t) < 20,   "Qualcomm sits almost exactly where it did twelve months ago — which hides a 59% rip into May and a 33% slide back out of it. Flat is not the same as quiet."),
- "LLY":  (lambda t: t > 40,        "Lilly has climbed for twelve straight months and sits within 2% of its high — no drama, no give-back, just up."),
+ "LLY":  (lambda t: t > 15,           "Eli Lilly sank to a March '26 low, climbed through the summer, then broke out in October to a fresh 12-month high."),
  "JPM":  (lambda t: 10 < t < 40,   "JPMorgan is at its highest price in twelve months right now — a spring dip, then a straight line up. Banks are supposed to be boring; this one is boringly good."),
  "UBER": (lambda t: t < -10,       "Uber gave back a fifth of its value with no single bad week to blame — a long grind lower, and a bounce that only started in July."),
  # --- batch 2, added 2026-08-19. Present tense anchored to "now" / "since last August";
  # --- no finish-line words, the window rolls nightly.
- "AMZN": (lambda t: t > 10,        "Amazon is up almost a fifth since last August — and nearly all of it arrived in one 17% week in July. Take that week out and this is a flat chart."),
+ "AMZN": (lambda t: abs(t) < 25,      "Amazon slid to a February '26 low, jumped in April, and peaked in early August after a +17% week — then faded through the fall."),
  "MCD":  (lambda t: t < -5,        "McDonald's is down about a tenth since last August and is sitting a few percent off its low. No crash, no rebound, just a slow bleed nobody is talking about."),
  "HD":   (lambda t: t < -5,        "Home Depot fell almost a third from its high, then clawed a fifth of it back. When housing turned, it took the whole aisle with it."),
  "ABNB": (lambda t: t > 25,        "Airbnb is up more than 40% since last August, never fell more than 13% along the way, and had its biggest week of the year this month."),
- "CMG":  (lambda t: t < -15,       "Chipotle lost 23% in a single week last October and has spent every month since failing to win it back."),
+ "CMG":  (lambda t: abs(t) < 25,      "Chipotle peaked in January '26 and spent the rest of the year sliding to an October low, interrupted by one +17% week in July."),
  "DASH": (lambda t: t < -5,        "DoorDash nearly halved, then rallied almost 50% off the low — and is still underwater. A round trip that went the wrong way first."),
- "COST": (lambda t: abs(t) < 10,   "Costco is almost exactly where it was last August. Twelve months, a 13% dip, and a full recovery back to nowhere."),
+ "COST": (lambda t: t > 0,            "Costco bottomed in December '25, climbed to a May '26 high, sagged through the summer, and is right back at the top."),
  "WMT":  (lambda t: t > 5,         "Walmart is up double digits since last August despite an 18% drawdown in between — the dip nobody remembers."),
  "PEP":  (lambda t: t < -3,        "Pepsi is down since last August and sits within a couple of percent of its low. Defensive stocks are supposed to defend."),
  "TGT":  (lambda t: t > 30,        "Target is up 45% since last August and 75% off its low — the comeback almost nobody was positioned for."),
  "HSY":  (lambda t: abs(t) < 12,   "Hershey fell 27%, then ripped 19% in a single week in February, and after all that it is roughly flat since last August."),
- "V":    (lambda t: 0 < t < 15,    "Visa is up single digits since last August, which undersells the ride: a 17% drawdown and a 23% climb back out of it."),
+ "V":    (lambda t: t > 10,           "Visa bottomed in March '26 and climbed steadily to finish at its 12-month high — the calm compounding of a toll on every card swipe."),
  "PYPL": (lambda t: t < -5,        "PayPal lost 23% in one week in February, bottomed 43% down, and has since won back nearly half of it. Still underwater."),
- "GS":   (lambda t: t > 25,        "Goldman Sachs is up more than 40% since last August, with one 19% drawdown in the spring that it has completely undone."),
- "PFE":  (lambda t: 0 < t < 15,    "Pfizer jumped 15% in a single week last September and has drifted sideways ever since. Almost the entire year's gain arrived in five days."),
- "CVS":  (lambda t: t > 25,        "CVS is up about 40% since last August — one of the strongest runs in healthcare, from a company most people picture as a place to buy shampoo."),
+ "GS":   (lambda t: t > 0,            "Goldman Sachs climbed from November '25 into a June '26 high, held it all summer, then slipped in September."),
+ "PFE":  (lambda t: t > 5,            "Pfizer spent most of the year flat in a narrow band, dipped to a July '26 low, then climbed to finish at its 12-month high."),
+ "CVS":  (lambda t: t > 0,            "CVS bottomed in March '26 and rallied about 50% into a July high, then gave back part of it in the fall."),
  "NVO":  (lambda t: t < -3,        "Novo Nordisk fell 21% in a single week in February, bottomed more than 40% down, and has climbed about a third of the way back."),
  "DAL":  (lambda t: t > 30,        "Delta is up more than half since last August. Airlines are the most cyclical thing in the market, and this is what the good half of the cycle looks like."),
  "UPS":  (lambda t: t > 8,         "UPS lost 12% in a single week in March and is still up nearly a fifth since last August. The recovery did all the work."),
- "SPOT": (lambda t: t < -20,       "Spotify is down a third since last August, with a 19% bounce in May that did not hold."),
+ "SPOT": (lambda t: abs(t) < 25,      "Spotify slid from its November '25 high to a May '26 low, down a third, then climbed most of the way back by the fall."),
  # --- added 2026-09-17: batch 3. Same contract: qualitative, no hand-written numbers
  # --- (the computed stat line is appended), validity condition on the 12-mo return.
- "WDC":  (lambda t: t > 150,       "Western Digital nearly quadrupled on the same memory supercycle that took SanDisk vertical \u2014 then handed back a big piece of it after the June '26 peak."),
+ "WDC":  (lambda t: t > 40,           "Western Digital went more than five-fold from November '25 into a June '26 spike, then gave back more than half of it."),
  "UNH":  (lambda t: abs(t) < 30,   "UnitedHealth lost a fifth of its value in one week in January '26, bottomed in March, and has ground back ever since. Twelve months of violence to finish near where it started."),
  "XOM":  (lambda t: t > 15,        "ExxonMobil climbed all year while the market's attention was somewhere else entirely \u2014 a spring peak, a summer dip, and a finish back near the top."),
  "ADBE": (lambda t: t < -12,       "Adobe spent the year being repriced for a world where its software matters less. A long slide from the September '25 high, and a summer bounce that has not come close to undoing it."),
@@ -150,7 +150,7 @@ HAND = {
  "CHWY": (lambda t: t < -25,       "Chewy spent the whole year sliding from its September '25 high, bottomed in the summer of '26, and never mounted a real recovery."),
  "C":    (lambda t: t > 12,        "Citigroup climbed most of the year with one February '26 scare that it shrugged off inside a month \u2014 the quiet re-rating of a bank nobody was excited about."),
  "GM":   (lambda t: t > 15,        "General Motors bottomed in October '25 and climbed for the rest of the year \u2014 the old-economy carmaker quietly outrunning most of what it shares a chart board with."),
- "LOW":  (lambda t: t < -12,       "Lowe's peaked in February '26 and has leaked lower ever since, finishing the year at its low. Housing turned, and the whole aisle went with it."),
+ "LOW":  (lambda t: t < 10,           "Lowe's peaked in February '26 and slid for most of the year to a September low, down more than a third, before a fall bounce."),
  "MS":   (lambda t: t > 12,        "Morgan Stanley spent the year grinding up with one spring '26 wobble it erased inside a quarter \u2014 the calm chart of a bank that stopped depending on trading."),
  # --- batch 4 (2026-11-03). Bands are loose on purpose: the window rolls nightly and each
  # --- narrative only has to stay true for the ~4 weeks until its first appearance.
@@ -203,13 +203,29 @@ QUEUE = ["GM","AAPL","TSLA","NFLX","MU","SBUX","KO","DIS","INTC","NKE",
          "CRWD","GIS","MAR","RKLB","PG","FDX","OXY","ISRG","ULTA","LMT",
          "BAC","UAL","SHOP","KR","RCL","CRM","YUM","GE","AXP","TTWO"]
 
-def story(tk, ys):
+def story(tk, ys, ds):
     tot, big, dd = stats(ys)
     nums = f" The numbers: {tot:+.0f}% in 12 months · biggest week {big:+.0f}% · worst drawdown {dd:.0f}%."
     cond, narr = HAND.get(tk, (None, None))
     if narr and cond(tot):
         return narr + nums
-    return f"{uni[tk]['name']} — now you'll recognize this chart next time." + nums
+    return auto_story(tk, ys, ds) + nums
+
+def auto_story(tk, ys, ds):
+    """Fallback when no hand narrative fits the current window. Hand narratives drift out of
+    their bands as the 12-month window rolls nightly; this is always true because it is read
+    off the same closes the player is looking at."""
+    import datetime as _d
+    nm = uni[tk]["name"]
+    mon = lambda i: _d.date.fromisoformat(ds[i]).strftime("%B '%y")
+    hi = max(range(len(ys)), key=lambda i: ys[i]); lo = min(range(len(ys)), key=lambda i: ys[i])
+    if ys[-1] >= 0.97 * ys[hi]:
+        return f"{nm} bottomed in {mon(lo)} and finishes right at its 12-month high."
+    if ys[-1] <= 1.03 * ys[lo]:
+        return f"{nm} peaked in {mon(hi)} and finishes at its 12-month low."
+    if hi < lo:
+        return f"{nm} peaked in {mon(hi)}, bottomed in {mon(lo)}, and has won back part of the drop."
+    return f"{nm} bottomed in {mon(lo)}, peaked in {mon(hi)}, and has given back part of the climb."
 
 # ---------------------------------------------------------------- sector-relative return
 # Rung 4 used to be the chart SHAPE alone, which names something the player is already
@@ -247,7 +263,7 @@ for i, tk in enumerate(QUEUE):
     wr = [(ds[j], ys[j]/ys[j-1]-1) for j in range(1, len(ys))]
     big = max(wr, key=lambda x: abs(x[1]))
     out.append({
-      "id": i+1, "answer": tk, "story": story(tk, ys), "co": CO[tk],
+      "id": i+1, "answer": tk, "story": story(tk, ys, ds), "co": CO[tk],
       "dates": ds, "closes": [round(y, 2) for y in ys],
       "annot": {"i": ds.index(big[0]), "label": f"biggest week of the year: {big[1]*100:+.0f}%"},
       "long": LONG.get(tk), "secrel": sector_rel(tk),
