@@ -3,6 +3,7 @@ name: nightly-rebuild
 # day's puzzle shows a genuinely current "last 12 months" chart.
 # If the price fetch fails badly, fetch_data.py exits non-zero and nothing is
 # committed — the site simply keeps yesterday's build.
+# The same run writes social/today.png and social/today.json for the 7:00am ET post.
 on:
   schedule:
     - cron: "30 5 * * *"   # 05:30 UTC ≈ 1:30am ET, after US close + data settle
@@ -29,11 +30,15 @@ jobs:
         run: python3 build_archive.py
       - name: Check archive and schedule
         run: python3 test_archive.py
+      - name: Render today's social card
+        run: python3 gen_social.py
+      - name: Check social card
+        run: python3 test_social.py
       - name: Commit if changed
         run: |
           git config user.name "GammaMash"
           git config user.email "264815017+GammaMash@users.noreply.github.com"
-          git add prices_raw.json index.html og.png archive sitemap.xml robots.txt
+          git add prices_raw.json index.html og.png archive sitemap.xml robots.txt social/today.png social/today.json
           if ! git diff --cached --quiet; then
             git commit -m "nightly data refresh"
             git push
