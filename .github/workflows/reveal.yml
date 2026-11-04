@@ -1,0 +1,43 @@
+name: publish-yesterdays-answer
+# The 05:30 UTC rebuild must not name a company. West of the East Coast that
+# puzzle is still being played, and UTC−12 — the archive's last time zone —
+# has not finished the day either.
+# 12:05 UTC is just after midnight there: 7:05am EST, 8:05am EDT. This run
+# rebuilds the archive (so that day's page exists) and writes
+# social/yesterday.json. The script refuses to write an answer for a date
+# the archive would still reject.
+on:
+  schedule:
+    - cron: "5 12 * * *"
+  workflow_dispatch: {}
+permissions:
+  contents: write
+jobs:
+  reveal:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Rebuild puzzles from the prices already on the site
+        run: python3 build_puzzles.py
+      - name: Publish archive pages that are over everywhere
+        run: python3 build_archive.py
+      - name: Check archive and schedule
+        run: python3 test_archive.py
+      - name: Write yesterday's answer
+        run: pip install --quiet pillow && python3 gen_social.py reveal
+      - name: Check the answer is for a finished day
+        run: python3 test_social.py reveal
+      - name: Commit if changed
+        run: |
+          git config user.name "GammaMash"
+          git config user.email "264815017+GammaMash@users.noreply.github.com"
+          git add archive sitemap.xml robots.txt social/yesterday.json
+          if ! git diff --cached --quiet; then
+            git commit -m "publish yesterday's answer"
+            git push
+          else
+            echo "no changes"
+          fi
