@@ -4,6 +4,11 @@ The picture for a date has to be the puzzle todaysPuzzleIndex() returns.
 schedule_eval.js runs that function; this file does not reimplement it.
 An answer is published only for a date the archive already considers over
 everywhere (UTC−12). The morning file names no company.
+
+The default run is the morning rebuild. It does not read social/yesterday.json,
+so a missing or stale answer file cannot fail the run and skip today's card.
+That committed file is checked only by `python3 test_social.py reveal`, which
+is what reveal.yml runs after it writes the file.
 """
 import json, os, subprocess, sys, tempfile
 from datetime import date, datetime, timedelta, timezone
@@ -196,6 +201,7 @@ def test_answer_waits_until_the_archive_cutoff():
 
 
 def test_yesterday_file_is_over():
+    """Committed social/yesterday.json. Reveal invocation only, not the morning run."""
     path = os.path.join(D, "social", "yesterday.json")
     assert os.path.isfile(path), "social/yesterday.json missing — run gen_social.py reveal"
     doc = json.loads(open(path, encoding="utf-8").read())
@@ -214,6 +220,8 @@ def test_workflow_publishes_the_card():
     assert "python3 gen_social.py" in yml
     assert "python3 gen_social.py reveal" not in yml
     assert "python3 test_social.py" in yml
+    # The morning job must not run the reveal checks. Those read yesterday.json.
+    assert "python3 test_social.py reveal" not in yml
     assert "social/today.png" in yml
     assert "social/today.json" in yml
     assert "social/yesterday.json" not in yml
@@ -235,10 +243,12 @@ def main():
         test_yesterday_file_is_over()
         print("reveal tests passed")
         return
+    # Do not call test_yesterday_file_is_over() here. The morning rebuild
+    # runs before reveal.yml and must ship today's card even when
+    # social/yesterday.json is missing or still on an older date.
     test_et_morning_is_the_post_date()
     test_captions()
     test_files_and_no_spoiler()
-    test_yesterday_file_is_over()
     test_next_60_dates_match_puzzle_index()
     test_workflow_publishes_the_card()
     print("social tests passed")
