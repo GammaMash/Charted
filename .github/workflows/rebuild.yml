@@ -8,7 +8,7 @@ name: nightly-rebuild
 # after that date is over in UTC−12, the same cutoff as the archive.
 on:
   schedule:
-    - cron: "30 5 * * *"   # 05:30 UTC ≈ 1:30am ET, after US close + data settle
+    - cron: "0 0 * * *"    # 00:00 UTC = 7:00 PM ET the evening before (EST winter, UTC−5)
   workflow_dispatch: {}     # allow manual runs from the Actions tab
 permissions:
   contents: write
