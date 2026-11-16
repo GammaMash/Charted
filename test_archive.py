@@ -62,6 +62,51 @@ def test_schedule_unchanged():
                 raise SystemExit(f"schedule changed on {a['d']}: now {a} was {b}")
         raise SystemExit(f"schedule length {len(got)} != golden {len(golden)}")
     assert len(got) == 1000
+    # Frozen main, the schedule before batch 5. Dates through 2026-11-26 must not move.
+    prefix_path = os.path.join(D, "test", "schedule_through_2026-11-26.json")
+    prefix = json.load(open(prefix_path, encoding="utf-8"))
+    assert prefix[-1]["d"] == "2026-11-26"
+    if got[:len(prefix)] != prefix:
+        for a, b in zip(got, prefix):
+            if a != b:
+                raise SystemExit(f"pre-batch5 date changed on {a['d']}: now {a} was {b}")
+        raise SystemExit("pre-batch5 prefix length mismatch")
+    consts = json.loads(run_node(["consts"]))
+    n = consts["puzzles"]
+    # A lap is n calendar days containing every puzzle index once. The batch intros
+    # are not laps; the longest aligned run is the rotation after the last batch.
+    best = (0, None)
+    for o in range(len(got)):
+        laps = 0
+        while o + (laps + 1) * n <= len(got):
+            idxs = [r["i"] for r in got[o + laps * n:o + (laps + 1) * n]]
+            if sorted(idxs) != list(range(n)):
+                break
+            laps += 1
+        if laps > best[0]:
+            best = (laps, o)
+    laps, origin = best
+    if laps < 3:
+        raise SystemExit(f"expected full laps of {n}, longest run was {laps}")
+    # No displayed ticker repeats inside 30 days from the batch-4 fix forward.
+    # The one closer pair is UNH on 2026-09-19 and 2026-10-08 (19 days). It is
+    # already in the frozen prefix above; the Sep 28 wrap is what batch 4 fixed
+    # going forward, and this test is not allowed to move those two dates.
+    last = {}
+    min_forward = None
+    for r in got:
+        d = date.fromisoformat(r["d"])
+        prev = last.get(r["t"])
+        if prev is not None:
+            gap = (d - prev).days
+            if gap < 30 and not (r["t"] == "UNH" and prev == date(2026, 9, 19) and d == date(2026, 10, 8)):
+                raise SystemExit(f"{r['t']} repeats within 30 days: {prev} then {r['d']} ({gap}d)")
+            if d >= date(2026, 11, 4) and (min_forward is None or gap < min_forward[0]):
+                min_forward = (gap, r["t"], prev.isoformat(), r["d"])
+        last[r["t"]] = d
+    if min_forward[0] < 30:
+        raise SystemExit(f"forward repeat {min_forward}")
+    print(f"schedule laps {laps} of {n} from {got[origin]['d']} · min repeat gap from 2026-11-04 {min_forward[0]}d ({min_forward[1]})")
     # Same calendar date, same puzzle, in the timezones where players actually are.
     for tz in ("America/New_York", "Pacific/Honolulu", "Etc/GMT+12"):
         other = json.loads(run_node(["simulate", "1000"], tz=tz))
@@ -145,8 +190,8 @@ def test_home_links_archive():
         text = open(os.path.join(D, name), encoding="utf-8").read()
         assert 'href="/archive/"' in text, name
         assert "function gameNow()" in text, name
-        assert 'const VERSION = "2026-11-04a"' in text, name
-    assert open(os.path.join(D, "version.txt"), encoding="utf-8").read().strip() == "2026-11-04a"
+        assert 'const VERSION = "2026-11-16a"' in text, name
+    assert open(os.path.join(D, "version.txt"), encoding="utf-8").read().strip() == "2026-11-16a"
 
 
 def main():
