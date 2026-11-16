@@ -3,7 +3,7 @@
 /**
  * Evaluate the schedule in template.html. The functions there are the only
  * implementation — this file extracts and calls them, it does not reimplement
- * BATCH4, the lap shuffle, or Sunday bosses.
+ * BATCH4, BATCH5, the lap shuffle, or Sunday bosses.
  *
  *   node schedule_eval.js simulate 1000     # calendar-day puzzle for 1000 days from EPOCH
  *   node schedule_eval.js query < dates     # one YYYY-MM-DD per line; replay path (ARCHIVE_DATE)
@@ -63,8 +63,9 @@ function must(re, label) {
 const epoch = must(/const EPOCH = "(\d{4}-\d{2}-\d{2})"/, "EPOCH")[1];
 const bossEpoch = must(/const BOSS_EPOCH = "(\d{4}-\d{2}-\d{2})"/, "BOSS_EPOCH")[1];
 const b4 = must(/const BATCH4 = \{start:"(\d{4}-\d{2}-\d{2})", from:(\d+)\}/, "BATCH4");
+const b5 = must(/const BATCH5 = \{start:"(\d{4}-\d{2}-\d{2})", from:(\d+)\}/, "BATCH5");
 
-const required = ["shuffledLap", "daysSinceEpoch", "dayNumber", "todaysPuzzleIndex", "isBossDay", "bossIndex"];
+const required = ["shuffledLap", "daysSinceEpoch", "dayNumber", "batch4ResumeLap", "batch4PuzzleIndex", "todaysPuzzleIndex", "isBossDay", "bossIndex"];
 const fns = required.map(name => {
   const src = extractFunction(html, name);
   if (!src) throw new Error("function " + name + " not found in template.html");
@@ -78,6 +79,7 @@ const factory = new Function("puzzles", "bosses", `
   const EPOCH = ${JSON.stringify(epoch)};
   const BOSS_EPOCH = ${JSON.stringify(bossEpoch)};
   const BATCH4 = {start:${JSON.stringify(b4[1])}, from:${Number(b4[2])}};
+  const BATCH5 = {start:${JSON.stringify(b5[1])}, from:${Number(b5[2])}};
   const PUZ = puzzles;
   const BOSSES = bosses;
   const DEV = false;
@@ -232,6 +234,7 @@ if (cmd === "simulate") {
 } else if (cmd === "consts") {
   process.stdout.write(JSON.stringify({
     epoch, bossEpoch, batch4: b4[1], batch4From: Number(b4[2]),
+    batch5: b5[1], batch5From: Number(b5[2]),
     puzzles: data.puzzles.length, bosses: (data.bosses || []).length
   }));
 } else {

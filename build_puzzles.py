@@ -42,6 +42,7 @@ KEEP_THE = {"HD", "TTD"}                      # "The" is genuinely part of these
 THE_OK_TAIL = ("Group", "Companies", "Co.", "Corporation")
 NAME_FIX = {                                   # wrong or too corporate for a casual player
     "XOM": "ExxonMobil",                       # feed says "ExxonMobil Holdings" — no such entity
+    "CCL": "Carnival", "LUV": "Southwest Airlines", "WYNN": "Wynn Resorts",
     "LULU": "Lululemon", "SNDK": "SanDisk", "QCOM": "Qualcomm", "NKE": "Nike",
     "CVNA": "Carvana", "MRK": "Merck", "JPM": "JPMorgan Chase", "GS": "Goldman Sachs",
     "META": "Meta", "UBER": "Uber", "PLTR": "Palantir", "DELL": "Dell",
@@ -174,6 +175,28 @@ HAND = {
  "GE":   (lambda t: abs(t) < 25,   "GE Aerospace fell to a March '26 low, climbed more than a third into a June high, and faded through the fall."),
  "AXP":  (lambda t: abs(t) < 25,   "American Express fell from its December '25 high to a March low, bounced, faded again into September, and is grinding back."),
  "TTWO": (lambda t: t < 5,         "Take-Two slid into a March '26 low, rallied to a June high, then gave it all back through the fall — a publisher whose chart waits on one release."),
+ # --- batch 5 (2026-11-16). Same contract as batch 4: present tense, loose band on the
+ # --- 12-month return, no hand-written figures (the computed stat line is appended).
+ "ANET": (lambda t: t > 30,        "Arista spent the year climbing, peaked in October, and is back near that high after one sharp week down."),
+ "OKLO": (lambda t: t < -45,       "Oklo peaked in the first week of the year and has been falling since — one spring bounce, then a long slide that is sitting at the low."),
+ "EBAY": (lambda t: t > 20,        "eBay has ground higher for most of the past year and is sitting just off a 12-month high. One February dip, then a quiet climb."),
+ "IONQ": (lambda t: t < -15,       "IonQ ripped into a May peak and then gave the whole move back. The chart is sitting at its 12-month low."),
+ "ABBV": (lambda t: t > 8,         "AbbVie bottomed in April and has climbed to a 12-month high, with the steepest stretch in the early summer."),
+ "WYNN": (lambda t: t < -12,       "Wynn has slid for most of the year off last November's high, put in a low in October, and is only just bouncing."),
+ "LUV":  (lambda t: t > 15,        "Southwest ripped into a February high, gave a chunk back in March, and has climbed most of the way back."),
+ "NOW":  (lambda t: t < -15,       "ServiceNow fell into an April low, clawed its way back to an October high, and then a single late-October week erased that recovery."),
+ "TSN":  (lambda t: t > -5,        "Tyson climbed into a May high, slid to a September low, and has rallied back to within reach of the top."),
+ "MGM":  (lambda t: abs(t) < 25,   "MGM peaked in June, gave the rally back by October, and is bouncing — twelve months that land close to where they started."),
+ "ARM":  (lambda t: -15 < t < 90,  "Arm bottomed in January, went vertical into a June peak, and has given back more than half of that spike."),
+ "CCL":  (lambda t: abs(t) < 30,   "Carnival set its high in February, sank to a September low, and has rallied sharply since — back within reach of the top."),
+ "MA":   (lambda t: t > 5,         "Mastercard drifted down into a March low and has ground higher ever since, and it is sitting at a 12-month high."),
+ "SNOW": (lambda t: t > -10,       "Snowflake was nearly cut in half by April, then ripped back through the summer to an October high and has eased off since."),
+ "LCID": (lambda t: t < -45,       "Lucid has done little but fall. One summer bounce, then a fresh low — a long staircase pointed the wrong way."),
+ "BKNG": (lambda t: t < 8,         "Booking Holdings round-tripped a summer recovery: a January high, an August rebound, and a September slide that gave it back."),
+ "REGN": (lambda t: t > 8,         "Regeneron slid into a June low and has rallied to a 12-month high, with the sharpest push this fall."),
+ "UPST": (lambda t: t < -20,       "Upstart popped into December, crashed in February, and after a limp summer is back at its low."),
+ "NET":  (lambda t: t > 25,        "Cloudflare shook off an April dip, climbed to an October high, and has eased off that peak without giving the year back."),
+ "CEG":  (lambda t: -45 < t < 8,   "Constellation Energy peaked at the end of last year, bottomed in June, and has won back only part of the drop."),
 }
 
 
@@ -201,7 +224,13 @@ QUEUE = ["GM","AAPL","TSLA","NFLX","MU","SBUX","KO","DIS","INTC","NKE",
          # --- so appending alone would re-deal today's puzzle. template.html BATCH4 plays these
          # --- 20 first, in this order (one per non-Sunday from 2026-11-04), then laps all 92.
          "CRWD","GIS","MAR","RKLB","PG","FDX","OXY","ISRG","ULTA","LMT",
-         "BAC","UAL","SHOP","KR","RCL","CRM","YUM","GE","AXP","TTWO"]
+         "BAC","UAL","SHOP","KR","RCL","CRM","YUM","GE","AXP","TTWO",
+         # --- appended 2026-11-16: batch 5. template.html BATCH5 plays these 20 first,
+         # --- one per non-Sunday from 2026-11-27, then resumes the lap batch 4 was about
+         # --- to start. Ordered so no two adjacent names share a sector — the casinos,
+         # --- the tech names, the two drugmakers and the two payments names stay apart.
+         "ANET","OKLO","EBAY","IONQ","ABBV","WYNN","LUV","NOW","TSN","MGM",
+         "ARM","CCL","MA","SNOW","LCID","BKNG","REGN","UPST","NET","CEG"]
 
 def story(tk, ys, ds):
     tot, big, dd = stats(ys)
@@ -288,7 +317,8 @@ COIN HOOD MSTR CRCL GEMI MARA RIOT
 JPM V MA BAC GS AXP SCHW SOFI
 LLY JNJ PFE UNH MRK CVS ABBV MRNA HIMS
 BA CAT GE UBER DE LMT UNP
-XOM CVX COP""".split()
+XOM CVX COP
+NEE DUK SO AEP EXC""".split()
 MC_N = 12
 
 def mc_options(tk, pid):
