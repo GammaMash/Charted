@@ -54,7 +54,7 @@ function grabConst(name) {
   throw new Error("unclosed const " + name);
 }
 
-const names = ["secL", "factClue", "whereClue", "emojiStr", "shapeArch", "biggestWeek", "formatWeek", "moveClue", "sizeClue", "sectorClue", "headlineClue", "laterClues", "clueRungs"];
+const names = ["secL", "factClue", "whereClue", "emojiStr", "shapeArch", "biggestWeek", "formatWeek", "moveClue", "sizeClue", "sectorClue", "headlineClue", "yearClue", "laterClues", "clueRungs"];
 const fns = names.map(n => {
   const src = extractFunction(html, n);
   if (!src) throw new Error("missing function " + n);

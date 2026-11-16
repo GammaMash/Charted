@@ -452,6 +452,22 @@ if os.path.exists(_HL_PATH):
     for _p in out + BOSSES:
         _attach_headline(_p)
 
+_OG_PATH = f"{D}/founding.json"
+if os.path.exists(_OG_PATH):
+    import re as _re2
+    _OG = json.load(open(_OG_PATH))
+    def _attach_origin(p):
+        h = _OG.get(p["answer"])
+        if not isinstance(h, dict) or not h.get("clue"):
+            return
+        clue = h["clue"]
+        name = uni[p["answer"]]["name"]
+        if _re2.search(rf"\b{_re2.escape(p['answer'])}\b", clue, _re2.I) or name.lower() in clue.lower():
+            raise SystemExit(f"origin clue for {p['answer']} still contains the company")
+        p["origin"] = {"clue": clue}
+    for _p in out + BOSSES:
+        _attach_origin(_p)
+
 json.dump({"universe": uni, "bucketOrder": BUCKET_ORDER, "puzzles": out, "bosses": BOSSES},
           open(f"{D}/gamedata.json", "w"), separators=(",", ":"))
 n_ans = sum(v["answer"] for v in uni.values())

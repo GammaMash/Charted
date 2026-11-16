@@ -1,0 +1,1217 @@
+{
+  "GM": {
+    "clue": "Founded in 1908",
+    "founded": 1908,
+    "sources": [
+      {
+        "year": 1908,
+        "url": "https://en.wikipedia.org/wiki/General_Motors"
+      }
+    ]
+  },
+  "AAPL": {
+    "clue": "Founded in 1976",
+    "founded": 1976,
+    "sources": [
+      {
+        "year": 1976,
+        "url": "https://en.wikipedia.org/wiki/Apple_Inc."
+      }
+    ]
+  },
+  "TSLA": {
+    "clue": "Founded in 2003",
+    "founded": 2003,
+    "sources": [
+      {
+        "year": 2003,
+        "url": "https://en.wikipedia.org/wiki/Tesla%2C_Inc."
+      }
+    ]
+  },
+  "NFLX": {
+    "clue": "Founded in 1997",
+    "founded": 1997,
+    "sources": [
+      {
+        "year": 1997,
+        "url": "https://en.wikipedia.org/wiki/Netflix,_Inc."
+      }
+    ]
+  },
+  "MU": {
+    "clue": "Founded in 1978",
+    "founded": 1978,
+    "sources": [
+      {
+        "year": 1978,
+        "url": "https://en.wikipedia.org/wiki/Micron_Technology"
+      }
+    ]
+  },
+  "SBUX": {
+    "clue": "Founded in 1971",
+    "founded": 1971,
+    "sources": [
+      {
+        "year": 1971,
+        "url": "https://en.wikipedia.org/wiki/Starbucks"
+      }
+    ]
+  },
+  "KO": {
+    "clue": "Founded in 1892",
+    "founded": 1892,
+    "sources": [
+      {
+        "year": 1892,
+        "url": "https://en.wikipedia.org/wiki/The_Coca-Cola_Company"
+      }
+    ]
+  },
+  "DIS": {
+    "clue": "Founded in 1923",
+    "founded": 1923,
+    "sources": [
+      {
+        "year": 1923,
+        "url": "https://en.wikipedia.org/wiki/The_Walt_Disney_Company"
+      }
+    ]
+  },
+  "INTC": {
+    "clue": "Founded in 1968",
+    "founded": 1968,
+    "sources": [
+      {
+        "year": 1968,
+        "url": "https://en.wikipedia.org/wiki/Intel"
+      }
+    ]
+  },
+  "NKE": {
+    "clue": "Founded in 1964",
+    "founded": 1964,
+    "sources": [
+      {
+        "year": 1964,
+        "url": "https://en.wikipedia.org/wiki/Nike%2C_Inc."
+      }
+    ]
+  },
+  "MSFT": {
+    "clue": "Founded in 1975",
+    "founded": 1975,
+    "sources": [
+      {
+        "year": 1975,
+        "url": "https://en.wikipedia.org/wiki/Microsoft"
+      }
+    ]
+  },
+  "CAT": {
+    "clue": "Founded in 1925",
+    "founded": 1925,
+    "sources": [
+      {
+        "year": 1925,
+        "url": "https://en.wikipedia.org/wiki/Caterpillar_Inc."
+      }
+    ]
+  },
+  "AMD": {
+    "clue": "Founded in 1969",
+    "founded": 1969,
+    "sources": [
+      {
+        "year": 1969,
+        "url": "https://en.wikipedia.org/wiki/AMD"
+      }
+    ]
+  },
+  "HOOD": {
+    "clue": "Founded in 2013",
+    "founded": 2013,
+    "sources": [
+      {
+        "year": 2013,
+        "url": "https://en.wikipedia.org/wiki/Robinhood_%28company%29"
+      }
+    ]
+  },
+  "COIN": {
+    "clue": "Founded in 2012",
+    "founded": 2012,
+    "sources": [
+      {
+        "year": 2012,
+        "url": "https://en.wikipedia.org/wiki/Coinbase"
+      }
+    ]
+  },
+  "LULU": {
+    "clue": "Founded in 1998",
+    "founded": 1998,
+    "sources": [
+      {
+        "year": 1998,
+        "url": "https://en.wikipedia.org/wiki/Lululemon"
+      }
+    ]
+  },
+  "BA": {
+    "clue": "Founded in 1916",
+    "founded": 1916,
+    "sources": [
+      {
+        "year": 1916,
+        "url": "https://en.wikipedia.org/wiki/Boeing"
+      }
+    ]
+  },
+  "IBM": {
+    "clue": "Founded in 1911",
+    "founded": 1911,
+    "sources": [
+      {
+        "year": 1911,
+        "url": "https://en.wikipedia.org/wiki/IBM"
+      }
+    ]
+  },
+  "RIVN": {
+    "clue": "Founded in 2009",
+    "founded": 2009,
+    "sources": [
+      {
+        "year": 2009,
+        "url": "https://en.wikipedia.org/wiki/Rivian"
+      }
+    ]
+  },
+  "DELL": {
+    "clue": "Founded in 1984",
+    "founded": 1984,
+    "sources": [
+      {
+        "year": 1984,
+        "url": "https://en.wikipedia.org/wiki/Dell"
+      }
+    ]
+  },
+  "MRVL": {
+    "clue": "Founded in 1995",
+    "founded": 1995,
+    "sources": [
+      {
+        "year": 1995,
+        "url": "https://en.wikipedia.org/wiki/Marvell_Technology"
+      }
+    ]
+  },
+  "PLTR": {
+    "clue": "Founded in 2003",
+    "founded": 2003,
+    "sources": [
+      {
+        "year": 2003,
+        "url": "https://en.wikipedia.org/wiki/Palantir"
+      }
+    ]
+  },
+  "SMCI": {
+    "clue": "Founded in 1993",
+    "founded": 1993,
+    "sources": [
+      {
+        "year": 1993,
+        "url": "https://en.wikipedia.org/wiki/Supermicro"
+      }
+    ]
+  },
+  "AVGO": {
+    "clue": "Founded in 1961",
+    "founded": 1961,
+    "sources": [
+      {
+        "year": 1961,
+        "url": "https://en.wikipedia.org/wiki/Broadcom"
+      }
+    ]
+  },
+  "CVNA": {
+    "clue": "Founded in 2012",
+    "founded": 2012,
+    "sources": [
+      {
+        "year": 2012,
+        "url": "https://en.wikipedia.org/wiki/Carvana"
+      }
+    ]
+  },
+  "MS": {
+    "clue": "Founded in 1935",
+    "founded": 1935,
+    "sources": [
+      {
+        "year": 1935,
+        "url": "https://en.wikipedia.org/wiki/Morgan_Stanley"
+      }
+    ]
+  },
+  "CRCL": {
+    "clue": "Went public in 2025",
+    "public": 2025,
+    "sources": [
+      {
+        "year": 2025,
+        "url": "https://en.wikipedia.org/wiki/Circle_Internet_Group"
+      }
+    ]
+  },
+  "GEMI": {
+    "clue": "Founded in 2014",
+    "founded": 2014,
+    "sources": [
+      {
+        "year": 2014,
+        "url": "https://en.wikipedia.org/wiki/Gemini_%28cryptocurrency_exchange%29"
+      }
+    ]
+  },
+  "SNDK": {
+    "clue": "Founded in 1988",
+    "founded": 1988,
+    "sources": [
+      {
+        "year": 1988,
+        "url": "https://en.wikipedia.org/wiki/Sandisk"
+      }
+    ]
+  },
+  "LOW": {
+    "clue": "Founded in 1921",
+    "founded": 1921,
+    "sources": [
+      {
+        "year": 1921,
+        "url": "https://en.wikipedia.org/wiki/Lowe%27s"
+      }
+    ]
+  },
+  "GOOGL": {
+    "clue": "Founded in 2015",
+    "founded": 2015,
+    "sources": [
+      {
+        "year": 2015,
+        "url": "https://en.wikipedia.org/wiki/Alphabet_Inc."
+      }
+    ]
+  },
+  "RBLX": {
+    "clue": "Founded in 2004",
+    "founded": 2004,
+    "sources": [
+      {
+        "year": 2004,
+        "url": "https://en.wikipedia.org/wiki/Roblox_Corporation"
+      }
+    ]
+  },
+  "JPM": {
+    "clue": "Founded in 2000",
+    "founded": 2000,
+    "sources": [
+      {
+        "year": 2000,
+        "url": "https://en.wikipedia.org/wiki/JPMorgan_Chase"
+      }
+    ]
+  },
+  "HIMS": {
+    "clue": "Founded in 2017",
+    "founded": 2017,
+    "sources": [
+      {
+        "year": 2017,
+        "url": "https://en.wikipedia.org/wiki/Hims_%26_Hers_Health"
+      }
+    ]
+  },
+  "ORCL": {
+    "clue": "Founded in 1977",
+    "founded": 1977,
+    "sources": [
+      {
+        "year": 1977,
+        "url": "https://en.wikipedia.org/wiki/Oracle_Corporation"
+      }
+    ]
+  },
+  "LLY": {
+    "clue": "Founded in 1876",
+    "founded": 1876,
+    "sources": [
+      {
+        "year": 1876,
+        "url": "https://en.wikipedia.org/wiki/Eli_Lilly_and_Company"
+      }
+    ]
+  },
+  "UBER": {
+    "clue": "Founded in 2009",
+    "founded": 2009,
+    "sources": [
+      {
+        "year": 2009,
+        "url": "https://en.wikipedia.org/wiki/Uber"
+      }
+    ]
+  },
+  "QCOM": {
+    "clue": "Founded in 1985",
+    "founded": 1985,
+    "sources": [
+      {
+        "year": 1985,
+        "url": "https://en.wikipedia.org/wiki/Qualcomm"
+      }
+    ]
+  },
+  "META": {
+    "clue": "Founded in 2004",
+    "founded": 2004,
+    "sources": [
+      {
+        "year": 2004,
+        "url": "https://en.wikipedia.org/wiki/Meta_Platforms"
+      }
+    ]
+  },
+  "AMZN": {
+    "clue": "Founded in 1994",
+    "founded": 1994,
+    "sources": [
+      {
+        "year": 1994,
+        "url": "https://en.wikipedia.org/wiki/Amazon_%28company%29"
+      }
+    ]
+  },
+  "CMG": {
+    "clue": "Founded in 1993",
+    "founded": 1993,
+    "sources": [
+      {
+        "year": 1993,
+        "url": "https://en.wikipedia.org/wiki/Chipotle_Mexican_Grill"
+      }
+    ]
+  },
+  "TGT": {
+    "clue": "Founded in 1902",
+    "founded": 1902,
+    "sources": [
+      {
+        "year": 1902,
+        "url": "https://en.wikipedia.org/wiki/Target_Corporation"
+      }
+    ]
+  },
+  "COST": {
+    "clue": "Founded in 1983",
+    "founded": 1983,
+    "sources": [
+      {
+        "year": 1983,
+        "url": "https://en.wikipedia.org/wiki/Costco"
+      }
+    ]
+  },
+  "NVO": {
+    "clue": "Founded in 1923",
+    "founded": 1923,
+    "sources": [
+      {
+        "year": 1923,
+        "url": "https://en.wikipedia.org/wiki/Novo_(company)"
+      }
+    ]
+  },
+  "DAL": {
+    "clue": "Founded in 1925",
+    "founded": 1925,
+    "sources": [
+      {
+        "year": 1925,
+        "url": "https://en.wikipedia.org/wiki/Delta_Air_Lines"
+      }
+    ]
+  },
+  "MCD": {
+    "clue": "Founded in 1940",
+    "founded": 1940,
+    "sources": [
+      {
+        "year": 1940,
+        "url": "https://en.wikipedia.org/wiki/McDonald%27s"
+      }
+    ]
+  },
+  "V": {
+    "clue": "Founded in 1958",
+    "founded": 1958,
+    "sources": [
+      {
+        "year": 1958,
+        "url": "https://en.wikipedia.org/wiki/Visa_Inc."
+      }
+    ]
+  },
+  "SPOT": {
+    "clue": "Founded in 2006",
+    "founded": 2006,
+    "sources": [
+      {
+        "year": 2006,
+        "url": "https://en.wikipedia.org/wiki/Spotify"
+      }
+    ]
+  },
+  "WMT": {
+    "clue": "Founded in 1962, public in 1972",
+    "founded": 1962,
+    "public": 1972,
+    "sources": [
+      {
+        "year": 1962,
+        "url": "https://en.wikipedia.org/wiki/Walmart"
+      },
+      {
+        "year": 1972,
+        "url": "https://en.wikipedia.org/wiki/Walmart"
+      }
+    ]
+  },
+  "PYPL": {
+    "clue": "Founded in 2000",
+    "founded": 2000,
+    "sources": [
+      {
+        "year": 2000,
+        "url": "https://en.wikipedia.org/wiki/PayPal"
+      }
+    ]
+  },
+  "HSY": {
+    "clue": "Founded in 1894",
+    "founded": 1894,
+    "sources": [
+      {
+        "year": 1894,
+        "url": "https://en.wikipedia.org/wiki/The_Hershey_Company"
+      }
+    ]
+  },
+  "ABNB": {
+    "clue": "Founded in 2008",
+    "founded": 2008,
+    "sources": [
+      {
+        "year": 2008,
+        "url": "https://en.wikipedia.org/wiki/Airbnb"
+      }
+    ]
+  },
+  "HD": {
+    "clue": "Founded in 1978",
+    "founded": 1978,
+    "sources": [
+      {
+        "year": 1978,
+        "url": "https://en.wikipedia.org/wiki/Home_Depot"
+      }
+    ]
+  },
+  "GS": {
+    "clue": "Founded in 1869",
+    "founded": 1869,
+    "sources": [
+      {
+        "year": 1869,
+        "url": "https://en.wikipedia.org/wiki/Goldman_Sachs"
+      }
+    ]
+  },
+  "PEP": {
+    "clue": "Founded in 1902",
+    "founded": 1902,
+    "sources": [
+      {
+        "year": 1902,
+        "url": "https://en.wikipedia.org/wiki/PepsiCo"
+      }
+    ]
+  },
+  "UPS": {
+    "clue": "Founded in 1907",
+    "founded": 1907,
+    "sources": [
+      {
+        "year": 1907,
+        "url": "https://en.wikipedia.org/wiki/United_Parcel_Service"
+      }
+    ]
+  },
+  "DASH": {
+    "clue": "Founded in 2013",
+    "founded": 2013,
+    "sources": [
+      {
+        "year": 2013,
+        "url": "https://en.wikipedia.org/wiki/DoorDash"
+      }
+    ]
+  },
+  "PFE": {
+    "clue": "Founded in 1849",
+    "founded": 1849,
+    "sources": [
+      {
+        "year": 1849,
+        "url": "https://en.wikipedia.org/wiki/Pfizer"
+      }
+    ]
+  },
+  "CVS": {
+    "clue": "Founded in 1963",
+    "founded": 1963,
+    "sources": [
+      {
+        "year": 1963,
+        "url": "https://en.wikipedia.org/wiki/CVS_Health"
+      }
+    ]
+  },
+  "WDC": {
+    "clue": "Founded in 1970",
+    "founded": 1970,
+    "sources": [
+      {
+        "year": 1970,
+        "url": "https://en.wikipedia.org/wiki/Western_Digital"
+      }
+    ]
+  },
+  "UNH": {
+    "clue": "Founded in 1974",
+    "founded": 1974,
+    "sources": [
+      {
+        "year": 1974,
+        "url": "https://en.wikipedia.org/wiki/UnitedHealth_Group"
+      }
+    ]
+  },
+  "XOM": {
+    "clue": "Founded in 1999",
+    "founded": 1999,
+    "sources": [
+      {
+        "year": 1999,
+        "url": "https://en.wikipedia.org/wiki/ExxonMobil"
+      }
+    ]
+  },
+  "ADBE": {
+    "clue": "Founded in 1982",
+    "founded": 1982,
+    "sources": [
+      {
+        "year": 1982,
+        "url": "https://en.wikipedia.org/wiki/Adobe_Inc."
+      }
+    ]
+  },
+  "CVX": {
+    "clue": "Founded in 1879",
+    "founded": 1879,
+    "sources": [
+      {
+        "year": 1879,
+        "url": "https://en.wikipedia.org/wiki/Chevron_Corporation"
+      }
+    ]
+  },
+  "ROKU": {
+    "clue": "Founded in 2002",
+    "founded": 2002,
+    "sources": [
+      {
+        "year": 2002,
+        "url": "https://en.wikipedia.org/wiki/Roku%2C_Inc."
+      }
+    ]
+  },
+  "DKNG": {
+    "clue": "Founded in 2012",
+    "founded": 2012,
+    "sources": [
+      {
+        "year": 2012,
+        "url": "https://en.wikipedia.org/wiki/DraftKings"
+      }
+    ]
+  },
+  "DE": {
+    "clue": "Founded in 1837",
+    "founded": 1837,
+    "sources": [
+      {
+        "year": 1837,
+        "url": "https://en.wikipedia.org/wiki/John_Deere"
+      }
+    ]
+  },
+  "JNJ": {
+    "clue": "Founded in 1886",
+    "founded": 1886,
+    "sources": [
+      {
+        "year": 1886,
+        "url": "https://en.wikipedia.org/wiki/Johnson_%26_Johnson"
+      }
+    ]
+  },
+  "F": {
+    "clue": "Founded in 1903",
+    "founded": 1903,
+    "sources": [
+      {
+        "year": 1903,
+        "url": "https://en.wikipedia.org/wiki/Ford_Motor_Company"
+      }
+    ]
+  },
+  "CHWY": {
+    "clue": "Founded in 2011",
+    "founded": 2011,
+    "sources": [
+      {
+        "year": 2011,
+        "url": "https://en.wikipedia.org/wiki/Chewy_%28company%29"
+      }
+    ]
+  },
+  "C": {
+    "clue": "Founded in 1998",
+    "founded": 1998,
+    "sources": [
+      {
+        "year": 1998,
+        "url": "https://en.wikipedia.org/wiki/Citigroup"
+      }
+    ]
+  },
+  "CRWD": {
+    "clue": "Founded in 2011",
+    "founded": 2011,
+    "sources": [
+      {
+        "year": 2011,
+        "url": "https://en.wikipedia.org/wiki/CrowdStrike"
+      }
+    ]
+  },
+  "GIS": {
+    "clue": "Founded in 1856",
+    "founded": 1856,
+    "sources": [
+      {
+        "year": 1856,
+        "url": "https://en.wikipedia.org/wiki/General_Mills"
+      }
+    ]
+  },
+  "MAR": {
+    "clue": "Founded in 1993",
+    "founded": 1993,
+    "sources": [
+      {
+        "year": 1993,
+        "url": "https://en.wikipedia.org/wiki/Marriott_International"
+      }
+    ]
+  },
+  "RKLB": {
+    "clue": "Founded in 2006, public in 2021",
+    "founded": 2006,
+    "public": 2021,
+    "sources": [
+      {
+        "year": 2006,
+        "url": "https://en.wikipedia.org/wiki/Rocket_Lab"
+      },
+      {
+        "year": 2021,
+        "url": "https://en.wikipedia.org/wiki/Rocket_Lab"
+      }
+    ]
+  },
+  "PG": {
+    "clue": "Founded in 1837",
+    "founded": 1837,
+    "sources": [
+      {
+        "year": 1837,
+        "url": "https://en.wikipedia.org/wiki/Procter_%26_Gamble"
+      }
+    ]
+  },
+  "FDX": {
+    "clue": "Founded in 1971",
+    "founded": 1971,
+    "sources": [
+      {
+        "year": 1971,
+        "url": "https://en.wikipedia.org/wiki/FedEx"
+      }
+    ]
+  },
+  "OXY": {
+    "clue": "Founded in 1920",
+    "founded": 1920,
+    "sources": [
+      {
+        "year": 1920,
+        "url": "https://en.wikipedia.org/wiki/Occidental_Petroleum"
+      }
+    ]
+  },
+  "ISRG": {
+    "clue": "Founded in 1995",
+    "founded": 1995,
+    "sources": [
+      {
+        "year": 1995,
+        "url": "https://en.wikipedia.org/wiki/Intuitive_Surgical"
+      }
+    ]
+  },
+  "ULTA": {
+    "clue": "Founded in 1990",
+    "founded": 1990,
+    "sources": [
+      {
+        "year": 1990,
+        "url": "https://en.wikipedia.org/wiki/Ulta_Beauty"
+      }
+    ]
+  },
+  "LMT": {
+    "clue": "Founded in 1995",
+    "founded": 1995,
+    "sources": [
+      {
+        "year": 1995,
+        "url": "https://en.wikipedia.org/wiki/Lockheed_Martin"
+      }
+    ]
+  },
+  "BAC": {
+    "clue": "Founded in 1998",
+    "founded": 1998,
+    "sources": [
+      {
+        "year": 1998,
+        "url": "https://en.wikipedia.org/wiki/Bank_of_America"
+      }
+    ]
+  },
+  "UAL": {
+    "clue": "Founded in 1931",
+    "founded": 1931,
+    "sources": [
+      {
+        "year": 1931,
+        "url": "https://en.wikipedia.org/wiki/United_Airlines"
+      }
+    ]
+  },
+  "SHOP": {
+    "clue": "Founded in 2006",
+    "founded": 2006,
+    "sources": [
+      {
+        "year": 2006,
+        "url": "https://en.wikipedia.org/wiki/Shopify"
+      }
+    ]
+  },
+  "KR": {
+    "clue": "Founded in 1883",
+    "founded": 1883,
+    "sources": [
+      {
+        "year": 1883,
+        "url": "https://en.wikipedia.org/wiki/Kroger"
+      }
+    ]
+  },
+  "RCL": {
+    "clue": "Founded in 1969",
+    "founded": 1969,
+    "sources": [
+      {
+        "year": 1969,
+        "url": "https://en.wikipedia.org/wiki/Royal_Caribbean_Group"
+      }
+    ]
+  },
+  "CRM": {
+    "clue": "Founded in 1999",
+    "founded": 1999,
+    "sources": [
+      {
+        "year": 1999,
+        "url": "https://en.wikipedia.org/wiki/Salesforce"
+      }
+    ]
+  },
+  "YUM": {
+    "clue": "Founded in 1997",
+    "founded": 1997,
+    "sources": [
+      {
+        "year": 1997,
+        "url": "https://en.wikipedia.org/wiki/Yum%21_Brands"
+      }
+    ]
+  },
+  "GE": {
+    "clue": "Founded in 1917",
+    "founded": 1917,
+    "sources": [
+      {
+        "year": 1917,
+        "url": "https://en.wikipedia.org/wiki/GE_Aerospace"
+      }
+    ]
+  },
+  "AXP": {
+    "clue": "Founded in 1850",
+    "founded": 1850,
+    "sources": [
+      {
+        "year": 1850,
+        "url": "https://en.wikipedia.org/wiki/American_Express"
+      }
+    ]
+  },
+  "TTWO": {
+    "clue": "Founded in 1993",
+    "founded": 1993,
+    "sources": [
+      {
+        "year": 1993,
+        "url": "https://en.wikipedia.org/wiki/Take-Two_Interactive"
+      }
+    ]
+  },
+  "ANET": {
+    "clue": "Founded in 2008",
+    "founded": 2008,
+    "sources": [
+      {
+        "year": 2008,
+        "url": "https://en.wikipedia.org/wiki/Arista_Networks"
+      }
+    ]
+  },
+  "OKLO": {
+    "clue": "Founded in 2013",
+    "founded": 2013,
+    "sources": [
+      {
+        "year": 2013,
+        "url": "https://en.wikipedia.org/wiki/Oklo_Inc."
+      }
+    ]
+  },
+  "EBAY": {
+    "clue": "Founded in 1995",
+    "founded": 1995,
+    "sources": [
+      {
+        "year": 1995,
+        "url": "https://en.wikipedia.org/wiki/EBay"
+      }
+    ]
+  },
+  "IONQ": {
+    "clue": "Founded in 2015",
+    "founded": 2015,
+    "sources": [
+      {
+        "year": 2015,
+        "url": "https://en.wikipedia.org/wiki/IonQ"
+      }
+    ]
+  },
+  "ABBV": {
+    "clue": "Founded in 2012",
+    "founded": 2012,
+    "sources": [
+      {
+        "year": 2012,
+        "url": "https://en.wikipedia.org/wiki/AbbVie"
+      }
+    ]
+  },
+  "WYNN": {
+    "clue": "Founded in 2002",
+    "founded": 2002,
+    "sources": [
+      {
+        "year": 2002,
+        "url": "https://en.wikipedia.org/wiki/Wynn_Resorts"
+      }
+    ]
+  },
+  "LUV": {
+    "clue": "Founded in 1967",
+    "founded": 1967,
+    "sources": [
+      {
+        "year": 1967,
+        "url": "https://en.wikipedia.org/wiki/Southwest_Airlines"
+      }
+    ]
+  },
+  "NOW": {
+    "clue": "Founded in 2003",
+    "founded": 2003,
+    "sources": [
+      {
+        "year": 2003,
+        "url": "https://en.wikipedia.org/wiki/ServiceNow"
+      }
+    ]
+  },
+  "TSN": {
+    "clue": "Founded in 1935",
+    "founded": 1935,
+    "sources": [
+      {
+        "year": 1935,
+        "url": "https://en.wikipedia.org/wiki/Tyson_Foods"
+      }
+    ]
+  },
+  "MGM": {
+    "clue": "Founded in 1986",
+    "founded": 1986,
+    "sources": [
+      {
+        "year": 1986,
+        "url": "https://en.wikipedia.org/wiki/MGM_Resorts_International"
+      }
+    ]
+  },
+  "ARM": {
+    "clue": "Founded in 1990, public in 2023",
+    "founded": 1990,
+    "public": 2023,
+    "sources": [
+      {
+        "year": 1990,
+        "url": "https://en.wikipedia.org/wiki/Arm_Holdings"
+      },
+      {
+        "year": 2023,
+        "url": "https://en.wikipedia.org/wiki/Arm_Holdings"
+      }
+    ]
+  },
+  "CCL": {
+    "clue": "Founded in 1972",
+    "founded": 1972,
+    "sources": [
+      {
+        "year": 1972,
+        "url": "https://en.wikipedia.org/wiki/Carnival_Corporation"
+      }
+    ]
+  },
+  "MA": {
+    "clue": "Founded in 1966",
+    "founded": 1966,
+    "sources": [
+      {
+        "year": 1966,
+        "url": "https://en.wikipedia.org/wiki/Mastercard"
+      }
+    ]
+  },
+  "SNOW": {
+    "clue": "Founded in 2012",
+    "founded": 2012,
+    "sources": [
+      {
+        "year": 2012,
+        "url": "https://en.wikipedia.org/wiki/Snowflake_Inc."
+      }
+    ]
+  },
+  "LCID": {
+    "clue": "Founded in 2007",
+    "founded": 2007,
+    "sources": [
+      {
+        "year": 2007,
+        "url": "https://en.wikipedia.org/wiki/Lucid_Motors"
+      }
+    ]
+  },
+  "BKNG": {
+    "clue": "Founded in 1996",
+    "founded": 1996,
+    "sources": [
+      {
+        "year": 1996,
+        "url": "https://en.wikipedia.org/wiki/Booking_Holdings"
+      }
+    ]
+  },
+  "REGN": {
+    "clue": "Founded in 1988",
+    "founded": 1988,
+    "sources": [
+      {
+        "year": 1988,
+        "url": "https://en.wikipedia.org/wiki/Regeneron_Pharmaceuticals"
+      }
+    ]
+  },
+  "UPST": {
+    "clue": "Founded in 2012",
+    "founded": 2012,
+    "sources": [
+      {
+        "year": 2012,
+        "url": "https://en.wikipedia.org/wiki/Upstart_Holdings"
+      }
+    ]
+  },
+  "NET": {
+    "clue": "Founded in 2009",
+    "founded": 2009,
+    "sources": [
+      {
+        "year": 2009,
+        "url": "https://en.wikipedia.org/wiki/Cloudflare"
+      }
+    ]
+  },
+  "CEG": {
+    "clue": "Founded in 1999",
+    "founded": 1999,
+    "sources": [
+      {
+        "year": 1999,
+        "url": "https://en.wikipedia.org/wiki/Constellation_Energy"
+      }
+    ]
+  },
+  "GME": {
+    "clue": "Founded in 1984",
+    "founded": 1984,
+    "sources": [
+      {
+        "year": 1984,
+        "url": "https://en.wikipedia.org/wiki/GameStop"
+      }
+    ]
+  },
+  "CSCO": {
+    "clue": "Founded in 1984",
+    "founded": 1984,
+    "sources": [
+      {
+        "year": 1984,
+        "url": "https://en.wikipedia.org/wiki/Cisco"
+      }
+    ]
+  },
+  "NVDA": {
+    "clue": "Founded in 1993",
+    "founded": 1993,
+    "sources": [
+      {
+        "year": 1993,
+        "url": "https://en.wikipedia.org/wiki/Nvidia"
+      }
+    ]
+  },
+  "AMC": {
+    "clue": "Founded in 1920",
+    "founded": 1920,
+    "sources": [
+      {
+        "year": 1920,
+        "url": "https://en.wikipedia.org/wiki/AMC_Theatres"
+      }
+    ]
+  },
+  "MRNA": {
+    "clue": "Founded in 2010",
+    "founded": 2010,
+    "sources": [
+      {
+        "year": 2010,
+        "url": "https://en.wikipedia.org/wiki/Moderna"
+      }
+    ]
+  },
+  "MSTR": {
+    "clue": "Founded in 1989",
+    "founded": 1989,
+    "sources": [
+      {
+        "year": 1989,
+        "url": "https://en.wikipedia.org/wiki/MicroStrategy"
+      }
+    ]
+  },
+  "NIO": {
+    "clue": "Founded in 2014",
+    "founded": 2014,
+    "sources": [
+      {
+        "year": 2014,
+        "url": "https://en.wikipedia.org/wiki/Nio_Inc."
+      }
+    ]
+  },
+  "MARA": {
+    "clue": "Founded in 2010",
+    "founded": 2010,
+    "sources": [
+      {
+        "year": 2010,
+        "url": "https://en.wikipedia.org/wiki/MARA_Holdings"
+      }
+    ]
+  },
+  "AFRM": {
+    "clue": "Founded in 2012",
+    "founded": 2012,
+    "sources": [
+      {
+        "year": 2012,
+        "url": "https://en.wikipedia.org/wiki/Affirm_Holdings"
+      }
+    ]
+  }
+}
