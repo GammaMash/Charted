@@ -290,6 +290,27 @@
   .cdbox #cdboss:empty{display:none;}
   #enddismiss{display:block; margin:14px auto 0; font:inherit; font-size:var(--fs-sm); color:var(--muted);
     background:none; border:none; cursor:pointer; text-decoration:underline dotted; text-underline-offset:3px;}
+  /* Share is the first action on the results card. The return hook sits with it so a phone
+     sees the button, the countdown, and Remind me without scrolling past the story. */
+  #sharebtn{display:block; width:100%; margin-right:0; padding:16px 16px; font-size:18px;}
+  #endshare{padding:18px 14px; margin-top:10px;}
+  #endshare .sb1{font-size:22px;}
+  .returnhook{margin-top:12px;}
+  .returnhook .nextdue{font-size:22px; font-weight:800; color:var(--ink); letter-spacing:.2px;}
+  .returnhook .cdboss{font-size:var(--fs-sm); color:var(--yellow); font-weight:700; margin-top:4px;}
+  .returnhook .cdboss:empty{display:none;}
+  .returnhook .streakbig{font-size:40px; font-weight:800; color:var(--habit); line-height:1; margin-top:8px;}
+  .returnhook .dontbreak{margin-top:2px; font-size:var(--fs-md); font-weight:800; color:var(--habit);}
+  .returnhook .hookrank{margin-top:4px; font-size:var(--fs-xs); color:var(--muted); font-weight:700;}
+  .remindbtn{font:inherit; width:100%; margin-top:12px; padding:12px 14px; border-radius:12px;
+    border:1px solid var(--habit-bd); background:var(--habit-dim); color:var(--ink);
+    font-weight:800; font-size:var(--fs-lg); cursor:pointer;}
+  .imgdl{display:block; margin-top:8px; color:var(--accent); font-weight:800; font-size:var(--fs-md);}
+  .imgdl[hidden]{display:none;}
+  #welcomeback{display:none; margin:0 0 10px; padding:8px 12px; border-radius:10px;
+    background:var(--habit-dim); border:1px solid var(--habit-bd); color:var(--habit);
+    font-size:var(--fs-sm); font-weight:800; text-align:center; letter-spacing:.2px;}
+  #welcomeback.show{display:block;}
   #modebtn{font:inherit; font-size:var(--fs-sm); font-weight:700; background:var(--panel2); color:var(--txt);
     border:1px solid var(--border); border-radius:20px; padding:5px 12px; cursor:pointer; white-space:nowrap;}
   @media (hover:hover){ #modebtn:hover{border-color:var(--accent);} }
@@ -388,6 +409,7 @@
     <button id="soundbtn" title="Sound">🔇</button>
     <button id="themebtn" title="Toggle light/dark">◐</button>
   </header>
+  <div id="welcomeback"></div>
   <div id="howto"><div id="howtohead"><b>6 guesses · every wrong pick unlocks a clue</b><span class="howlink">ⓘ How to play</span></div>
     <div id="howtobody"></div></div>
   <div id="archivenote"></div>
@@ -450,7 +472,7 @@ const DEV = new URLSearchParams(location.search).has("dev");   // ?dev=1 unlocks
 const SHARE_URL = "chartedgame.com";
 const MAXG = 6;
 const EPOCH = "2026-07-20";   // public launch day = puzzle #1; one puzzle per LOCAL calendar day
-const VERSION = "2026-11-16c";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
+const VERSION = "2026-11-16d";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
 const U = DATA.universe, ORD = DATA.bucketOrder, PUZ = DATA.puzzles;
 const BOSSES = DATA.bosses || [];
 const BOSS_EPOCH = "2026-08-02";   // first boss Sunday; bosses rotate weekly from here
@@ -1285,29 +1307,72 @@ function nextRank(m){ const t=RANKS[m==="degen"?"degen":"casual"], w=winCount(m)
   for(const e of t){ if(w<e[0]) return {need:e[0]-w, title:e[1]}; } return null; }
 
 // ---------- the return hook: what tomorrow is worth, and how far away it is ----------
-function habitHTML(m){
-  const st=store.get("streak",0), nr=nextRank(m);
-  return `<div class="habitbox">`+
-    `<div class="hstreak">🔥 ${st} day streak</div>`+
-    `<div class="hprom">Win tomorrow and it's ${st+1}.</div>`+
-    `<div class="pips">${[1,2,3,4,5].map(n=>`<i class="${n<=st?"on":""}"></i>`).join("")}</div>`+
-    `<div class="hrank">${nr ? nr.need+" more win"+(nr.need>1?"s":"")+" → "+nr.title : rankTitle(m)}</div>`+
-  `</div>`;
+// Same boundary as todaysPuzzleIndex / daysSinceEpoch: local midnight via the
+// calendar date, not a fixed hour offset. A hardcoded ET shift would drift on DST.
+function nextRollover(now){
+  const n=new Date(now.getTime());
+  return new Date(n.getFullYear(), n.getMonth(), n.getDate()+1, 0, 0, 0, 0);
+}
+function countdownLabel(now){
+  const mid=nextRollover(now);
+  let ms=mid-now; if(ms<0) ms=0;
+  const mins=Math.ceil(ms/60000);
+  return "Next chart in "+Math.floor(mins/60)+"h "+(mins%60)+"m";
+}
+function liveStreak(){
+  if(DEV || isArchivePlay()) return 0;
+  const s=store.get("streak",0), t=todayKey();
+  const y=new Date(); y.setDate(y.getDate()-1);
+  const live=store.get("lastWin","")===t || store.get("lastWin","")===dateKey(y);
+  return live ? s : 0;
 }
 function cdTick(){
-  const now=new Date(), mid=new Date(now); mid.setHours(24,0,0,0);
-  let s=Math.floor((mid-now)/1000);
-  const h=String(Math.floor(s/3600)).padStart(2,"0"); s%=3600;
-  const clock=h+":"+String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");
-  const boss = BOSSES.length>0 && mid.getDay()===0;   // mid is tomorrow 00:00, so this asks "is tomorrow Sunday"
-  const n=document.getElementById("cdnum");   if(n) n.textContent=clock;
-  const b=document.getElementById("cdboss");  if(b) b.textContent = boss?"👑 tomorrow is the Sunday Boss":"";
+  const now=new Date(), mid=nextRollover(now);
+  const label=countdownLabel(now);
+  const boss=BOSSES.length>0 && mid.getDay()===0;   // mid is the next local midnight, so this asks "is that Sunday"
+  document.querySelectorAll(".nextdue").forEach(n=>n.textContent=label);
+  document.querySelectorAll(".cdboss").forEach(b=>b.textContent=boss?"👑 tomorrow is the Sunday Boss":"");
   const r=document.getElementById("countdown");
-  if(r) r.textContent=`Next chart in ${clock} — `+(boss?"👑 the Sunday Boss drops at midnight.":"come back tomorrow.");
+  if(r) r.textContent=label+" — "+(boss?"👑 the Sunday Boss drops at midnight.":"come back tomorrow.");
 }
 function startCountdown(){ cdTick(); clearInterval(window._cdTimer); window._cdTimer=setInterval(cdTick,1000); }
-function cdBoxHTML(){ return `<div class="cdbox"><div class="cdlab">NEXT CHART IN</div>`+
-  `<div id="cdnum">--:--:--</div><div id="cdboss"></div></div>`; }
+function returnHookHTML(){
+  const st=liveStreak();
+  const nr=nextRank(mode||"casual");
+  return `<div class="returnhook">`+
+    `<div class="nextdue">Next chart in …</div>`+
+    `<div class="cdboss"></div>`+
+    `<div class="streakbig">🔥 ${st}</div>`+
+    (st>=2?`<div class="dontbreak">Don't break it</div>`:"")+
+    (nr?`<div class="hookrank">${nr.need} more win${nr.need>1?"s":""} → ${nr.title}</div>`:"")+
+    `<button type="button" class="remindbtn">Remind me</button>`+
+  `</div>`;
+}
+function icsPad(n){ return String(n).padStart(2,"0"); }
+function icsStampLocal(d){
+  return d.getFullYear()+icsPad(d.getMonth()+1)+icsPad(d.getDate())+"T"+icsPad(d.getHours())+icsPad(d.getMinutes())+icsPad(d.getSeconds());
+}
+function icsStampUTC(d){
+  return d.getUTCFullYear()+icsPad(d.getUTCMonth()+1)+icsPad(d.getUTCDate())+"T"+icsPad(d.getUTCHours())+icsPad(d.getUTCMinutes())+icsPad(d.getUTCSeconds())+"Z";
+}
+function remindICS(now){
+  const start=nextRollover(now);
+  return [
+    "BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//CHARTED//chartedgame.com//EN","CALSCALE:GREGORIAN","METHOD:PUBLISH",
+    "BEGIN:VEVENT","UID:charted-daily@chartedgame.com","DTSTAMP:"+icsStampUTC(now),"DTSTART:"+icsStampLocal(start),
+    "RRULE:FREQ=DAILY","SUMMARY:CHARTED – new chart is up","URL:https://chartedgame.com",
+    "END:VEVENT","END:VCALENDAR",""
+  ].join("\r\n");
+}
+function downloadRemind(){
+  if(!DEV && window.goatcounter && goatcounter.count)
+    goatcounter.count({path:"remind-ics", title:"CHARTED remind", event:true});
+  const blob=new Blob([remindICS(new Date())],{type:"text/calendar"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob); a.download="charted.ics";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1500);
+}
 
 let soundOn = store.get("sound", true);        // sound ON by default (Vlad's call)
 // HTML-media audio: routes through the media channel that plays even when the iPhone
@@ -1344,6 +1409,7 @@ function submit(tk){
   if(done||!U[tk]||guesses.includes(tk)) return;
   guesses.push(tk); inp.value=""; acItems=[]; ac.style.display="none";
   if(!isArchivePlay()) store.set("played",true);
+  if(!isArchivePlay() && !DEV) store.set("lastPlay", todayKey());
   if(guesses.length===1 && !isBossDay())        // tutorial folds away once you're actually playing (boss banner stays up)
     document.getElementById("howto").classList.add("closed");
   const M = mode||"casual", winsBefore = winCount(M);
@@ -1404,6 +1470,111 @@ function emojiGrid(){
     const j=judge(t); return (j.sectorOk||j.priceClose)?"🟨":"🟥";
   }).join("");
 }
+// The card handed to the image is the chart shape plus the public score line.
+// It has no answer, company, or story fields — the draw function must stay that way.
+function shareCard(){
+  const p=puzzle(), boss=isBossDay();
+  return {
+    closes:(p.closes||[]).slice(),
+    squares:guesses.map(t=>t===answer()?"g":((judge(t).sectorOk||judge(t).priceClose)?"y":"r")),
+    id:boss?p.id:dayNumber(),
+    boss:boss,
+    res:won?guesses.length+"/6":"X/6",
+    solved:!!won,
+    mode:mode==="degen"?"Degen":"Casual",
+    modeLabel:modeLabel(),
+    streak:liveStreak(),
+    practice:isArchivePlay(),
+    replay:isReplay(),
+    link:isArchivePlay()?SHARE_URL+"/?d="+dateKey(ARCHIVE_DATE):SHARE_URL
+  };
+}
+function shareTextFrom(card){
+  const tag=card.boss?"👑 BOSS #"+card.id:"#"+card.id;
+  const extra=card.practice?" · practice":card.replay?" · replay":"";
+  const head=card.solved?"CHARTED "+tag+" · solved in "+card.res:"CHARTED "+tag+" · "+card.res;
+  const label=card.modeLabel||(card.mode==="Degen"?"💎 Degen":"🎓 Casual");
+  const emoji=(card.squares||[]).map(s=>s==="g"?"🟩":s==="y"?"🟨":"🟥").join("");
+  return emoji+"\n\n"+head+" · "+label+extra+"\nThink you can read a chart faster?\n\n"+(card.link||"chartedgame.com");
+}
+function drawShareCard(canvas, card){
+  const W=1080, H=1080;
+  canvas.width=W; canvas.height=H;
+  const x=canvas.getContext("2d");
+  x.fillStyle="#08090f";
+  x.fillRect(0,0,W,H);
+  x.fillStyle="#35e0e8";
+  x.fillRect(0,0,W,12);
+  x.fillStyle="#ffffff";
+  x.font="800 72px sans-serif";
+  x.textAlign="left";
+  x.textBaseline="alphabetic";
+  x.fillText("CHARTED", 64, 120);
+  x.fillStyle="#bcc0d6";
+  x.font="700 32px sans-serif";
+  x.textAlign="right";
+  x.fillText(card.mode==="Degen"?"DEGEN":"CASUAL", W-64, 108);
+  const ys=card.closes||[];
+  const n=ys.length;
+  if(n>=2){
+    const base=ys[0]||1;
+    const ser=ys.map(y=>(y/base-1)*100);
+    let lo=Math.min.apply(null, ser), hi=Math.max.apply(null, ser);
+    const range=(hi-lo)||1;
+    lo-=range*0.14; hi+=range*0.14;
+    const L=80, R=80, T=180, B=460;
+    const X=i=>L+(W-L-R)*i/(n-1);
+    const Y=v=>T+(H-T-B)*(1-(v-lo)/(hi-lo));
+    const up=ser[n-1]>=ser[0];
+    x.beginPath();
+    x.moveTo(X(0), Y(ser[0]));
+    for(let i=1;i<n;i++) x.lineTo(X(i), Y(ser[i]));
+    x.lineTo(X(n-1), H-B); x.lineTo(X(0), H-B); x.closePath();
+    const g=x.createLinearGradient(0, T, 0, H-B);
+    g.addColorStop(0, up?"rgba(61,220,132,.38)":"rgba(255,89,100,.34)");
+    g.addColorStop(1, "rgba(0,0,0,0)");
+    x.fillStyle=g; x.fill();
+    x.lineWidth=8; x.lineJoin="round"; x.lineCap="round";
+    x.strokeStyle=up?"#3ddc84":"#ff5964";
+    x.beginPath();
+    for(let i=0;i<n;i++){ if(i) x.lineTo(X(i), Y(ser[i])); else x.moveTo(X(i), Y(ser[i])); }
+    x.stroke();
+  }
+  const sq=card.squares||[];
+  const size=78, gap=16;
+  const total=sq.length*size+Math.max(0, sq.length-1)*gap;
+  let sx=(W-total)/2;
+  const sy=680;
+  const COL={g:"#3ddc84", y:"#ffd166", r:"#ff5964"};
+  for(const s of sq){
+    x.fillStyle=COL[s]||"#343850";
+    const r=14, lft=sx, top=sy, w=size, h=size;
+    x.beginPath();
+    x.moveTo(lft+r, top);
+    x.arcTo(lft+w, top, lft+w, top+h, r);
+    x.arcTo(lft+w, top+h, lft, top+h, r);
+    x.arcTo(lft, top+h, lft, top, r);
+    x.arcTo(lft, top, lft+w, top, r);
+    x.closePath();
+    x.fill();
+    sx+=size+gap;
+  }
+  const tag=card.boss?"BOSS #"+card.id:"#"+card.id;
+  const headline=card.solved?"CHARTED "+tag+" · solved in "+card.res:"CHARTED "+tag+" · "+card.res;
+  x.fillStyle="#ffffff";
+  x.font="800 40px sans-serif";
+  x.textAlign="center";
+  x.fillText(headline, W/2, 840);
+  if((card.streak||0)>=2){
+    x.fillStyle="#a78bfa";
+    x.font="700 32px sans-serif";
+    x.fillText(card.streak+" day streak", W/2, 900);
+  }
+  x.fillStyle="#35e0e8";
+  x.font="700 28px sans-serif";
+  x.textAlign="right";
+  x.fillText("chartedgame.com", W-56, H-48);
+}
 function reveal(fresh){
   const el=document.getElementById("reveal"), p=puzzle();
   const rep = isReplay();
@@ -1436,19 +1607,19 @@ function reveal(fresh){
     : story + cocard;
   el.innerHTML =
     `<h2>${won?"🎯 Charted!":"📉 Uncharted…"} — $${answer()} <span class="co">(${U[answer()].name})</span></h2>`+
+    `<button id="sharebtn">Share</button>`+
+    `<a class="imgdl" hidden download="charted.png">Download image</a>`+
+    (!practice ? returnHookHTML() : "")+
     midContent+
     `<div class="wordsrow"><span class="infotap" data-info="words">📖 chart words — what do these terms mean?</span></div>`+
     `<div class="wordsrow"><span class="infotap rolodex-open">🗂 your chart rolodex — ${metCount()} met</span> · <span class="infotap stats-open">📊 your stats</span></div>`+
     `<div class="grid">CHARTED ${tag} · ${modeLabel()} <span class="res">${res}</span>${practice?' <span style="color:var(--muted);font-size:12px">· practice</span>':rep?' <span style="color:var(--muted);font-size:12px">· replay</span>':''}<br>${emojiGrid()}</div>`+
-    `<button id="sharebtn">Share</button>`+
-    (DEV && day<PUZ.length-1 ? `<button id="nextbtn">Next test day →</button>`:"")+
-    (!DEV && !practice ? `<div id="countdown" style="margin-top:12px;color:var(--muted);font-size:var(--fs-sm)"></div>`:"");
-  // grid first: it is the only line a non-player finds interesting, and "#123" up top read as noise.
+    (DEV && day<PUZ.length-1 ? `<button id="nextbtn">Next test day →</button>`:"");
   // NO ?ref tag here on purpose. A friend-to-friend link carries the sender as the endorsement and a
   // "ref=" suffix reads as affiliate tracking, which undercuts it. Share VOLUME is measured by the
   // share-<mode> event below instead. Vlad's own public posts still carry ?ref=x / ?ref=tt.
-  const shareLink = practice ? SHARE_URL+"/?d="+dateKey(ARCHIVE_DATE) : SHARE_URL;
-  const shareTxt=`${emojiGrid()}\n\nCHARTED ${tag} · ${res} · ${modeLabel()}${practice?" · practice":rep?" · replay":""}\nThink you can read a chart faster?\n\n${shareLink}`;
+  const card = shareCard();
+  const shareTxt = shareTextFrom(card);
   const QP = mode==="degen" ? {
     win:["Sir, this is a winner's casino. 🎰","Priced in? You WERE the price.","Chart recognized. Position respected. 💎","Tape don't lie. Neither do you.","Alpha. Raw, unlicensed alpha.","You've seen this movie. You wrote it.","Send it to the group chat. 📤"],
     loss:["Down bad on a chart with no money in it.","The candle won. It usually does. 🕯️","Liquidated. Emotionally.","Revenge trade loads at midnight. 🕛","That was the bear trap. You were the bear.","Guessing is a risk asset too, apparently.","Charts 1, degen 0. Run it back."]
@@ -1464,40 +1635,79 @@ function reveal(fresh){
       ta.select(); document.execCommand("copy"); ta.remove(); showToast("Copied! "+quip());
     });
   }
-  function doShare(){
-    if(!DEV && window.goatcounter && goatcounter.count)
-      goatcounter.count({path:"share-"+(mode||"casual"), title:"CHARTED shared", event:true});
-    document.getElementById("endcard")?.classList.remove("show");   // close the popup if it's open
+  function countShare(kind){
+    if(DEV || !window.goatcounter || !goatcounter.count) return;
+    goatcounter.count({path:kind+"-"+(mode||"casual"), title:"CHARTED shared", event:true});
+  }
+  function offerImageDownload(blob){
+    if(!blob) return;
+    const url=URL.createObjectURL(blob);
+    document.querySelectorAll(".imgdl").forEach(a=>{ a.href=url; a.hidden=false; });
+  }
+  function textFallback(blob){
+    const copied=()=>{ countShare("share-text"); copyShare(); offerImageDownload(blob); };
     if(navigator.share){
-      navigator.share({text:shareTxt}).then(()=>showToast(quip())).catch(err=>{
-        if(err && err.name==="AbortError") return;   // player closed the share sheet — say nothing
-        copyShare();                                  // share unavailable for this target → copy instead
+      navigator.share({text:shareTxt}).then(()=>{
+        countShare("share-text");
+        showToast(quip());
+      }).catch(err=>{
+        if(err && err.name==="AbortError") return;
+        copied();
       });
-    } else { copyShare(); }                            // desktop browsers without the share sheet
+    } else copied();
+  }
+  async function doShare(){
+    countShare("share");   // existing share-<mode> event, fired even if the sheet is dismissed
+    document.getElementById("endcard")?.classList.remove("show");
+    let blob=null;
+    try{
+      const canvas=document.createElement("canvas");
+      drawShareCard(canvas, card);
+      blob=await new Promise((res,rej)=>canvas.toBlob(b=>b?res(b):rej(new Error("png")), "image/png"));
+    }catch(e){ blob=null; }
+    if(blob){
+      try{
+        const file=new File([blob], "charted.png", {type:"image/png"});
+        const url="https://"+card.link;
+        if(navigator.canShare && navigator.canShare({files:[file]})){
+          try{
+            await navigator.share({files:[file], text:shareTxt, url:url});
+            countShare("share-image");
+            showToast(quip());
+            return;
+          }catch(err){
+            if(err && err.name==="AbortError") return;
+          }
+        }
+      }catch(e){}
+    }
+    textFallback(blob);
   }
   document.getElementById("sharebtn").addEventListener("click", doShare);
   document.getElementById("nextbtn")?.addEventListener("click",()=>setDay(day+1));
+  document.querySelectorAll("#reveal .remindbtn").forEach(b=>b.addEventListener("click", downloadRemind));
 
-  // end-of-game share popup — the share moment, caught at peak emotion
+  // end-of-game share popup — the share moment, caught at peak emotion.
+  // Share, the countdown, and Remind me sit above the story so a phone sees them without scrolling.
   const ec=document.getElementById("endcard"), ecb=document.getElementById("endcardbox");
   ec.classList.toggle("lose", !won);
   const firstTry = won && guesses.length===1 && !rep;
-  const M = mode||"casual";
   ecb.innerHTML =
     `<div class="ehead">${won?(firstTry?"FIRST TRY 🎯":"CHARTED IN "+guesses.length):"UNCHARTED"}</div>`+
     `<div class="eans">it was <b>$${answer()}</b> · ${U[answer()].name}</div>`+
+    `<button id="endshare"><span class="sb1">Share</span><span class="sb2">${emojiGrid()}</span></button>`+
+    `<a class="imgdl" hidden download="charted.png">Download image</a>`+
+    (practice?`<div class="emeta" style="margin-top:10px"><a href="/" style="color:var(--accent);font-weight:700">Play today's chart</a></div>`:returnHookHTML())+
     `<div class="egrid">${emojiGrid()}</div>`+
     `<div class="emeta">CHARTED ${tag} · ${modeLabel()} · ${res}</div>`+
     (practice?`<div class="emeta" style="margin-top:8px">practice — this replay doesn't touch your streak or stats</div>`:rep?`<div class="emeta" style="margin-top:8px">replay — you'd already seen today's chart</div>`:``)+
     `<div class="equip">${quip()}</div>`+
-    (won && !practice?habitHTML(M):``)+                       // a broken streak has nothing to promise; the countdown carries the loss case
-    (practice?`<div class="emeta" style="margin-top:10px"><a href="/" style="color:var(--accent);font-weight:700">Play today's chart</a></div>`:cdBoxHTML())+
-    `<button id="endshare"><span class="sb1">Share your run</span><span class="sb2">${emojiGrid()}</span></button>`+
     ((fresh&&pendingRankUp)?`<div class="rankup">⬆ RANK UP — you're now ${pendingRankUp}!</div>`:``)+
     (won?`<div class="erolo rolodex-open">🗂 ${(fresh&&pendingNewCo)?"$"+answer()+" joins your Rolodex":"Chart Rolodex"} · ${metCount()} collected</div>`:``)+
     `<button id="enddismiss">see the breakdown ↓</button>`;
   document.getElementById("endshare").addEventListener("click", doShare);
   document.getElementById("enddismiss").addEventListener("click", ()=>ec.classList.remove("show"));
+  document.querySelectorAll("#endcard .remindbtn").forEach(b=>b.addEventListener("click", downloadRemind));
   startCountdown();   // no-ops on whichever element is absent
   if(fresh){ setTimeout(()=>ec.classList.add("show"), 1500); pendingRankUp=""; pendingNewCo=false; }   // auto-pop on fresh finish only; consume flags
   updateStreak();
@@ -1535,6 +1745,24 @@ function updateStreak(){
   const y=new Date(); y.setDate(y.getDate()-1);
   const live = store.get("lastWin","")===t || store.get("lastWin","")===dateKey(y);
   document.getElementById("streak").textContent = "🔥 "+(live?s:0);
+}
+let welcomeSent=false;
+function welcomeBack(){
+  const el=document.getElementById("welcomeback");
+  if(!el) return;
+  if(DEV || isArchivePlay() || guesses.length || done){ el.classList.remove("show"); return; }
+  const y=new Date(); y.setDate(y.getDate()-1);
+  const prev=dateKey(y);
+  const last=store.get("lastPlay","")||store.get("lastWin","");
+  const st=store.get("streak",0);
+  if(last!==prev || st<2 || store.get("lastWin","")!==prev){ el.classList.remove("show"); return; }
+  el.textContent="Welcome back — streak "+st;
+  el.classList.add("show");
+  if(welcomeSent) return;
+  welcomeSent=true;
+  const send=()=>{ if(window.goatcounter&&goatcounter.count)
+    goatcounter.count({path:"welcome-back", title:"CHARTED welcome back", event:true}); };
+  window.goatcounter ? send() : setTimeout(send, 3000);
 }
 function setDay(d){
   day=d; loadState(); renderAll(); animateDraw();
@@ -1580,7 +1808,7 @@ function renderAll(animLast){
     : isBossDay()
     ? "👑 BOSS #"+puzzle().id
     : "#"+dayNumber()+" · "+new Date().toLocaleString("en",{month:"short",day:"numeric"});
-  drawChart(); renderHints(); renderRows(animLast); updateStreak();
+  drawChart(); renderHints(); renderRows(animLast); updateStreak(); welcomeBack();
   document.querySelectorAll("#devbar button[data-d]").forEach(b=>b.classList.toggle("on",+b.dataset.d===day));
   if(!done) document.getElementById("reveal").style.display="none";
 }

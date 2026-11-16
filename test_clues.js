@@ -116,6 +116,78 @@ for (const p of puzzles) {
     bad.push({ tk: p.answer, hit: "year", text: move });
   }
 }
+const shareTextSrc = extractFunction(html, "shareTextFrom");
+const drawSrc = extractFunction(html, "drawShareCard");
+if (!shareTextSrc || !drawSrc) {
+  bad.push({ tk: "share", hit: "missing", text: "shareTextFrom or drawShareCard" });
+} else {
+  const leakRe = /\banswer\s*\(|\.name\b|ticker|company/i;
+  if (leakRe.test(shareTextSrc)) bad.push({ tk: "shareTextFrom", hit: "source", text: "share text builder touches an answer field" });
+  if (leakRe.test(drawSrc)) bad.push({ tk: "drawShareCard", hit: "source", text: "image draw touches an answer field" });
+  if (!/function\s+drawShareCard\s*\(\s*canvas\s*,\s*card\s*\)/.test(drawSrc))
+    bad.push({ tk: "drawShareCard", hit: "params", text: drawSrc.slice(0, 60) });
+  const shareApi = new Function(shareTextSrc + "\n" + drawSrc + "\nreturn { shareTextFrom, drawShareCard };")();
+  function mockCanvas() {
+    const ctx = new Proxy({
+      createLinearGradient() { return { addColorStop() {} }; }
+    }, {
+      get(t, k) { if (k in t) return t[k]; return function () { return ctx; }; },
+      set() { return true; }
+    });
+    return { width: 0, height: 0, getContext() { return ctx; } };
+  }
+  function safeCard(fields) {
+    return new Proxy(fields, {
+      get(t, k) {
+        if (k === "answer" || k === "name" || k === "ticker" || k === "company" || k === "story")
+          throw new Error("answer field " + String(k));
+        return t[k];
+      }
+    });
+  }
+  for (const p of puzzles) {
+    const u = data.universe[p.answer] || {};
+    const card = safeCard({
+      closes: p.closes, squares: ["r", "y", "g"], id: p.id, boss: !!p._boss,
+      res: "3/6", solved: true, mode: "Casual", modeLabel: "🎓 Casual",
+      streak: 2, practice: false, replay: false, link: "chartedgame.com"
+    });
+    let text = "";
+    try { text = shareApi.shareTextFrom(card); }
+    catch (e) { bad.push({ tk: p.answer, hit: "shareText", text: String(e) }); continue; }
+    const hit = leaks(text, p.answer, u.name || "");
+    if (hit) bad.push({ tk: p.answer, hit, text });
+    if (!text.includes("solved in 3/6") || !text.includes("chartedgame.com") || !text.includes("🟩"))
+      bad.push({ tk: p.answer, hit: "shape", text });
+  }
+  const lost = shareApi.shareTextFrom(safeCard({
+    closes: [1, 2], squares: ["r"], id: 4, boss: false, res: "X/6", solved: false,
+    mode: "Degen", modeLabel: "💎 Degen", streak: 0, link: "chartedgame.com"
+  }));
+  if (lost.includes("solved in") || !lost.includes("X/6")) bad.push({ tk: "loss", hit: "shape", text: lost });
+  try {
+    shareApi.drawShareCard(mockCanvas(), safeCard({
+      closes: [10, 12, 9, 14], squares: ["r", "y", "g"], id: 7, boss: false,
+      res: "3/6", solved: true, mode: "Degen", streak: 4, link: "chartedgame.com"
+    }));
+  } catch (e) {
+    bad.push({ tk: "draw", hit: "throw", text: String(e) });
+  }
+}
+const rollSrc = ["nextRollover", "countdownLabel"].map(n => extractFunction(html, n)).join("\n");
+const roll = new Function(rollSrc + "\nreturn { nextRollover, countdownLabel };")();
+const at = new Date(2026, 10, 16, 15, 30, 0);
+const mid = roll.nextRollover(at);
+if (mid.getFullYear() !== 2026 || mid.getMonth() !== 10 || mid.getDate() !== 17 || mid.getHours() !== 0 || mid.getMinutes() !== 0)
+  bad.push({ tk: "rollover", hit: "midnight", text: String(mid) });
+if (roll.countdownLabel(at) !== "Next chart in 8h 30m")
+  bad.push({ tk: "rollover", hit: "label", text: roll.countdownLabel(at) });
+const icsSrc = ["nextRollover", "icsPad", "icsStampLocal", "icsStampUTC", "remindICS"].map(n => extractFunction(html, n)).join("\n");
+const ics = new Function(icsSrc + "\nreturn remindICS;")()(at);
+if (!ics.includes("SUMMARY:CHARTED – new chart is up") || !ics.includes("URL:https://chartedgame.com") || !ics.includes("RRULE:FREQ=DAILY"))
+  bad.push({ tk: "ics", hit: "body", text: ics });
+if (!/DTSTART:\d{8}T000000\r/.test(ics) || /DTSTART:[^\r\n]*Z/.test(ics))
+  bad.push({ tk: "ics", hit: "start", text: ics });
 if (bad.length) {
   console.error(JSON.stringify(bad.slice(0, 8), null, 2));
   process.exit(1);
