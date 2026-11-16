@@ -1,0 +1,62 @@
+{
+  "GME": {
+    "date": "2021-01-25",
+    "source": "Reuters",
+    "url": "https://www.reuters.com/technology/gamestop-shares-soar-short-squeeze-then-ease-wild-trade-session-2021-01-25/",
+    "clue": "____ shares soar on a short squeeze, then ease in a wild trading session"
+  },
+  "NVDA": {
+    "date": "2023-05-24",
+    "source": "Reuters",
+    "url": "https://www.reuters.com/technology/nvidias-results-spark-nearly-300-billion-rally-ai-stocks-2023-05-24/",
+    "clue": "____ results spark a nearly $300 billion rally in AI stocks"
+  },
+  "MRNA": {
+    "date": "2020-11-16",
+    "source": "Reuters",
+    "url": "https://www.reuters.com/article/health-coronavirus-vaccines-moderna/moderna-says-its-vaccine-is-94-5-effective-in-preventing-covid-19-idUSL1N2I2073/",
+    "clue": "____ says its vaccine is 94.5% effective in preventing COVID-19"
+  },
+  "AMC": {
+    "date": "2021-01-27",
+    "source": "Reuters",
+    "url": "https://www.reuters.com/business/reddit-fueled-amc-rally-gives-silver-lake-284-million-gain-2021-01-27/",
+    "clue": "Reddit-fueled ____ rally gives a buyout firm a paper gain"
+  },
+  "MSTR": {
+    "date": "2024-02-27",
+    "source": "Reuters",
+    "url": "https://www.reuters.com/technology/bitcoin-breaks-57000-big-buyers-circle-2024-02-27/",
+    "clue": "____ discloses another bitcoin purchase as the token breaks $57,000"
+  },
+  "MU": {
+    "date": "2026-05-08",
+    "source": "CNBC",
+    "url": "https://www.cnbc.com/2026/05/08/micron-surges-more-than-30percent-on-week-as-memory-chip-rally-goes-parabolic.html",
+    "clue": "____ surges on the week as the memory-chip rally goes parabolic"
+  },
+  "PLTR": {
+    "date": "2026-08-03",
+    "source": "Reuters",
+    "url": "https://www.reuters.com/technology/palantir-raises-annual-revenue-forecast-strong-demand-us-government-commercial-2026-08-03/",
+    "clue": "____ lifts its annual revenue forecast on steady demand for AI-powered data analytics"
+  },
+  "NOW": {
+    "date": "2026-10-29",
+    "source": "CNBC",
+    "url": "https://www.cnbc.com/2026/10/29/servicenow-now-earnings-q3-2026.html",
+    "clue": "____ shares plunge to their worst day ever after earnings revive AI-disruption fears"
+  },
+  "AMD": {
+    "date": "2026-05-05",
+    "source": "Reuters",
+    "url": "https://www.reuters.com/business/amd-forecasts-quarterly-revenue-above-expectations-ai-chip-demand-stays-strong-2026-05-05/",
+    "clue": "____ forecasts revenue above expectations on strong AI-chip demand, and the shares jump"
+  },
+  "DELL": {
+    "date": "2026-05-29",
+    "source": "Reuters",
+    "url": "https://www.reuters.com/business/retail-consumer/dell-rallies-about-40-strong-nvidiapowered-ai-server-demand-2026-05-29/",
+    "clue": "____ shares soar as AI-server demand and price hikes power a stellar quarter"
+  }
+}
