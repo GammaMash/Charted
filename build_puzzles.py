@@ -430,6 +430,28 @@ for p in out + BOSSES:
         p["px"] = PX[p["answer"]]
     p["opts"] = mc_options(p["answer"], p["id"])
 
+# Real headlines only, and only while the article date is still inside the chart
+# the player is looking at. The URL stays in headlines.json (it often contains the
+# company name). The client receives the blanked clue.
+_HL_PATH = f"{D}/headlines.json"
+if os.path.exists(_HL_PATH):
+    import re as _re
+    _HL = json.load(open(_HL_PATH))
+    def _attach_headline(p):
+        h = _HL.get(p["answer"])
+        if not isinstance(h, dict):
+            return
+        ds = p.get("dates") or []
+        if len(ds) < 2 or not (ds[0] <= h.get("date", "") <= ds[-1]):
+            return
+        clue = h.get("clue") or ""
+        name = uni[p["answer"]]["name"]
+        if _re.search(rf"\b{_re.escape(p['answer'])}\b", clue, _re.I) or name.lower() in clue.lower():
+            raise SystemExit(f"headline for {p['answer']} still contains the company")
+        p["headline"] = {"clue": clue, "date": h["date"], "source": h.get("source", "")}
+    for _p in out + BOSSES:
+        _attach_headline(_p)
+
 json.dump({"universe": uni, "bucketOrder": BUCKET_ORDER, "puzzles": out, "bosses": BOSSES},
           open(f"{D}/gamedata.json", "w"), separators=(",", ":"))
 n_ans = sum(v["answer"] for v in uni.values())

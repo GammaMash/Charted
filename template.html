@@ -450,7 +450,7 @@ const DEV = new URLSearchParams(location.search).has("dev");   // ?dev=1 unlocks
 const SHARE_URL = "chartedgame.com";
 const MAXG = 6;
 const EPOCH = "2026-07-20";   // public launch day = puzzle #1; one puzzle per LOCAL calendar day
-const VERSION = "2026-11-16a";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
+const VERSION = "2026-11-16b";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
 const U = DATA.universe, ORD = DATA.bucketOrder, PUZ = DATA.puzzles;
 const BOSSES = DATA.bosses || [];
 const BOSS_EPOCH = "2026-08-02";   // first boss Sunday; bosses rotate weekly from here
@@ -741,10 +741,12 @@ function drawChart(){
     for(let i=0;i<m;i++){ i?ctx.lineTo(X(i),Y(ser[i])):ctx.moveTo(X(i),Y(ser[i])); }
     ctx.stroke(); ctx.shadowBlur=0;
   }
-  // hint-2 annotation rect (computed first so the badge can dodge it; drawn after the badge)
+  // biggest-week marker: same week the first clue names, and only a week inside this chart
   let annR = null, annDraw = null;
-  if(stage()>=2 && animT>=1){
-    const a=p.annot, ax=X(a.i), ay=Y(ser[a.i]);
+  const wkMark = biggestWeek();
+  if(stage()>=1 && wkMark && animT>=1){
+    const a={i:wkMark.i, label:(wkMark.pct>=0?"+":"")+Math.round(wkMark.pct*100)+"% that week"};
+    const ax=X(a.i), ay=Y(ser[a.i]);
     ctx.font="10px SF Mono, Menlo, monospace";
     const tw=ctx.measureText(a.label).width;
     const tx = a.i>n/2 ? ax-8-tw : ax+8;                       // left edge of the text
@@ -934,41 +936,128 @@ const SIZE_CLUE = {
   MID:"a mid-sized company — solid, not a household giant",
   SMALL:"a smaller, more niche company"
 };
-const LADDERS = {
-  casual: ["","Sector","How big","Where","Emoji","Reveal"],
-  degen:  ["","Sector","Fact","Scale","Shape","Emoji"],
-};
-function rungName(k){ return (LADDERS[mode==="degen"?"degen":"casual"][k]||""); }
-function hintText(k){
-  const a=U[answer()], p=puzzle(), degen = mode==="degen";
-  if(k===1) return degen ? "Sector · "+secL(a.sector)
-                         : "Sector: "+secL(a.sector)+(SECTOR_PLAIN[a.sector]?" — "+SECTOR_PLAIN[a.sector]:"");
-  // the chart annotation still unlocks on its own stage gate, so degen gets the marker AND this
-  if(k===2) return degen ? (factClue(false) || "📍 event marked on the chart")
-                         : "How big? "+(SIZE_CLUE[a.cap]||"a well-known company");
-  // boss charts are historical windows, so the cap is flagged as present-day
-  if(k===3) return degen ? (isBossDay()?"Scale (today) · ":"Scale · ")+rivalClue(false)
-                         : (whereClue(false) || "Price axis revealed · one share ≈ "+relPrice());
-  if(degen){
-    // shape alone named something already on screen; secrel adds what the picture can't show.
-    // Baked by build_puzzles.py — bosses have no secrel (historical window, no peer data).
-    if(k===4){ const sr=p.secrel; return "Shape: "+shapeArch()+(sr?" · "+sr:""); }
-    if(k===5) return emojiStr();                                     // emoji only — you decode it
-  } else {
-    if(k===4) return (emojiStr()?emojiStr()+"  ":"")+(factClue(false) || "picture what they make…");
-    // no first-letter clue in casual: against 12 visible names it's the answer, not a hint.
-    if(k===5) return p.co ? "You might know them from: "+p.co.hint : "One last look at the chart…";
+// Five rungs, six guesses. Order: dated move, sector, famous-company size, a real
+// headline when we have one, then the older hints that still fit. A missing headline
+// is skipped, not left blank, so a later hint moves up.
+function biggestWeek(){
+  const p=puzzle(), ys=p.closes||[], ds=p.dates||[];
+  if(ys.length<2 || ds.length!==ys.length) return null;
+  let bi=1, best=ys[1]/ys[0]-1;
+  for(let i=2;i<ys.length;i++){
+    const r=ys[i]/ys[i-1]-1;
+    if(Math.abs(r)>Math.abs(best)){ best=r; bi=i; }
   }
+  return {i:bi, pct:best, date:ds[bi]};
 }
-function hintCompact(k){          // absorbed hints shrink to a one-line digest — page stays calm
-  const a=U[answer()], p=puzzle(), degen = mode==="degen";
-  if(k===1) return "🏷 "+secL(a.sector);
-  if(k===2) return degen ? (factClue(true) || "📍 event") : "⚖️ "+(SIZE_LABEL[a.cap]||"Big");
-  if(k===3) return degen ? "⚖️ "+rivalClue(true)
-                         : (whereClue(true) || "💲 ≈ "+relPrice());
-  if(k===4) return degen ? "〰 "+shapeArch()+(p.secrel?" · "+p.secrel.split(" ")[0]:"") : emojiStr()||"🖼";
-  return "";
+function formatWeek(iso){
+  const d=new Date(iso+"T12:00:00");
+  const mon=d.toLocaleString("en-US",{month:"short"});
+  return mon+" "+d.getDate()+", "+d.getFullYear();
 }
+function moveClue(short){
+  const w=biggestWeek();
+  if(!w) return short ? "move" : "No weekly move in this window.";
+  const pct=Math.round(Math.abs(w.pct)*100);
+  const up=w.pct>=0;
+  if(short) return (up?"▲ ":"▼ ")+pct+"%";
+  if(pct===0) return "Flat the week of "+formatWeek(w.date);
+  return (up?"Jumped ":"Fell ")+pct+"% the week of "+formatWeek(w.date);
+}
+// Household names only. The phrase is a ratio when one lands cleanly ("About 1/5
+// the size of Disney"), otherwise bigger/smaller. Never the answer itself.
+function sizeClue(short){
+  const tk=answer(), mine=(U[tk]||{}).capB||0;
+  const today=isBossDay()?" today":"";
+  if(!(mine>0)){
+    const bucket=SIZE_CLUE[(U[tk]||{}).cap]||"a public company";
+    return short ? "⚖️ size" : "How big?"+today+": "+bucket;
+  }
+  const FAMOUS=["AAPL","MSFT","NVDA","GOOGL","AMZN","META","TSLA","WMT","JPM","JNJ","XOM","KO","DIS","NFLX","HD","NKE","MCD","PEP","SBUX","BA"];
+  const mineName=((U[tk]||{}).name||"").toLowerCase();
+  const refs=[];
+  for(const t of FAMOUS){
+    if(t===tk || !U[t] || !(U[t].capB>0)) continue;
+    const name=U[t].name||t;
+    if(name.toLowerCase()===mineName) continue;
+    refs.push({t, cap:U[t].capB, name});
+  }
+  if(!refs.length) return short ? "⚖️ size" : "How big?"+today+": a public company";
+  const nice=[10,5,4,3,2,1,1/2,1/3,1/4,1/5,1/10];
+  let best=null;
+  for(const r of refs){
+    const ratio=mine/r.cap;
+    let near=nice[0], err=Math.abs(ratio-near)/near;
+    for(const n of nice){
+      const e=Math.abs(ratio-n)/n;
+      if(e<err){ err=e; near=n; }
+    }
+    const rank=FAMOUS.indexOf(r.t);
+    if(!best || err<best.err-1e-9 || (Math.abs(err-best.err)<1e-9 && rank<best.rank))
+      best={err, near, ratio, r, rank};
+  }
+  const name=best.r.name.replace(/^The /,""), n=best.near, err=best.err;
+  const brief=name.length<=18 ? name : name.split(" ")[0];
+  let phrase;
+  if(err<0.22 && Math.abs(n-1)<0.01) phrase="About the same size as "+name;
+  else if(err<0.22 && n>=2) phrase="About "+n+"× the size of "+name;
+  else if(err<0.22 && n<1) phrase="About 1/"+Math.round(1/n)+" the size of "+name;
+  else if(best.ratio>1) phrase="Bigger than "+name;
+  else phrase="Smaller than "+name;
+  if(short){
+    if(err<0.22 && Math.abs(n-1)<0.01) return "⚖️ ≈ "+brief;
+    if(err<0.22 && n>=2) return "⚖️ "+n+"× "+brief;
+    if(err<0.22 && n<1) return "⚖️ 1/"+Math.round(1/n)+" "+brief;
+    return "⚖️ "+(best.ratio>1?"> ":"< ")+brief;
+  }
+  return phrase+today;
+}
+function sectorClue(short){
+  const a=U[answer()];
+  if(short) return "🏷 "+secL(a.sector);
+  if(mode==="degen") return "Sector · "+secL(a.sector);
+  return "Sector: "+secL(a.sector)+(SECTOR_PLAIN[a.sector]?" — "+SECTOR_PLAIN[a.sector]:"");
+}
+function headlineClue(short){
+  const h=(puzzle().headline||{}).clue;
+  if(!h) return "";
+  return short ? "📰" : "Headline: "+h;
+}
+function laterClues(){
+  const p=puzzle(), degen=mode==="degen";
+  const out=[];
+  if(degen){
+    const f=factClue(false);
+    if(f) out.push({name:"Fact", text:f, compact:factClue(true)||"💡"});
+    const sr=p.secrel;
+    out.push({name:"Shape", text:"Shape: "+shapeArch()+(sr?" · "+sr:""), compact:"〰 "+shapeArch()});
+    if(emojiStr()) out.push({name:"Emoji", text:emojiStr(), compact:emojiStr()});
+  } else {
+    const w=whereClue(false);
+    if(w) out.push({name:"Where", text:w, compact:whereClue(true)||"🏬"});
+    if(p.co && p.co.hint) out.push({name:"Familiar", text:"You might know them from: "+p.co.hint, compact:"👀"});
+    const fact=factClue(false);
+    const emo=emojiStr();
+    if(emo || fact) out.push({name:"Emoji", text:(emo?emo+"  ":"")+(fact||"picture what they make…"), compact:emo||"🖼"});
+  }
+  return out;
+}
+function clueRungs(){
+  const rungs=[
+    {name:"Move", text:moveClue(false), compact:moveClue(true)},
+    {name:"Sector", text:sectorClue(false), compact:sectorClue(true)},
+    {name:"Size", text:sizeClue(false), compact:sizeClue(true)},
+  ];
+  const news=headlineClue(false);
+  if(news) rungs.push({name:"News", text:news, compact:headlineClue(true)});
+  for(const extra of laterClues()){
+    if(rungs.length>=5) break;
+    rungs.push(extra);
+  }
+  return rungs.slice(0,5);
+}
+function rungName(k){ const r=clueRungs(); return r[k-1]?r[k-1].name:""; }
+function hintText(k){ const r=clueRungs(); return r[k-1]?r[k-1].text:""; }
+function hintCompact(k){ const r=clueRungs(); return r[k-1]?r[k-1].compact:""; }
 // Teaches vocabulary off TODAY's chart. Deliberately not a hint rung — a player who just
 // burned a guess and got a definition instead of help would rightly feel cheated.
 function chartLesson(){
@@ -1026,30 +1115,49 @@ function renderOpts(){
 document.getElementById("opts").addEventListener("click",e=>{
   const b=e.target.closest(".opt[data-t]"); if(b) submit(b.dataset.t);
 });
+// Coarse after the first miss, one step sharper each miss, near-clear before the last guess.
+const PX_CELLS = [4, 6, 8, 10, 12];
+function sharpenLogo(img, src, cells){
+  const im=new Image();
+  im.onload=function(){
+    const c=document.createElement("canvas");
+    const w=Math.max(1, cells), h=Math.max(1, Math.round(im.height*w/Math.max(im.width,1)));
+    c.width=w; c.height=h;
+    const x=c.getContext("2d");
+    x.imageSmoothingEnabled=false;
+    x.drawImage(im,0,0,w,h);
+    img.src=c.toDataURL("image/png");
+  };
+  im.src=src;
+}
 function renderHints(){
   const el=document.getElementById("hints"); el.innerHTML="";
   if(done) return;                              // post-game: hints are spent — clean screen
-  const cur=Math.min(stage(),MAXG-1);
+  const rungs=clueRungs();
+  const cur=Math.min(stage(), rungs.length);
   const olds=[];
   for(let k=1;k<=cur;k++){
+    const rung=rungs[k-1];
     if(k===cur){                                // only the newest hint gets a full pill
       const d=document.createElement("div");
       d.className="hint new";
       d.innerHTML = '<span class="hlab">HINT</span>';   // say what it is — it reads as a stray fact otherwise
-      d.appendChild(document.createTextNode(hintText(k)));
+      d.appendChild(document.createTextNode(rung.text));
       if(olds.length){                          // digest of everything already absorbed, above the fresh hint
         const dg=document.createElement("div"); dg.className="hintdigest";
         dg.textContent = olds.join("  ·  ");
         el.appendChild(dg);
       }
       el.appendChild(d);
-      if(k===5 && mode!=="degen" && puzzle().px){   // casual finale: pixelated logo (baked data URI — no network spoiler)
-        const w=document.createElement("div"); w.className="hint pxhint new";
-        const im=document.createElement("img"); im.src=puzzle().px; im.alt="";
-        w.append(im, document.createTextNode("their logo — can you make it out?"));
-        el.appendChild(w);
-      }
-    } else olds.push(hintCompact(k));
+    } else if(rung.compact) olds.push(rung.compact);
+  }
+  if(stage()>=1 && puzzle().px){               // no pixel logo baked → this block never runs
+    const w=document.createElement("div"); w.className="hint pxhint new";
+    const im=document.createElement("img"); im.alt="";
+    const cells=PX_CELLS[Math.min(stage(), PX_CELLS.length)-1];
+    sharpenLogo(im, puzzle().px, cells);
+    w.append(im, document.createTextNode(cells>=12 ? "their logo — can you make it out?" : "their logo, still fuzzy"));
+    el.appendChild(w);
   }
   if(stage()<MAXG-1 && !(mcMode() && stage()===0)){   // "Pick one 👇" is the call to action on a fresh board
     const nx=document.createElement("div"); nx.className="hintnext";
