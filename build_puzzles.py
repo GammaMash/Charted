@@ -422,12 +422,18 @@ if BOSSES:
         "\nFix by reordering bosses.json or moving the ticker in QUEUE.")
     print(f"schedule guard OK — no upcoming ticker repeats within {MIN_GAP_DAYS} days")
 
-# pixelated-logo clue: tiny pre-baked data URIs (see gen_pixlogos.py) — pure JSON here,
+# pixelated-logo clue: pre-baked ~64px data URIs (see gen_pixlogos.py) — pure JSON here,
 # so the nightly Action needs no image libraries. Missing ticker -> clue just doesn't show.
+# Wordmarks carry cap 28 so the client never sharpens the name to the final 64-cell stage.
 PX = json.load(open(f"{D}/pixlogos.json")) if os.path.exists(f"{D}/pixlogos.json") else {}
 for p in out + BOSSES:
-    if p["answer"] in PX:
-        p["px"] = PX[p["answer"]]
+    entry = PX.get(p["answer"])
+    if isinstance(entry, str):
+        p["px"] = entry
+    elif isinstance(entry, dict) and entry.get("d"):
+        p["px"] = entry["d"]
+        if entry.get("cap"):
+            p["pxCap"] = entry["cap"]
     p["opts"] = mc_options(p["answer"], p["id"])
 
 # Real headlines only, and only while the article date is still inside the chart
