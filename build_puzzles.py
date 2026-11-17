@@ -422,18 +422,25 @@ if BOSSES:
         "\nFix by reordering bosses.json or moving the ticker in QUEUE.")
     print(f"schedule guard OK — no upcoming ticker repeats within {MIN_GAP_DAYS} days")
 
-# pixelated-logo clue: pre-baked ~64px data URIs (see gen_pixlogos.py) — pure JSON here,
-# so the nightly Action needs no image libraries. Missing ticker -> clue just doesn't show.
-# Wordmarks carry cap 28 so the client never sharpens the name to the final 64-cell stage.
-PX = json.load(open(f"{D}/pixlogos.json")) if os.path.exists(f"{D}/pixlogos.json") else {}
-for p in out + BOSSES:
-    entry = PX.get(p["answer"])
-    if isinstance(entry, str):
-        p["px"] = entry
-    elif isinstance(entry, dict) and entry.get("d"):
-        p["px"] = entry["d"]
-        if entry.get("cap"):
-            p["pxCap"] = entry["cap"]
+# Pixel-logo clue. The image is a separate file named by puzzle id (px/d12.png,
+# px/b3.png), never by ticker, and is fetched only when the hint is shown.
+# caps.json is {key: max cells}. Missing key -> the hint just doesn't show.
+# A cap below 64 marks a wordmark (16, or lower when 16 is still readable).
+_CAPS_PATH = f"{D}/px/caps.json"
+PX_CAPS = json.load(open(_CAPS_PATH)) if os.path.exists(_CAPS_PATH) else {}
+for p in out:
+    key = f"d{p['id']}"
+    if key in PX_CAPS and os.path.exists(f"{D}/px/{key}.png"):
+        p["px"] = f"/px/{key}.png"
+        if PX_CAPS[key] < 64:
+            p["pxCap"] = PX_CAPS[key]
+    p["opts"] = mc_options(p["answer"], p["id"])
+for p in BOSSES:
+    key = f"b{p['id']}"
+    if key in PX_CAPS and os.path.exists(f"{D}/px/{key}.png"):
+        p["px"] = f"/px/{key}.png"
+        if PX_CAPS[key] < 64:
+            p["pxCap"] = PX_CAPS[key]
     p["opts"] = mc_options(p["answer"], p["id"])
 
 # Real headlines only, and only while the article date is still inside the chart

@@ -1147,9 +1147,24 @@ function renderOpts(){
 document.getElementById("opts").addEventListener("click",e=>{
   const b=e.target.closest(".opt[data-t]"); if(b) submit(b.dataset.t);
 });
-// Coarse after the first miss, one step sharper each miss. The last step is the
-// real logo (64 cells). Wordmarks set pxCap to 28 so the name is never spelled out.
+// Icons sharpen 6 → 10 → 16 → 28 → 64. Wordmarks (pxCap 16) sharpen
+// 6 → 8 → 10 → 13 → 16 and stop, so the name never becomes readable text.
+// A lower pxCap (Dell 10, IBM 12) is the same idea with a shorter top.
 const PX_CELLS = [6, 10, 16, 28, 64];
+function logoLadder(cap){
+  if(!cap || cap>=64) return PX_CELLS;
+  if(cap===16) return [6, 8, 10, 13, 16];
+  const start=Math.min(6, Math.max(3, cap-4));
+  const steps=[];
+  for(let i=0;i<5;i++) steps.push(Math.round(start+(cap-start)*i/4));
+  for(let i=1;i<5;i++) if(steps[i]<=steps[i-1]) steps[i]=steps[i-1]+1;
+  steps[4]=cap;
+  return steps;
+}
+function logoCells(){
+  const ladder=logoLadder(puzzle().pxCap);
+  return ladder[Math.min(stage(), ladder.length)-1];
+}
 function sharpenLogo(img, src, cells){
   const im=new Image();
   im.onload=function(){
@@ -1161,6 +1176,12 @@ function sharpenLogo(img, src, cells){
     x.imageSmoothingQuality="high";
     x.drawImage(im,0,0,w,h);
     img.src=c.toDataURL("image/png");
+    const box=img.closest(".pxhint");
+    if(box) box.style.display="";
+  };
+  im.onerror=function(){
+    const box=img.closest(".pxhint");
+    if(box) box.remove();          // fetch failed → the hint just doesn't show
   };
   im.src=src;
 }
@@ -1185,12 +1206,11 @@ function renderHints(){
       el.appendChild(d);
     } else if(rung.compact) olds.push(rung.compact);
   }
-  if(stage()>=1 && puzzle().px){               // no pixel logo baked → this block never runs
+  if(stage()>=1 && puzzle().px){               // no logo path → this block never runs
     const w=document.createElement("div"); w.className="hint pxhint new";
+    w.style.display="none";                    // stay hidden until the file actually loads
     const im=document.createElement("img"); im.alt="";
-    let cells=PX_CELLS[Math.min(stage(), PX_CELLS.length)-1];
-    const cap=puzzle().pxCap||PX_CELLS[PX_CELLS.length-1];
-    if(cells>cap) cells=cap;
+    const cells=logoCells();
     sharpenLogo(im, puzzle().px, cells);
     w.append(im, document.createTextNode(cells>=28 ? "their logo — can you make it out?" : "their logo, still fuzzy"));
     el.appendChild(w);

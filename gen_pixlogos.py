@@ -1,26 +1,27 @@
-"""Bake pixlogos.json: one ~64px logo per puzzle, as a data URI.
+"""Bake px/<key>.png: one ~64px logo per puzzle, named by puzzle id.
 
 Run manually (needs Pillow) after logosrc/<TK>.png gains a file. The nightly
-Action only reads pixlogos.json, so it needs no image libraries.
+Action does not run this. It only copies the short path in px/caps.json onto
+each puzzle, so the page never inlines the images and never asks for a URL
+that contains a ticker.
 
-Sources live in logosrc/ (not shipped). Each puzzle's mark is fit to a 64px
-long side, aspect kept, transparent or left on its own neutral field, and
-kept under 4 KB. The game downscales that source on a canvas
-(PX_CELLS = 6, 10, 16, 28, 64) and pixelates it back up.
+Daily files are px/d<id>.png, bosses px/b<id>.png. caps.json maps those keys
+to a cell cap and does not name a company.
 
-Wordmarks spell the company name (eBay, Coca-Cola, Oracle, …). Those are
-capped at 28 cells in the client so the last stage never spells the name.
-A symbol that merely uses a letter (Nike's swoosh, Netflix's N, Google's G)
-is not a wordmark and may reach 64.
+Wordmarks spell the company name. They sharpen through 6, 8, 10, 13, 16 and
+stop there. Dell still reads at 16, so it stops at 10. IBM still reads at 16,
+so it stops at 12. A symbol (Nike's swoosh, Netflix's N, Google's G) may
+reach 64.
 """
-import base64, io, json, os, sys
+import io, json, os, sys
 from PIL import Image
 
 D = os.path.dirname(os.path.abspath(__file__))
 LONG = 64
 MAX_BYTES = 4096
 
-# Company-name wordmarks. The client never draws these sharper than 28 cells.
+# Company-name wordmarks. The client never draws these sharper than 16 cells,
+# except the two that are still readable at 16.
 WORDMARKS = {
     "AMC", "ARM", "AXP", "C", "CAT", "CHWY", "CMG", "COST", "CRCL", "DELL",
     "DIS", "EBAY", "F", "FDX", "GE", "GEMI", "GM", "GME", "GS", "HD", "HIMS",
@@ -28,13 +29,22 @@ WORDMARKS = {
     "MS", "MSTR", "MU", "NOW", "ORCL", "OXY", "PG", "RBLX", "ROKU", "SMCI",
     "SNDK", "TTWO", "UBER", "ULTA", "UPS", "V", "WYNN", "YUM",
 }
+# Still a readable word at 16 cells, so the last stage is lower.
+LOWER = {"DELL": 10, "IBM": 12}
 
 
-def puzzle_tickers():
-    # Same two lists build_puzzles.py ships. Imported by reading the files so
-    # this script does not execute the puzzle builder.
+def cap_for(tk):
+    if tk in LOWER:
+        return LOWER[tk]
+    if tk in WORDMARKS:
+        return 16
+    return 64
+
+
+def puzzle_keys():
+    # Same two lists build_puzzles.py ships. Read the files so this script does
+    # not execute the puzzle builder. Keys are d<id> / b<id>, never a ticker.
     bosses = json.load(open(os.path.join(D, "bosses.json"), encoding="utf-8"))
-    # QUEUE is a Python literal inside build_puzzles.py. Exec only that list.
     src = open(os.path.join(D, "build_puzzles.py"), encoding="utf-8").read()
     start = src.index("QUEUE = [")
     i = src.index("[", start)
@@ -52,10 +62,16 @@ def puzzle_tickers():
         raise SystemExit("could not read QUEUE")
     ns = {}
     exec(src[start:end], ns)
-    tickers = list(ns["QUEUE"]) + [b["answer"] for b in bosses]
+    queue = list(ns["QUEUE"])
+    pairs = [(tk, f"d{i+1}") for i, tk in enumerate(queue)]
+    pairs += [(b["answer"], f"b{b['id']}") for b in bosses]
+    tickers = [tk for tk, _ in pairs]
     if len(tickers) != len(set(tickers)):
         raise SystemExit("duplicate ticker in QUEUE or bosses")
-    return tickers
+    keys = [key for _, key in pairs]
+    if len(keys) != len(set(keys)):
+        raise SystemExit("duplicate logo key")
+    return pairs
 
 
 def fit(im):
@@ -99,9 +115,12 @@ def main():
     src_dir = sys.argv[1] if len(sys.argv) > 1 else os.path.join(D, "logosrc")
     if not os.path.isdir(src_dir):
         raise SystemExit(f"missing {src_dir} — pass the directory of <TK>.png sources")
-    out = {}
+    out_dir = os.path.join(D, "px")
+    os.makedirs(out_dir, exist_ok=True)
+    caps = {}
     sizes = []
-    for tk in puzzle_tickers():
+    lower = []
+    for tk, key in puzzle_keys():
         path = os.path.join(src_dir, tk + ".png")
         if not os.path.exists(path):
             raise SystemExit(f"no logo source for {tk}")
@@ -111,19 +130,15 @@ def main():
         raw = png_bytes(im)
         if len(raw) > MAX_BYTES:
             raise SystemExit(f"{tk} is {len(raw)} bytes, over {MAX_BYTES}")
-        entry = {"d": "data:image/png;base64," + base64.b64encode(raw).decode()}
-        if tk in WORDMARKS:
-            entry["cap"] = 28
-        out[tk] = entry
-        sizes.append((len(raw), tk))
-    dest = os.path.join(D, "pixlogos.json")
-    json.dump(out, open(dest, "w"), separators=(",", ":"))
-    total = os.path.getsize(dest)
-    sizes.sort(reverse=True)
-    caps = sorted(tk for tk, e in out.items() if e.get("cap") == 28)
-    print(f"pixlogos.json: {len(out)} logos, {total} bytes, largest {sizes[0][0]} ({sizes[0][1]})")
-    print(f"wordmarks capped at 28: {len(caps)}")
-    print(" ".join(caps))
+        open(os.path.join(out_dir, key + ".png"), "wb").write(raw)
+        cap = cap_for(tk)
+        caps[key] = cap
+        if cap < 16:
+            lower.append(f"{tk}={cap}")
+        sizes.append(len(raw))
+    json.dump(caps, open(os.path.join(out_dir, "caps.json"), "w"), separators=(",", ":"), sort_keys=True)
+    print(f"px/: {len(caps)} logos, {sum(sizes)} bytes of PNG, largest {max(sizes)}")
+    print(f"wordmarks at 16: {sum(1 for v in caps.values() if v == 16)}; lower: {' '.join(lower)}")
 
 
 if __name__ == "__main__":
