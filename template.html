@@ -292,7 +292,7 @@
     border:1px solid var(--habit-bd); background:var(--habit-dim); color:var(--ink);
     font-weight:800; font-size:var(--fs-lg); cursor:pointer;}
   #endcardbox .etease{margin:10px 0 0; font-size:var(--fs-md); font-weight:700; color:var(--ink);
-    line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
+    line-height:1.35;}
   #reveal{scroll-margin-top:12px;}
   /* Share is the first action on the results card. The return hook sits with it so a phone
      sees the button, the countdown, and Remind me without scrolling past the story. */
@@ -1603,9 +1603,60 @@ function drawShareCard(canvas, card){
   x.textAlign="right";
   x.fillText("chartedgame.com", W-56, H-48);
 }
-// One short line from data the breakdown already has. Numbers when the story
-// states them, otherwise the opening sentence, otherwise a company fact.
-function teaserFact(p){
+// The result card is built only after the solve, so the sentence may name the
+// company. It is never called, and the line is never inserted, before then.
+// Phone width of the teaser face: 390px viewport, 20px card inset, 22px box padding.
+const TEASE_W = 306;
+function teaseFits(text){
+  if(!text) return false;
+  let probe=document.getElementById("teaseprobe");
+  if(!probe){
+    probe=document.createElement("div");
+    probe.id="teaseprobe";
+    probe.style.cssText="position:absolute;left:-9999px;top:0;visibility:hidden;display:block;box-sizing:border-box;margin:0;width:"+TEASE_W+"px;font:700 15px/1.35 -apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Roboto,'Helvetica Neue',Arial,sans-serif;";
+    document.body.appendChild(probe);
+  }
+  probe.textContent=text;
+  const line=parseFloat(getComputedStyle(probe).lineHeight)||20.25;
+  return probe.scrollHeight<=line*2+1;
+}
+function storySentences(text){
+  return text.split(/(?<=[.!])\s+/).map(s=>s.trim()).filter(Boolean);
+}
+function clauseCuts(sentence){
+  const cuts=[];
+  const re=/ — | – |; |, | and | with | that /g;
+  let m;
+  while((m=re.exec(sentence))){
+    let chunk=sentence.slice(0, m.index).trim().replace(/[\s,;:—–-]+$/,"");
+    if(chunk.split(/\s+/).length<3) continue;
+    if(!/[.!?]$/.test(chunk)) chunk+=".";
+    cuts.push(chunk);
+  }
+  return cuts;
+}
+function dailyTeaserPick(p){
+  const body=(p.story||"").replace(/\s+/g," ").trim().replace(/\s*The numbers:.*$/,"").trim();
+  const sents=storySentences(body);
+  const first=sents[0]||"";
+  if(first && teaseFits(first)) return {text:first, kind:"first"};
+  const cuts=clauseCuts(first);
+  for(let i=cuts.length-1;i>=0;i--){
+    if(teaseFits(cuts[i])) return {text:cuts[i], kind:"clause"};
+  }
+  for(const s of sents.slice(1)){
+    if(teaseFits(s)) return {text:s, kind:"next"};
+  }
+  const what=((p.co&&p.co.what)||"").replace(/\s+/g," ").trim();
+  const w0=storySentences(what)[0]||what;
+  if(w0 && teaseFits(w0)) return {text:w0, kind:"who"};
+  const wcuts=clauseCuts(w0);
+  for(let i=wcuts.length-1;i>=0;i--){
+    if(teaseFits(wcuts[i])) return {text:wcuts[i], kind:"who"};
+  }
+  return {text:"", kind:"none"};
+}
+function bossTeaser(p){
   const story=(p.story||"").replace(/\s+/g," ").trim();
   const nums=story.match(/The numbers:\s*([^.]+)/);
   if(nums){
@@ -1620,6 +1671,9 @@ function teaserFact(p){
   const lab=(p.annot&&p.annot.label)||"";
   if(lab && /\d/.test(lab)) return lab;
   return "";
+}
+function teaserFact(p){
+  return isBossDay() ? bossTeaser(p) : dailyTeaserPick(p).text;
 }
 function escHTML(s){ return String(s).replace(/[&<>]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
 function countStory(kind){
