@@ -190,8 +190,8 @@ def test_home_links_archive():
         text = open(os.path.join(D, name), encoding="utf-8").read()
         assert 'href="/archive/"' in text, name
         assert "function gameNow()" in text, name
-        assert 'const VERSION = "2026-11-18b"' in text, name
-    assert open(os.path.join(D, "version.txt"), encoding="utf-8").read().strip() == "2026-11-18b"
+        assert 'const VERSION = "2026-11-18c"' in text, name
+    assert open(os.path.join(D, "version.txt"), encoding="utf-8").read().strip() == "2026-11-18c"
 
 
 def main():
