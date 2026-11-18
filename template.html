@@ -378,8 +378,9 @@
   .modecard.cur{outline:2px solid var(--green); outline-offset:2px;}
   footer{margin-top:20px; font-size:var(--fs-xs); color:var(--muted); text-align:center;}
   footer a{color:inherit;}
-  #kofi{margin:10px 0 0; font-size:var(--fs-xs); color:var(--muted); text-align:center; line-height:1.4;}
-  #kofi a{color:var(--accent);}
+  #endcardbox .kofi{margin:8px 0 0; font-size:var(--fs-xs); font-weight:600; color:var(--muted);
+    text-align:center; line-height:1.35;}
+  #endcardbox .kofi a{color:var(--accent);}
   #archivenote{display:none; font-size:var(--fs-sm); line-height:1.45; font-weight:600;
     background:var(--panel); border:1px solid var(--border); border-radius:12px;
     padding:10px 12px; margin:10px 0; color:var(--muted);}
@@ -471,7 +472,6 @@
   </div></div>
   <div id="toast">Copied!</div>
   <footer>CHARTED · a daily game by @chartillect · beta · <a href="/archive/">past puzzles</a></footer>
-  <p id="kofi">☕ Enjoying CHARTED? <a href="https://ko-fi.com/chartedgame" target="_blank" rel="noopener">Buy me a coffee</a></p>
 </div>
 <script>
 const DATA = /*__GAMEDATA__*/;
@@ -1379,6 +1379,13 @@ function returnHookHTML(){
     `<button type="button" class="remindbtn">Remind me</button>`+
   `</div>`;
 }
+function kofiLineHTML(){
+  return `<p class="kofi">☕ Enjoying CHARTED? <a href="https://ko-fi.com/chartedgame" target="_blank" rel="noopener">Buy me a coffee</a></p>`;
+}
+function countKofi(){
+  if(DEV || !window.goatcounter || !goatcounter.count) return;
+  goatcounter.count({path:"kofi-click-"+(mode||"casual"), title:"CHARTED ko-fi", event:true});
+}
 function icsPad(n){ return String(n).padStart(2,"0"); }
 function icsStampLocal(d){
   return d.getFullYear()+icsPad(d.getMonth()+1)+icsPad(d.getDate())+"T"+icsPad(d.getHours())+icsPad(d.getMinutes())+icsPad(d.getSeconds());
@@ -1846,6 +1853,7 @@ function reveal(fresh){
     (tease?`<div class="etease">${escHTML(tease)}</div>`:"")+
     `<button id="endstory" type="button">Read the full story ↓</button>`+
     (practice?`<div class="emeta" style="margin-top:10px"><a href="/" style="color:var(--accent);font-weight:700">Play today's chart</a></div>`:returnHookHTML())+
+    kofiLineHTML()+
     `<div class="egrid">${emojiGrid()}</div>`+
     `<div class="emeta">CHARTED ${tag} · ${modeLabel()} · ${res}</div>`+
     (practice?`<div class="emeta" style="margin-top:8px">practice — this replay doesn't touch your streak or stats</div>`:rep?`<div class="emeta" style="margin-top:8px">replay — you'd already seen today's chart</div>`:``)+
@@ -1860,6 +1868,7 @@ function reveal(fresh){
     countStory("story-open");
   });
   document.querySelectorAll("#endcard .remindbtn").forEach(b=>b.addEventListener("click", downloadRemind));
+  ecb.querySelector(".kofi")?.addEventListener("click", e=>{ if(e.target.closest("a")) countKofi(); });
   armStorySeen();
   startCountdown();   // no-ops on whichever element is absent
   if(fresh){ setTimeout(()=>ec.classList.add("show"), 1500); pendingRankUp=""; pendingNewCo=false; }   // auto-pop on fresh finish only; consume flags
@@ -2144,11 +2153,6 @@ applySoundUI();
 function _prime(){ primeAudio(); document.removeEventListener("pointerdown",_prime); document.removeEventListener("keydown",_prime); }
 document.addEventListener("pointerdown",_prime); document.addEventListener("keydown",_prime);
 
-document.getElementById("kofi").addEventListener("click", e=>{
-  if(!e.target.closest("a")) return;
-  if(DEV || !window.goatcounter || !goatcounter.count) return;
-  goatcounter.count({path:"kofi-click", title:"CHARTED ko-fi", event:true});
-});
 applyTheme(); buildDevBar(); setDay(DEV ? 0 : todaysPuzzleIndex());
 if(!mode && !DEV) openChooser({first:true});   // first visit: rules + mode choice, no dismiss
 checkVersion();
