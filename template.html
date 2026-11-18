@@ -288,8 +288,12 @@
   .cdbox #cdnum{font-size:26px; font-weight:800; color:var(--ink); letter-spacing:1.5px; margin-top:2px;}
   .cdbox #cdboss{font-size:var(--fs-sm); color:var(--yellow); margin-top:5px; font-weight:600;}
   .cdbox #cdboss:empty{display:none;}
-  #enddismiss{display:block; margin:14px auto 0; font:inherit; font-size:var(--fs-sm); color:var(--muted);
-    background:none; border:none; cursor:pointer; text-decoration:underline dotted; text-underline-offset:3px;}
+  #endstory{font:inherit; width:100%; margin-top:10px; padding:12px 14px; border-radius:12px;
+    border:1px solid var(--habit-bd); background:var(--habit-dim); color:var(--ink);
+    font-weight:800; font-size:var(--fs-lg); cursor:pointer;}
+  #endcardbox .etease{margin:10px 0 0; font-size:var(--fs-md); font-weight:700; color:var(--ink);
+    line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
+  #reveal{scroll-margin-top:12px;}
   /* Share is the first action on the results card. The return hook sits with it so a phone
      sees the button, the countdown, and Remind me without scrolling past the story. */
   #sharebtn{display:block; width:100%; margin-right:0; padding:16px 16px; font-size:18px;}
@@ -472,7 +476,7 @@ const DEV = new URLSearchParams(location.search).has("dev");   // ?dev=1 unlocks
 const SHARE_URL = "chartedgame.com";
 const MAXG = 6;
 const EPOCH = "2026-07-20";   // public launch day = puzzle #1; one puzzle per LOCAL calendar day
-const VERSION = "2026-11-17a";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
+const VERSION = "2026-11-18a";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
 const U = DATA.universe, ORD = DATA.bucketOrder, PUZ = DATA.puzzles;
 const BOSSES = DATA.bosses || [];
 const BOSS_EPOCH = "2026-08-02";   // first boss Sunday; bosses rotate weekly from here
@@ -1599,7 +1603,63 @@ function drawShareCard(canvas, card){
   x.textAlign="right";
   x.fillText("chartedgame.com", W-56, H-48);
 }
+// One short line from data the breakdown already has. Numbers when the story
+// states them, otherwise the opening sentence, otherwise a company fact.
+function teaserFact(p){
+  const story=(p.story||"").replace(/\s+/g," ").trim();
+  const nums=story.match(/The numbers:\s*([^.]+)/);
+  if(nums){
+    const keep=nums[1].split("·").map(s=>s.trim()).filter(s=>/in 12 months|biggest week|%/.test(s)).slice(0,2);
+    if(keep.length) return keep.join(" · ");
+  }
+  const sent=story.split(/(?<=[.!])\s/)[0]||"";
+  if(sent && sent.length<=120) return sent;
+  const fact=((p.co&&p.co.fact)||"").replace(/\s+/g," ").trim();
+  const fsent=fact.split(/(?<=[.!])\s/)[0]||"";
+  if(fsent && fsent.length<=140) return fsent;
+  const lab=(p.annot&&p.annot.label)||"";
+  if(lab && /\d/.test(lab)) return lab;
+  return "";
+}
+function escHTML(s){ return String(s).replace(/[&<>]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
+function countStory(kind){
+  if(DEV || !window.goatcounter || !goatcounter.count) return;
+  goatcounter.count({path:kind+"-"+(mode||"casual"), title:"CHARTED story", event:true});
+}
+let storyAutoDone=false;
+let storySeen=false;
+let storyWatch=null;
+function maybeStorySeen(){
+  if(storySeen) return;
+  if(document.getElementById("endcard")?.classList.contains("show")) return;
+  const el=document.getElementById("reveal");
+  if(!el || el.style.display==="none") return;
+  const r=el.getBoundingClientRect();
+  if(r.height>0 && r.top<innerHeight && r.bottom>0){
+    storySeen=true;
+    countStory("story-seen");
+    if(storyWatch) storyWatch.disconnect();
+  }
+}
+function armStorySeen(){
+  if(storySeen || storyWatch || !("IntersectionObserver" in window)) return;
+  const el=document.getElementById("reveal");
+  if(!el) return;
+  storyWatch=new IntersectionObserver(()=>maybeStorySeen(), {threshold:0.01});
+  storyWatch.observe(el);
+}
+function scrollToBreakdown(){
+  document.getElementById("reveal")?.scrollIntoView({behavior:"smooth", block:"start"});
+  setTimeout(maybeStorySeen, 700);
+}
+function autoScrollStory(){
+  if(storyAutoDone) return;
+  storyAutoDone=true;
+  scrollToBreakdown();
+  countStory("story-autoscroll");
+}
 function reveal(fresh){
+  storyAutoDone=false;
   const el=document.getElementById("reveal"), p=puzzle();
   const rep = isReplay();
   const practice = isArchivePlay();
@@ -1668,44 +1728,48 @@ function reveal(fresh){
     const url=URL.createObjectURL(blob);
     document.querySelectorAll(".imgdl").forEach(a=>{ a.href=url; a.hidden=false; });
   }
-  function textFallback(blob){
+  async function textFallback(blob){
     const copied=()=>{ countShare("share-text"); copyShare(); offerImageDownload(blob); };
     if(navigator.share){
-      navigator.share({text:shareTxt}).then(()=>{
+      try{
+        await navigator.share({text:shareTxt});
         countShare("share-text");
         showToast(quip());
-      }).catch(err=>{
-        if(err && err.name==="AbortError") return;
-        copied();
-      });
+      }catch(err){
+        if(!(err && err.name==="AbortError")) copied();
+      }
     } else copied();
   }
   async function doShare(){
     countShare("share");   // existing share-<mode> event, fired even if the sheet is dismissed
     document.getElementById("endcard")?.classList.remove("show");
-    let blob=null;
     try{
-      const canvas=document.createElement("canvas");
-      drawShareCard(canvas, card);
-      blob=await new Promise((res,rej)=>canvas.toBlob(b=>b?res(b):rej(new Error("png")), "image/png"));
-    }catch(e){ blob=null; }
-    if(blob){
+      let blob=null;
       try{
-        const file=new File([blob], "charted.png", {type:"image/png"});
-        const url="https://"+card.link;
-        if(navigator.canShare && navigator.canShare({files:[file]})){
-          try{
-            await navigator.share({files:[file], text:shareTxt, url:url});
-            countShare("share-image");
-            showToast(quip());
-            return;
-          }catch(err){
-            if(err && err.name==="AbortError") return;
+        const canvas=document.createElement("canvas");
+        drawShareCard(canvas, card);
+        blob=await new Promise((res,rej)=>canvas.toBlob(b=>b?res(b):rej(new Error("png")), "image/png"));
+      }catch(e){ blob=null; }
+      if(blob){
+        try{
+          const file=new File([blob], "charted.png", {type:"image/png"});
+          const url="https://"+card.link;
+          if(navigator.canShare && navigator.canShare({files:[file]})){
+            try{
+              await navigator.share({files:[file], text:shareTxt, url:url});
+              countShare("share-image");
+              showToast(quip());
+              return;
+            }catch(err){
+              if(err && err.name==="AbortError") return;
+            }
           }
-        }
-      }catch(e){}
+        }catch(e){}
+      }
+      await textFallback(blob);
+    } finally {
+      autoScrollStory();   // after the sheet resolves or rejects, never while it is open
     }
-    textFallback(blob);
   }
   document.getElementById("sharebtn").addEventListener("click", doShare);
   document.getElementById("nextbtn")?.addEventListener("click",()=>setDay(day+1));
@@ -1716,22 +1780,30 @@ function reveal(fresh){
   const ec=document.getElementById("endcard"), ecb=document.getElementById("endcardbox");
   ec.classList.toggle("lose", !won);
   const firstTry = won && guesses.length===1 && !rep;
+  const tease = teaserFact(p);
   ecb.innerHTML =
     `<div class="ehead">${won?(firstTry?"FIRST TRY 🎯":"CHARTED IN "+guesses.length):"UNCHARTED"}</div>`+
     `<div class="eans">it was <b>$${answer()}</b> · ${U[answer()].name}</div>`+
     `<button id="endshare"><span class="sb1">Share</span><span class="sb2">${emojiGrid()}</span></button>`+
     `<a class="imgdl" hidden download="charted.png">Download image</a>`+
+    (tease?`<div class="etease">${escHTML(tease)}</div>`:"")+
+    `<button id="endstory" type="button">Read the full story ↓</button>`+
     (practice?`<div class="emeta" style="margin-top:10px"><a href="/" style="color:var(--accent);font-weight:700">Play today's chart</a></div>`:returnHookHTML())+
     `<div class="egrid">${emojiGrid()}</div>`+
     `<div class="emeta">CHARTED ${tag} · ${modeLabel()} · ${res}</div>`+
     (practice?`<div class="emeta" style="margin-top:8px">practice — this replay doesn't touch your streak or stats</div>`:rep?`<div class="emeta" style="margin-top:8px">replay — you'd already seen today's chart</div>`:``)+
     `<div class="equip">${quip()}</div>`+
     ((fresh&&pendingRankUp)?`<div class="rankup">⬆ RANK UP — you're now ${pendingRankUp}!</div>`:``)+
-    (won?`<div class="erolo rolodex-open">🗂 ${(fresh&&pendingNewCo)?"$"+answer()+" joins your Rolodex":"Chart Rolodex"} · ${metCount()} collected</div>`:``)+
-    `<button id="enddismiss">see the breakdown ↓</button>`;
+    (won?`<div class="erolo rolodex-open">🗂 ${(fresh&&pendingNewCo)?"$"+answer()+" joins your Rolodex":"Chart Rolodex"} · ${metCount()} collected</div>`:``);
   document.getElementById("endshare").addEventListener("click", doShare);
-  document.getElementById("enddismiss").addEventListener("click", ()=>ec.classList.remove("show"));
+  document.getElementById("endstory").addEventListener("click", ()=>{
+    ec.classList.remove("show");
+    storyAutoDone=true;
+    scrollToBreakdown();
+    countStory("story-open");
+  });
   document.querySelectorAll("#endcard .remindbtn").forEach(b=>b.addEventListener("click", downloadRemind));
+  armStorySeen();
   startCountdown();   // no-ops on whichever element is absent
   if(fresh){ setTimeout(()=>ec.classList.add("show"), 1500); pendingRankUp=""; pendingNewCo=false; }   // auto-pop on fresh finish only; consume flags
   updateStreak();
