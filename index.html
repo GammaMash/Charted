@@ -66,6 +66,7 @@
   #reveal .statrow b{font-family:var(--mono);}
   #app{width:100%; max-width:560px; padding:16px 14px 44px;}
   header{display:flex; align-items:center; gap:10px; margin-bottom:10px;}
+  .headtools{display:flex; align-items:center; gap:10px;}
   #logo{flex:none; width:34px; height:34px;}
   h1{font-size:23px; letter-spacing:5px; color:var(--ink); margin:0; font-weight:800;}
   h1 span{background:linear-gradient(90deg,var(--accent),var(--green)); -webkit-background-clip:text; background-clip:text; color:transparent;}
@@ -384,7 +385,11 @@
   #archivenote a{color:var(--accent); font-weight:700;}
   @media (max-width:480px){
     #app{padding:10px 9px 36px;}
-    header{gap:6px;}
+    header{flex-wrap:wrap; gap:6px; row-gap:6px;}
+    /* The buttons share one row of their own, so a long day or "Degen" cannot
+       push sound and theme off the screen. Wide screens keep display:flex on
+       .headtools, which sits in the single header row as before. */
+    .headtools{flex:1 0 100%; justify-content:flex-end; gap:6px; min-width:0;}
     h1{font-size:17px; letter-spacing:1.5px;}
     #headmeta{font-size:var(--fs-xs); line-height:1.3; white-space:nowrap;}
     #modebtn{font-size:var(--fs-xs); padding:4px 9px;}
@@ -407,11 +412,13 @@
     </svg>
     <h1>CHART<span>ED</span></h1>
     <div id="headmeta"><div id="daytag"></div><div id="streak"></div></div>
-    <button id="modebtn" title="Switch mode"></button>
-    <button id="helpbtn" title="How to play">?</button>
-    <button id="statsbtn" title="Your stats">📊</button>
-    <button id="soundbtn" title="Sound">🔇</button>
-    <button id="themebtn" title="Toggle light/dark">◐</button>
+    <div class="headtools">
+      <button id="modebtn" title="Switch mode"></button>
+      <button id="helpbtn" title="How to play">?</button>
+      <button id="statsbtn" title="Your stats">📊</button>
+      <button id="soundbtn" title="Sound">🔇</button>
+      <button id="themebtn" title="Toggle light/dark">◐</button>
+    </div>
   </header>
   <div id="welcomeback"></div>
   <div id="howto"><div id="howtohead"><b>6 guesses · every wrong pick unlocks a clue</b><span class="howlink">ⓘ How to play</span></div>
@@ -476,7 +483,7 @@ const DEV = new URLSearchParams(location.search).has("dev");   // ?dev=1 unlocks
 const SHARE_URL = "chartedgame.com";
 const MAXG = 6;
 const EPOCH = "2026-07-20";   // public launch day = puzzle #1; one puzzle per LOCAL calendar day
-const VERSION = "2026-11-18a";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
+const VERSION = "2026-11-18b";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
 const U = DATA.universe, ORD = DATA.bucketOrder, PUZ = DATA.puzzles;
 const BOSSES = DATA.bosses || [];
 const BOSS_EPOCH = "2026-08-02";   // first boss Sunday; bosses rotate weekly from here
