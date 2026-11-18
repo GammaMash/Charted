@@ -378,6 +378,9 @@
   .modecard.cur{outline:2px solid var(--green); outline-offset:2px;}
   footer{margin-top:20px; font-size:var(--fs-xs); color:var(--muted); text-align:center;}
   footer a{color:inherit;}
+  #endcardbox .kofi{margin:8px 0 0; font-size:var(--fs-xs); font-weight:600; color:var(--muted);
+    text-align:center; line-height:1.35;}
+  #endcardbox .kofi a{color:var(--accent);}
   #archivenote{display:none; font-size:var(--fs-sm); line-height:1.45; font-weight:600;
     background:var(--panel); border:1px solid var(--border); border-radius:12px;
     padding:10px 12px; margin:10px 0; color:var(--muted);}
@@ -476,7 +479,7 @@ const DEV = new URLSearchParams(location.search).has("dev");   // ?dev=1 unlocks
 const SHARE_URL = "chartedgame.com";
 const MAXG = 6;
 const EPOCH = "2026-07-20";   // public launch day = puzzle #1; one puzzle per LOCAL calendar day
-const VERSION = "2026-11-18a";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
+const VERSION = "2026-11-18b";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
 const U = DATA.universe, ORD = DATA.bucketOrder, PUZ = DATA.puzzles;
 const BOSSES = DATA.bosses || [];
 const BOSS_EPOCH = "2026-08-02";   // first boss Sunday; bosses rotate weekly from here
@@ -1376,6 +1379,13 @@ function returnHookHTML(){
     `<button type="button" class="remindbtn">Remind me</button>`+
   `</div>`;
 }
+function kofiLineHTML(){
+  return `<p class="kofi">☕ Enjoying CHARTED? <a href="https://ko-fi.com/chartedgame" target="_blank" rel="noopener">Buy me a coffee</a></p>`;
+}
+function countKofi(){
+  if(DEV || !window.goatcounter || !goatcounter.count) return;
+  goatcounter.count({path:"kofi-click-"+(mode||"casual"), title:"CHARTED ko-fi", event:true});
+}
 function icsPad(n){ return String(n).padStart(2,"0"); }
 function icsStampLocal(d){
   return d.getFullYear()+icsPad(d.getMonth()+1)+icsPad(d.getDate())+"T"+icsPad(d.getHours())+icsPad(d.getMinutes())+icsPad(d.getSeconds());
@@ -1843,6 +1853,7 @@ function reveal(fresh){
     (tease?`<div class="etease">${escHTML(tease)}</div>`:"")+
     `<button id="endstory" type="button">Read the full story ↓</button>`+
     (practice?`<div class="emeta" style="margin-top:10px"><a href="/" style="color:var(--accent);font-weight:700">Play today's chart</a></div>`:returnHookHTML())+
+    kofiLineHTML()+
     `<div class="egrid">${emojiGrid()}</div>`+
     `<div class="emeta">CHARTED ${tag} · ${modeLabel()} · ${res}</div>`+
     (practice?`<div class="emeta" style="margin-top:8px">practice — this replay doesn't touch your streak or stats</div>`:rep?`<div class="emeta" style="margin-top:8px">replay — you'd already seen today's chart</div>`:``)+
@@ -1857,6 +1868,7 @@ function reveal(fresh){
     countStory("story-open");
   });
   document.querySelectorAll("#endcard .remindbtn").forEach(b=>b.addEventListener("click", downloadRemind));
+  ecb.querySelector(".kofi")?.addEventListener("click", e=>{ if(e.target.closest("a")) countKofi(); });
   armStorySeen();
   startCountdown();   // no-ops on whichever element is absent
   if(fresh){ setTimeout(()=>ec.classList.add("show"), 1500); pendingRankUp=""; pendingNewCo=false; }   // auto-pop on fresh finish only; consume flags
