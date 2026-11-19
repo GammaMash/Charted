@@ -7,15 +7,23 @@ asks Node to run those functions and does not reimplement them.
 
 A date is included only once it is over in UTC−12, the last timezone. Until
 then someone can still be playing it, including a Sunday boss.
+
+The company name stays off the page until that date is at least 7 days before
+the build date in America/New_York. Both scheduled rebuilds (00:00 UTC nightly
+and 12:05 UTC publish) rerun this script, so a page unlocks by itself on the
+first build after it turns 7 days old. The last 6 days stay spoiler-free.
 """
 import base64, hashlib, html, json, os, re, shutil, subprocess
 from datetime import date, datetime, timedelta, timezone
 from xml.etree import ElementTree as ET
+from zoneinfo import ZoneInfo
 
 D = os.path.dirname(os.path.abspath(__file__))
 SITE = "https://chartedgame.com"
 UTC_MINUS_12 = timezone(timedelta(hours=-12))
+NY = ZoneInfo("America/New_York")
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+ANSWER_AGE = timedelta(days=7)
 
 PAGE_CSS = """
 :root{
@@ -73,6 +81,22 @@ LOGO = """<svg id="logo" viewBox="0 0 34 34" fill="none" aria-hidden="true">
 <rect x="1" y="1" width="32" height="32" rx="8" stroke="#35e0e8" stroke-width="1.6"/>
 <path d="M6 23 L11 17 L15 20 L20 10 L24 14 L28 8" stroke="#3ddc84" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>"""
+
+
+def ny_date(now_utc):
+    """Calendar date of this build in America/New_York."""
+    if now_utc.tzinfo is None:
+        raise ValueError("now must be timezone-aware")
+    return now_utc.astimezone(NY).date()
+
+
+def answer_public(d, now_utc):
+    """True once `d` is at least 7 days before the New York build date.
+
+    Nov 12 is public on a Nov 19 build. Nov 13 through today, and anything
+    still in the future, stay hidden.
+    """
+    return d <= ny_date(now_utc) - ANSWER_AGE
 
 
 def cutoff_date(now_utc):
@@ -283,7 +307,55 @@ def shell(title, description, canonical, body, extra_head=""):
 """
 
 
-def day_page(row):
+def move_word(closes):
+    """Net direction of the chart the player saw. Rounded the same way the story's percent is."""
+    if len(closes) < 2 or not closes[0]:
+        return "moved"
+    pct = (closes[-1] / closes[0] - 1) * 100
+    shown = float(f"{pct:.0f}")
+    if shown > 0:
+        return "rose"
+    if shown < 0:
+        return "fell"
+    return "moved"
+
+
+def day_title(row):
+    d = date.fromisoformat(row["d"])
+    verb = move_word(row["closes"])
+    return f"Why {row['name']} ({row['t']}) stock {verb}: CHARTED {weekday(d)[:3]}, {pretty(d)}"
+
+
+def story_description(row):
+    """Story snippet for this date. The date keeps a repeated Sunday boss unique."""
+    d = date.fromisoformat(row["d"])
+    prefix = f"CHARTED {weekday(d)[:3]}, {pretty(d)}. "
+    text = re.sub(r"\s+", " ", (row.get("story") or row.get("what") or "").strip())
+    parts = re.split(r"(?<=[.!?])\s+", text) if text else []
+    out = ""
+    budget = 155 - len(prefix)
+    for part in parts:
+        nxt = part if not out else out + " " + part
+        if len(nxt) > budget and out:
+            break
+        out = nxt
+        if len(out) >= max(70, budget - 40):
+            break
+    if len(out) > budget:
+        out = out[:budget].rsplit(" ", 1)[0].rstrip(".,;:—-–") + "…"
+    return prefix + out
+
+
+SOLVED_HEAD = """<style>
+.solved{margin-top:8px;}
+.solved .who{margin:0 0 8px; color:var(--ink); font-size:18px; font-weight:800;}
+.solved .story,.solved .whoare{margin:0 0 8px; line-height:1.55;}
+.solved .facts{margin:0; color:var(--muted); font-size:13px;}
+</style>
+"""
+
+
+def hidden_page(row):
     d = date.fromisoformat(row["d"])
     label = pretty(d)
     title = f"CHARTED {label}: guess the stock from its chart"
@@ -318,16 +390,77 @@ document.getElementById("show").addEventListener("click", function(){{
         raise SystemExit("refusing to write a www canonical")
     if leaks_answer(page, blob, row["t"], row["name"]):
         raise SystemExit(f"spoiler leaked onto {row['d']}")
+    if "application/ld+json" in page or 'class="solved"' in page:
+        raise SystemExit(f"answer markup on a hidden page {row['d']}")
     return page
 
 
-def index_page(rows):
+def solved_page(row):
+    d = date.fromisoformat(row["d"])
+    label = pretty(d)
+    title = day_title(row)
+    story = (row.get("story") or "").strip()
+    what = (row.get("what") or "").strip()
+    if not story and not what:
+        raise SystemExit(f"no story for public page {row['d']}")
+    desc = story_description(row)
+    if not desc:
+        raise SystemExit(f"empty description for {row['d']}")
+    canonical = f"{SITE}/archive/{row['d']}/"
+    boss = '<p class="boss">Sunday Boss</p>' if row["boss"] else ""
+    svg = chart_svg(row["closes"], row.get("dates") or [])
+    bits = []
+    if row.get("founded"):
+        bits.append(f"Founded {int(row['founded'])}")
+    if row.get("sector"):
+        bits.append(html.escape(str(row["sector"])))
+    facts = f'<p class="facts">{" · ".join(bits)}</p>' if bits else ""
+    story_html = f'<p class="story">{html.escape(story)}</p>' if story else ""
+    whoare = f'<p class="whoare">{html.escape(what)}</p>' if what else ""
+    body = f"""
+<h1>{html.escape(label)}</h1>
+<p class="lede">{html.escape(weekday(d))} · play the chart, then read why it moved.</p>
+{boss}
+<div class="chart">{svg}</div>
+<a class="play" href="/?d={row['d']}">Play this chart</a>
+<section class="solved" id="solved">
+<h2>The answer</h2>
+<p class="who">{html.escape(row['name'])} (${html.escape(row['t'])})</p>
+{story_html}
+{whoare}
+{facts}
+</section>
+<p class="fine">Day {int(row['day'])}. Practice only — it won't change your streak.</p>
+"""
+    page = shell(title, desc, canonical, body, extra_head=SOLVED_HEAD)
+    if "www.chartedgame.com" in page:
+        raise SystemExit("refusing to write a www canonical")
+    play_at = page.find('class="play"')
+    solved_at = page.find('id="solved"')
+    if play_at < 0 or solved_at < 0 or play_at > solved_at:
+        raise SystemExit(f"play button is not above the answer on {row['d']}")
+    if html.escape(row["name"]) not in page or html.escape(row["t"]) not in page:
+        raise SystemExit(f"public page {row['d']} is missing the company")
+    if 'id="answer" hidden' in page or "data-a=" in page:
+        raise SystemExit(f"public page {row['d']} still hides the answer in a blob")
+    return page, desc
+
+
+def day_page(row, now):
+    d = date.fromisoformat(row["d"])
+    if answer_public(d, now):
+        page, _desc = solved_page(row)
+        return page
+    return hidden_page(row)
+
+
+def index_page(rows, now):
     title = "CHARTED archive — past daily charts"
     desc = "Past CHARTED puzzles, newest first. Guess the stock from its chart."
     canonical = f"{SITE}/archive/"
     chunks = [
         "<h1>Past puzzles</h1>",
-        '<p class="lede">Newest first. Every chart the game has already used. The answer stays hidden until you play.</p>',
+        '<p class="lede">Newest first. Every chart the game has already used. The company is named once the chart is a week old.</p>',
         '<a class="play" href="/">Play today\'s chart</a>',
     ]
     month = None
@@ -342,9 +475,10 @@ def index_page(rows):
             chunks.append(f"<h2>{html.escape(head)}</h2>")
             month = head
         tag = '<span class="tag">Sunday Boss</span>' if row["boss"] else ""
+        named = f" · {html.escape(row['name'])}" if answer_public(d, now) else ""
         days_html.append(
             f'<a class="day" href="/archive/{row["d"]}/">'
-            f'<span class="when">{html.escape(weekday(d)[:3])}, {html.escape(pretty(d))}</span>'
+            f'<span class="when">{html.escape(weekday(d)[:3])}, {html.escape(pretty(d))}{named}</span>'
             f'<span class="meta">{tag}<span>Day {int(row["day"])}</span></span></a>'
         )
     if days_html:
@@ -409,11 +543,24 @@ def main():
         if os.path.isdir(path) and DATE_RE.match(name) and name not in allowed:
             shutil.rmtree(path)
 
+    seen_desc = {}
+    public_n = 0
     for row in rows:
         folder = os.path.join(arch, row["d"])
         os.makedirs(folder, exist_ok=True)
-        open(os.path.join(folder, "index.html"), "w", encoding="utf-8").write(day_page(row))
-    open(os.path.join(arch, "index.html"), "w", encoding="utf-8").write(index_page(rows))
+        d = date.fromisoformat(row["d"])
+        if answer_public(d, now):
+            page, desc = solved_page(row)
+            if desc in seen_desc:
+                raise SystemExit(f"description for {row['d']} duplicates {seen_desc[desc]}")
+            seen_desc[desc] = row["d"]
+            public_n += 1
+        else:
+            page = hidden_page(row)
+            if row["name"] in page.replace(obfuscate(row["t"], row["name"]), ""):
+                raise SystemExit(f"name leaked onto hidden page {row['d']}")
+        open(os.path.join(folder, "index.html"), "w", encoding="utf-8").write(page)
+    open(os.path.join(arch, "index.html"), "w", encoding="utf-8").write(index_page(rows, now))
 
     on_disk = existing_date_dirs()
     assert_past(on_disk, now)
@@ -425,7 +572,10 @@ def main():
     locs = write_sitemap(dates)
     write_robots()
     last = dates[-1].isoformat() if dates else "none"
-    print(f"archive: {len(dates)} past puzzles through {last} · cutoff {cutoff.isoformat()} (UTC-12) · sitemap {len(locs)} urls")
+    print(
+        f"archive: {len(dates)} past puzzles through {last} · cutoff {cutoff.isoformat()} (UTC-12) "
+        f"· {public_n} named (through {(ny_date(now) - ANSWER_AGE).isoformat()}) · sitemap {len(locs)} urls"
+    )
 
 
 if __name__ == "__main__":

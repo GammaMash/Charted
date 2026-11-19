@@ -10,6 +10,22 @@
 <link rel="manifest" href="/manifest.json">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <title>CHARTED — the daily stock chart game</title>
+<meta name="description" content="CHARTED is a free daily stock chart game. Guess the company from its last 12 months of price action, with clues if you get stuck. New chart every day.">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "CHARTED",
+  "url": "https://chartedgame.com/",
+  "applicationCategory": "Game",
+  "operatingSystem": "Any",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  }
+}
+</script>
 <meta property="og:title" content="CHARTED — the daily stock chart game">
 <meta property="og:description" content="Guess the ticker from its last 12 months. New chart every day.">
 <!-- og.png is rebuilt nightly from yesterday's chart by gen_og.py; build_index.py stamps 2026-11-19 so
@@ -479,7 +495,7 @@ const DEV = new URLSearchParams(location.search).has("dev");   // ?dev=1 unlocks
 const SHARE_URL = "chartedgame.com";
 const MAXG = 6;
 const EPOCH = "2026-07-20";   // public launch day = puzzle #1; one puzzle per LOCAL calendar day
-const VERSION = "2026-11-18c";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
+const VERSION = "2026-11-19a";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
 const U = DATA.universe, ORD = DATA.bucketOrder, PUZ = DATA.puzzles;
 const BOSSES = DATA.bosses || [];
 const BOSS_EPOCH = "2026-08-02";   // first boss Sunday; bosses rotate weekly from here
