@@ -6,6 +6,7 @@ captured before the replay hook existed — that hook is not allowed to change
 which puzzle plays on any date.
 """
 import base64, json, os, re, subprocess, sys
+import html as html_lib
 from datetime import date, datetime, timedelta, timezone
 from xml.etree import ElementTree as ET
 
@@ -26,6 +27,18 @@ def run_node(cmd, tz="UTC"):
         sys.stderr.write(proc.stderr)
         raise SystemExit(f"node {' '.join(cmd)} failed")
     return proc.stdout
+
+
+def test_answer_waits_seven_ny_days():
+    # 16:26 UTC on Nov 19 is 11:26am in New York. Nov 12 is 7 days earlier and
+    # may name the company. Nov 13 is only 6 days earlier and must not.
+    now = datetime(2026, 11, 19, 16, 26, tzinfo=timezone.utc)
+    assert arch.ny_date(now) == date(2026, 11, 19)
+    assert arch.answer_public(date(2026, 11, 12), now)
+    assert not arch.answer_public(date(2026, 11, 13), now)
+    assert not arch.answer_public(date(2026, 11, 18), now)
+    assert not arch.answer_public(date(2026, 11, 19), now)
+    assert not arch.answer_public(date(2026, 11, 20), now)
 
 
 def test_cutoff_waits_out_sunday():
@@ -134,6 +147,8 @@ def test_pages_match_schedule():
     arch.assert_past([date.fromisoformat(n) for n in pages], now)
 
     index = open(os.path.join(root, "index.html"), encoding="utf-8").read()
+    sitemap_text = open(os.path.join(D, "sitemap.xml"), encoding="utf-8").read()
+    html_escape = html_lib.escape
     assert "www.chartedgame.com" not in index
     assert 'href="/"' in index
     # Newest first: the first day link is the latest date.
@@ -144,28 +159,56 @@ def test_pages_match_schedule():
         html = open(os.path.join(root, name, "index.html"), encoding="utf-8").read()
         row = by_date[name]
         m = re.search(r'data-a="([^"]+)"', html)
-        assert m, name
-        decoded = json.loads(base64.b64decode(m.group(1)))
-        assert decoded["t"] == row["t"], (name, decoded["t"], row["t"])
-        assert decoded["n"] == row["name"]
-        if arch.leaks_answer(html, m.group(1), row["t"], row["name"]):
-            raise SystemExit(f"spoiler visible on {name}")
-        assert row["name"] not in index
+        if m:
+            decoded = json.loads(base64.b64decode(m.group(1)))
+            assert decoded["t"] == row["t"], (name, decoded["t"], row["t"])
+            assert decoded["n"] == row["name"]
         label = arch.pretty(date.fromisoformat(name))
-        assert f"<title>CHARTED {label}: guess the stock from its chart</title>" in html
         canon = f"https://chartedgame.com/archive/{name}/"
         assert f'rel="canonical" href="{canon}"' in html
         assert f'property="og:url" content="{canon}"' in html
         assert f'property="og:title"' in html
-        assert f'name="description" content="CHARTED {label}: guess the stock from its chart' in html
+        assert f'property="og:description"' in html
         assert f'href="/?d={name}"' in html
         assert 'class="play"' in html
+        assert html.find('class="play"') < html.find("</main>")
         assert "www.chartedgame.com" not in html
         assert ("Sunday Boss" in html) == bool(row["boss"])
         assert f'data-points="{len(row["closes"])}"' in html
         assert f'data-chart="{arch.chart_hash(row["closes"])}"' in html
-        # Answer element starts hidden.
-        assert 'id="answer" hidden' in html
+        public = arch.answer_public(date.fromisoformat(name), now)
+        link = re.search(rf'href="/archive/{name}/">(.*?)</a>', index)
+        assert link, name
+        if public:
+            assert 'id="solved"' in html
+            assert html.find('class="play"') < html.find('id="solved"')
+            assert 'id="answer" hidden' not in html
+            assert "data-a=" not in html
+            assert "application/ld+json" not in html
+            title = arch.day_title(row)
+            assert f"<title>{html_escape(title)}</title>" in html
+            assert html_escape(row["name"]) in html
+            assert f'(${html_escape(row["t"])})' in html
+            story = (row.get("story") or row.get("what") or "")
+            assert story and html_escape(story) in html
+            desc = arch.story_description(row)
+            assert f'name="description" content="{html_escape(desc)}"' in html
+            assert label in desc
+            assert html_escape(row["name"]) in link.group(1)
+            assert row["name"] not in sitemap_text
+        else:
+            assert m, name
+            if arch.leaks_answer(html, m.group(1), row["t"], row["name"]):
+                raise SystemExit(f"spoiler visible on {name}")
+            # The same company can already be named on an older unlocked day (Sunday bosses repeat).
+            # This day's own index entry, its page, and the sitemap must not name it.
+            assert html_escape(row["name"]) not in link.group(1)
+            assert f"<title>CHARTED {label}: guess the stock from its chart</title>" in html
+            assert f'name="description" content="CHARTED {label}: guess the stock from its chart' in html
+            assert 'id="answer" hidden' in html
+            assert 'id="solved"' not in html
+            assert "application/ld+json" not in html
+            assert row["name"] not in sitemap_text
 
 
 def test_sitemap_and_robots():
@@ -190,11 +233,17 @@ def test_home_links_archive():
         text = open(os.path.join(D, name), encoding="utf-8").read()
         assert 'href="/archive/"' in text, name
         assert "function gameNow()" in text, name
-        assert 'const VERSION = "2026-11-18c"' in text, name
-    assert open(os.path.join(D, "version.txt"), encoding="utf-8").read().strip() == "2026-11-18c"
+        assert 'const VERSION = "2026-11-19a"' in text, name
+        assert 'name="description" content="CHARTED is a free daily stock chart game.' in text, name
+        assert 'application/ld+json' in text, name
+        assert '"@type": "WebApplication"' in text, name
+        assert '"price": "0"' in text, name
+        assert '"operatingSystem": "Any"' in text, name
+    assert open(os.path.join(D, "version.txt"), encoding="utf-8").read().strip() == "2026-11-19a"
 
 
 def main():
+    test_answer_waits_seven_ny_days()
     test_cutoff_waits_out_sunday()
     test_accept_gate()
     test_schedule_unchanged()

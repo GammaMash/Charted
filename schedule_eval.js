@@ -15,6 +15,7 @@ const path = require("path");
 const ROOT = path.dirname(__filename);
 const html = fs.readFileSync(path.join(ROOT, "template.html"), "utf8");
 const data = JSON.parse(fs.readFileSync(path.join(ROOT, "gamedata.json"), "utf8"));
+const founding = JSON.parse(fs.readFileSync(path.join(ROOT, "founding.json"), "utf8"));
 
 function extractFunction(src, name) {
   const start = src.search(new RegExp("function\\s+" + name + "\\s*\\("));
@@ -131,6 +132,7 @@ function rowFrom(api, dateKey) {
   const puz = boss ? data.bosses[bidx] : data.puzzles[idx];
   if (!puz) throw new Error("no puzzle for " + dateKey + " boss=" + boss + " idx=" + idx + " bidx=" + bidx);
   const u = data.universe[puz.answer];
+  const found = founding[puz.answer];
   return {
     d: dateKey,
     i: idx,
@@ -140,7 +142,11 @@ function rowFrom(api, dateKey) {
     name: u ? u.name : puz.answer,
     day: api.dayNumber(),
     closes: puz.closes,
-    dates: puz.dates
+    dates: puz.dates,
+    story: puz.story || "",
+    what: (puz.co && puz.co.what) || "",
+    sector: (u && u.sector) || "",
+    founded: found && found.founded ? found.founded : null
   };
 }
 
@@ -165,6 +171,10 @@ if (cmd === "simulate") {
     delete r.closes;
     delete r.dates;
     delete r.name;
+    delete r.story;
+    delete r.what;
+    delete r.sector;
+    delete r.founded;
     return r;
   }));
   process.stdout.write(JSON.stringify(rows));
