@@ -66,24 +66,55 @@ def test_accept_gate():
     assert "accept ok" in out
 
 
+def _same_except_new_bosses(new, old):
+    """Sundays before Nov 22 2026 stay on the length-9 map. From that Sunday
+    the boss ticker may change. bossIndex() is also evaluated on weekdays, so
+    its index can differ after the cutover even when that day is not a boss.
+    The daily puzzle, the day number, and the boss flag never move."""
+    if new["d"] < "2026-11-22":
+        return new == old
+    keep = ("d", "i", "boss", "day")
+    if not all(new[k] == old[k] for k in keep):
+        return False
+    if not new.get("boss") and new["t"] != old["t"]:
+        return False
+    return True
+
+
+def test_boss_cutover():
+    # 200 days from EPOCH (2026-07-20) reaches into February 2027.
+    rows = {r["d"]: r for r in json.loads(run_node(["simulate", "220"]))}
+    golden = {r["d"]: r for r in json.load(open(GOLDEN, encoding="utf-8"))}
+    d = date(2026, 8, 2)
+    while d <= date(2026, 11, 15):
+        key = d.isoformat()
+        assert rows[key]["boss"] and rows[key]["t"] == golden[key]["t"], (key, rows[key]["t"], golden[key]["t"])
+        assert rows[key]["b"] == golden[key]["b"], (key, rows[key]["b"], golden[key]["b"])
+        d += timedelta(days=7)
+    assert rows["2026-10-04"]["t"] == "GME"
+    assert rows["2026-11-22"]["t"] == "ZM" and rows["2026-11-22"]["b"] == 9
+    assert rows["2026-11-29"]["t"] == "BABA" and rows["2026-11-29"]["b"] == 10
+    assert rows["2026-12-06"]["t"] == "AIG" and rows["2026-12-06"]["b"] == 11
+    assert rows["2026-12-13"]["t"] == "GME" and rows["2026-12-13"]["b"] == 0
+    print("boss cutover ok · through Nov 15 unchanged · Nov 22 ZM, Nov 29 BABA, Dec 6 AIG")
+
+
 def test_schedule_unchanged():
     got = json.loads(run_node(["simulate", "1000"]))
     golden = json.load(open(GOLDEN, encoding="utf-8"))
-    if got != golden:
-        for a, b in zip(got, golden):
-            if a != b:
-                raise SystemExit(f"schedule changed on {a['d']}: now {a} was {b}")
+    if len(got) != len(golden):
         raise SystemExit(f"schedule length {len(got)} != golden {len(golden)}")
+    for a, b in zip(got, golden):
+        if not _same_except_new_bosses(a, b):
+            raise SystemExit(f"schedule changed on {a['d']}: now {a} was {b}")
     assert len(got) == 1000
     # Frozen main, the schedule before batch 5. Dates through 2026-11-26 must not move.
     prefix_path = os.path.join(D, "test", "schedule_through_2026-11-26.json")
     prefix = json.load(open(prefix_path, encoding="utf-8"))
     assert prefix[-1]["d"] == "2026-11-26"
-    if got[:len(prefix)] != prefix:
-        for a, b in zip(got, prefix):
-            if a != b:
-                raise SystemExit(f"pre-batch5 date changed on {a['d']}: now {a} was {b}")
-        raise SystemExit("pre-batch5 prefix length mismatch")
+    for a, b in zip(got, prefix):
+        if not _same_except_new_bosses(a, b):
+            raise SystemExit(f"pre-batch5 date changed on {a['d']}: now {a} was {b}")
     consts = json.loads(run_node(["consts"]))
     n = consts["puzzles"]
     # A lap is n calendar days containing every puzzle index once. The batch intros
@@ -123,7 +154,7 @@ def test_schedule_unchanged():
     # Same calendar date, same puzzle, in the timezones where players actually are.
     for tz in ("America/New_York", "Pacific/Honolulu", "Etc/GMT+12"):
         other = json.loads(run_node(["simulate", "1000"], tz=tz))
-        if other != golden:
+        if other != got:
             raise SystemExit(f"schedule differs in {tz}")
     out = run_node(["match", "1000"])
     assert "match ok" in out
@@ -233,16 +264,17 @@ def test_home_links_archive():
         text = open(os.path.join(D, name), encoding="utf-8").read()
         assert 'href="/archive/"' in text, name
         assert "function gameNow()" in text, name
-        assert 'const VERSION = "2026-11-19a"' in text, name
+        assert 'const VERSION = "2026-11-21a"' in text, name
         assert 'name="description" content="CHARTED is a free daily stock chart game.' in text, name
         assert 'application/ld+json' in text, name
         assert '"@type": "WebApplication"' in text, name
         assert '"price": "0"' in text, name
         assert '"operatingSystem": "Any"' in text, name
-    assert open(os.path.join(D, "version.txt"), encoding="utf-8").read().strip() == "2026-11-19a"
+    assert open(os.path.join(D, "version.txt"), encoding="utf-8").read().strip() == "2026-11-21a"
 
 
 def main():
+    test_boss_cutover()
     test_answer_waits_seven_ny_days()
     test_cutoff_waits_out_sunday()
     test_accept_gate()

@@ -66,6 +66,10 @@ SCENES = {
  "UPST": "laptop on a dark kitchen table, soft screen glow, no readable text",
  "NET":  "network operations center, world map of light points, abstract shield glow, no text",
  "CEG":  "nuclear power plant cooling towers at twilight, steam, calm water reflection",
+ # --- bosses 10–12 (2026-11-21)
+ "ZM":   "empty home office at dusk, laptop open to a blurred video call, ring light, no readable text, no logos",
+ "BABA": "vast parcel warehouse at night, conveyor belts and cardboard boxes, warm orange light, no readable labels",
+ "AIG":  "quiet insurance office at night, rows of empty desks, one lamp, rain on the windows, no readable text",
 }
 
 def gen_scene(tk):

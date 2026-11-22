@@ -27,7 +27,7 @@ WORDMARKS = {
     "DIS", "EBAY", "F", "FDX", "GE", "GEMI", "GM", "GME", "GS", "HD", "HIMS",
     "IBM", "INTC", "JNJ", "JPM", "KO", "LCID", "LLY", "LOW", "MARA", "MRVL",
     "MS", "MSTR", "MU", "NOW", "ORCL", "OXY", "PG", "RBLX", "ROKU", "SMCI",
-    "SNDK", "TTWO", "UBER", "ULTA", "UPS", "V", "WYNN", "YUM",
+    "SNDK", "TTWO", "UBER", "ULTA", "UPS", "V", "WYNN", "YUM", "ZM", "AIG",
 }
 # Still a readable word at 16 cells, so the last stage is lower.
 LOWER = {"DELL": 10, "IBM": 12}
