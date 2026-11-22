@@ -35,8 +35,14 @@ def pick(data):
     days = max(0, (y - datetime.strptime(EPOCH, "%Y-%m-%d").date()).days)
     bosses = data.get("bosses") or []
     if y.weekday() == 6 and bosses:                      # Sunday Boss replaces the queue puzzle
-        w = (y - datetime.strptime(BOSS_EPOCH, "%Y-%m-%d").date()).days // 7
-        return bosses[w % len(bosses)], True
+        # Same cutover as bossIndex() in template.html. Before Nov 22 2026
+        # the rotation is the original 9. From that Sunday: ZM, BABA, AIG,
+        # then the full 12. Week 16 is Nov 22; (16+5)%12 = 9.
+        epoch = datetime.strptime(BOSS_EPOCH, "%Y-%m-%d").date()
+        w = (y - epoch).days // 7
+        if y < datetime.strptime("2026-11-22", "%Y-%m-%d").date():
+            return bosses[w % 9], True
+        return bosses[(w + 5) % len(bosses)], True
     return data["puzzles"][days % len(data["puzzles"])], False
 
 

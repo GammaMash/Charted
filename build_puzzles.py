@@ -20,6 +20,7 @@ SHARES_M = { tk: m for tk, m in {
  "UPST":90,"AFRM":320,"CHWY":415,"WEN":205,"RKLB":500,"SPOT":200,"SHOP":1290,"ARM":1050,"NVO":4450,
  "SNOW":335,"NET":340,"RBLX":650,"CVNA":210,"MRNA":385,"HIMS":215,"MARA":350,"RIOT":350,"BBAI":250,
  "NIO":2100,"QUBT":140,"ROKU":145,"MRVL":866,"ANET":1256,"SMCI":590,"DKNG":490,"SBUX":1130,"LULU":120,
+ "ZM":294,"BABA":1858,
 }.items() }
 def bucket(cap_b):
     if cap_b >= 200: return "MEGA"

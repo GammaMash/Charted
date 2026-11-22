@@ -1213,5 +1213,35 @@
         "url": "https://en.wikipedia.org/wiki/Affirm_Holdings"
       }
     ]
+  },
+"ZM": {
+    "clue": "Founded in 2011",
+    "founded": 2011,
+    "sources": [
+      {
+        "year": 2011,
+        "url": "https://en.wikipedia.org/wiki/Zoom_Video_Communications"
+      }
+    ]
+  },
+  "BABA": {
+    "clue": "Founded in 1999",
+    "founded": 1999,
+    "sources": [
+      {
+        "year": 1999,
+        "url": "https://en.wikipedia.org/wiki/Alibaba_Group"
+      }
+    ]
+  },
+  "AIG": {
+    "clue": "Founded in 1919",
+    "founded": 1919,
+    "sources": [
+      {
+        "year": 1919,
+        "url": "https://en.wikipedia.org/wiki/American_International_Group"
+      }
+    ]
   }
 }
