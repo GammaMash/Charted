@@ -322,9 +322,15 @@
   .returnhook .streakbig{font-size:40px; font-weight:800; color:var(--habit); line-height:1; margin-top:8px;}
   .returnhook .dontbreak{margin-top:2px; font-size:var(--fs-md); font-weight:800; color:var(--habit);}
   .returnhook .hookrank{margin-top:4px; font-size:var(--fs-xs); color:var(--muted); font-weight:700;}
+  .returnhook .comeback{margin-top:8px; font-size:var(--fs-lg); font-weight:800; color:var(--habit); line-height:1.3;}
   .remindbtn{font:inherit; width:100%; margin-top:12px; padding:12px 14px; border-radius:12px;
     border:1px solid var(--habit-bd); background:var(--habit-dim); color:var(--ink);
     font-weight:800; font-size:var(--fs-lg); cursor:pointer;}
+  .remindnote{margin:6px 0 0; font-size:var(--fs-xs); color:var(--muted); font-weight:600; line-height:1.4;}
+  .a2hs{margin:8px 0 0; font-size:var(--fs-sm); font-weight:700; line-height:1.4;}
+  .a2hs a{color:var(--accent);}
+  .a2hssteps{margin:4px 0 0; font-size:var(--fs-xs); color:var(--muted); font-weight:600; line-height:1.45;}
+  .a2hssteps[hidden]{display:none;}
   .imgdl{display:block; margin-top:8px; color:var(--accent); font-weight:800; font-size:var(--fs-md);}
   .imgdl[hidden]{display:none;}
   #welcomeback{display:none; margin:0 0 10px; padding:8px 12px; border-radius:10px;
@@ -495,7 +501,7 @@ const DEV = new URLSearchParams(location.search).has("dev");   // ?dev=1 unlocks
 const SHARE_URL = "chartedgame.com";
 const MAXG = 6;
 const EPOCH = "2026-07-20";   // public launch day = puzzle #1; one puzzle per LOCAL calendar day
-const VERSION = "2026-11-21a";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
+const VERSION = "2026-11-23a";  // bump on any game-logic change; version.txt must match — forces returning players off a stale cached build
 const U = DATA.universe, ORD = DATA.bucketOrder, PUZ = DATA.puzzles;
 const BOSSES = DATA.bosses || [];
 const BOSS_EPOCH = "2026-08-02";   // first boss Sunday; bosses rotate weekly from here
@@ -1393,14 +1399,70 @@ function startCountdown(){ cdTick(); clearInterval(window._cdTimer); window._cdT
 function returnHookHTML(){
   const st=liveStreak();
   const nr=nextRank(mode||"casual");
+  const firstWin = st===1 && store.get("lastWin","")===todayKey();
+  const pips = `<div class="pips" aria-hidden="true"><i class="on"></i>`+"<i></i>".repeat(6)+`</div>`;
+  const streakBlock = firstWin
+    ? `<div class="comeback">Come back tomorrow for 🔥 2</div>`+pips
+    : `<div class="streakbig">🔥 ${st}</div>`+
+      (st>=2?`<div class="dontbreak">Don't break it</div>`:"")+
+      (nr?`<div class="hookrank">${nr.need} more win${nr.need>1?"s":""} → ${nr.title}</div>`:"");
   return `<div class="returnhook">`+
     `<div class="nextdue">Next chart in …</div>`+
     `<div class="cdboss"></div>`+
-    `<div class="streakbig">🔥 ${st}</div>`+
-    (st>=2?`<div class="dontbreak">Don't break it</div>`:"")+
-    (nr?`<div class="hookrank">${nr.need} more win${nr.need>1?"s":""} → ${nr.title}</div>`:"")+
-    `<button type="button" class="remindbtn">Remind me</button>`+
+    streakBlock+
+    `<button type="button" class="remindbtn">⏰ Add a morning reminder</button>`+
+    `<p class="remindnote">Adds a daily 8 AM event to your calendar.</p>`+
+    homeScreenHTML()+
   `</div>`;
+}
+function isStandaloneApp(){
+  return navigator.standalone===true || (window.matchMedia && matchMedia("(display-mode: standalone)").matches);
+}
+function isIOSDevice(){
+  const ua=navigator.userAgent||"";
+  if(/iPad|iPhone|iPod/.test(ua)) return true;
+  // iPadOS reports a desktop Mac UA, but it still has a touch screen.
+  return navigator.platform==="MacIntel" && navigator.maxTouchPoints>1;
+}
+let deferredInstall=null;
+function homeScreenOffer(){
+  if(isStandaloneApp()) return "";
+  if(isIOSDevice()) return "ios";
+  if(deferredInstall) return "android";
+  return "";
+}
+function homeScreenHTML(){
+  if(!homeScreenOffer()) return "";
+  return `<p class="a2hs"><a class="a2hslink" href="#">Add CHARTED to your home screen</a></p>`+
+    `<p class="a2hssteps" hidden>On iPhone: 1. Tap the Share icon in Safari (the square with the arrow) 2. Tap Add to Home Screen</p>`;
+}
+let a2hsShown=false;
+function countA2HS(path){
+  if(DEV || !window.goatcounter || !goatcounter.count) return;
+  goatcounter.count({path:path, title:"CHARTED home screen", event:true});
+}
+function armHomeScreen(){
+  const links=document.querySelectorAll(".a2hslink");
+  if(!links.length) return;
+  if(!a2hsShown){ a2hsShown=true; countA2HS("a2hs-shown"); }
+  links.forEach(a=>{
+    if(a.dataset.armed) return;
+    a.dataset.armed="1";
+    a.addEventListener("click", async e=>{
+      e.preventDefault();
+      if(!isIOSDevice() && deferredInstall){
+        deferredInstall.prompt();
+        const choice=await deferredInstall.userChoice;
+        countA2HS(choice&&choice.outcome==="accepted" ? "a2hs-ok" : "a2hs-no");
+        deferredInstall=null;
+        return;
+      }
+      if(!isIOSDevice()) return;
+      countA2HS("a2hs-open");
+      const steps=a.parentElement&&a.parentElement.nextElementSibling;
+      if(steps&&steps.classList.contains("a2hssteps")) steps.hidden=false;
+    });
+  });
 }
 function kofiLineHTML(){
   return `<p class="kofi">☕ Enjoying CHARTED? <a href="https://ko-fi.com/chartedgame" target="_blank" rel="noopener">Buy me a coffee</a></p>`;
@@ -1416,8 +1478,14 @@ function icsStampLocal(d){
 function icsStampUTC(d){
   return d.getUTCFullYear()+icsPad(d.getUTCMonth()+1)+icsPad(d.getUTCDate())+"T"+icsPad(d.getUTCHours())+icsPad(d.getUTCMinutes())+icsPad(d.getUTCSeconds())+"Z";
 }
+function nextEightAM(now){
+  const start=new Date(now.getFullYear(), now.getMonth(), now.getDate(), 8, 0, 0, 0);
+  if(start.getTime()<=now.getTime()) start.setDate(start.getDate()+1);
+  return start;
+}
 function remindICS(now){
-  const start=nextRollover(now);
+  // Floating local time: no Z and no TZID, so 8:00 is 8:00 on the player's clock.
+  const start=nextEightAM(now);
   return [
     "BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//CHARTED//chartedgame.com//EN","CALSCALE:GREGORIAN","METHOD:PUBLISH",
     "BEGIN:VEVENT","UID:charted-daily@chartedgame.com","DTSTAMP:"+icsStampUTC(now),"DTSTART:"+icsStampLocal(start),
@@ -1425,7 +1493,7 @@ function remindICS(now){
     "END:VEVENT","END:VCALENDAR",""
   ].join("\r\n");
 }
-function downloadRemind(){
+function downloadRemind(e){
   if(!DEV && window.goatcounter && goatcounter.count)
     goatcounter.count({path:"remind-ics", title:"CHARTED remind", event:true});
   const blob=new Blob([remindICS(new Date())],{type:"text/calendar"});
@@ -1433,6 +1501,8 @@ function downloadRemind(){
   a.href=URL.createObjectURL(blob); a.download="charted.ics";
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(a.href), 1500);
+  const note=e&&e.currentTarget&&e.currentTarget.parentElement&&e.currentTarget.parentElement.querySelector(".remindnote");
+  if(note) note.textContent="Reminder added — check your calendar.";
 }
 
 let soundOn = store.get("sound", true);        // sound ON by default (Vlad's call)
@@ -1894,6 +1964,7 @@ function reveal(fresh){
   });
   document.querySelectorAll("#endcard .remindbtn").forEach(b=>b.addEventListener("click", downloadRemind));
   ecb.querySelector(".kofi")?.addEventListener("click", e=>{ if(e.target.closest("a")) countKofi(); });
+  armHomeScreen();
   armStorySeen();
   startCountdown();   // no-ops on whichever element is absent
   if(fresh){ setTimeout(()=>ec.classList.add("show"), 1500); pendingRankUp=""; pendingNewCo=false; }   // auto-pop on fresh finish only; consume flags
@@ -1942,13 +2013,18 @@ function welcomeBack(){
   const prev=dateKey(y);
   const last=store.get("lastPlay","")||store.get("lastWin","");
   const st=store.get("streak",0);
-  if(last!==prev || st<2 || store.get("lastWin","")!==prev){ el.classList.remove("show"); return; }
-  el.textContent="Welcome back — streak "+st;
+  const wonYesterday=store.get("lastWin","")===prev;
+  const day2=wonYesterday && st===1;
+  const streakBack=last===prev && st>=2 && wonYesterday;
+  if(!day2 && !streakBack){ el.classList.remove("show"); return; }
+  el.textContent=day2 ? "Welcome back — win today for a 2-day streak" : "Welcome back — streak "+st;
   el.classList.add("show");
   if(welcomeSent) return;
   welcomeSent=true;
-  const send=()=>{ if(window.goatcounter&&goatcounter.count)
-    goatcounter.count({path:"welcome-back", title:"CHARTED welcome back", event:true}); };
+  const send=()=>{ if(window.goatcounter&&goatcounter.count){
+    goatcounter.count({path:"welcome-back", title:"CHARTED welcome back", event:true});
+    if(day2) goatcounter.count({path:"welcome-back-day2", title:"CHARTED welcome back day 2", event:true});
+  }};
   window.goatcounter ? send() : setTimeout(send, 3000);
 }
 function setDay(d){
@@ -2178,6 +2254,10 @@ applySoundUI();
 function _prime(){ primeAudio(); document.removeEventListener("pointerdown",_prime); document.removeEventListener("keydown",_prime); }
 document.addEventListener("pointerdown",_prime); document.addEventListener("keydown",_prime);
 
+window.addEventListener("beforeinstallprompt", e=>{
+  e.preventDefault();
+  deferredInstall=e;
+});
 applyTheme(); buildDevBar(); setDay(DEV ? 0 : todaysPuzzleIndex());
 if(!mode && !DEV) openChooser({first:true});   // first visit: rules + mode choice, no dismiss
 checkVersion();
