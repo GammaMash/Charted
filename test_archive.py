@@ -264,13 +264,13 @@ def test_home_links_archive():
         text = open(os.path.join(D, name), encoding="utf-8").read()
         assert 'href="/archive/"' in text, name
         assert "function gameNow()" in text, name
-        assert 'const VERSION = "2026-11-21a"' in text, name
+        assert 'const VERSION = "2026-11-23a"' in text, name
         assert 'name="description" content="CHARTED is a free daily stock chart game.' in text, name
         assert 'application/ld+json' in text, name
         assert '"@type": "WebApplication"' in text, name
         assert '"price": "0"' in text, name
         assert '"operatingSystem": "Any"' in text, name
-    assert open(os.path.join(D, "version.txt"), encoding="utf-8").read().strip() == "2026-11-21a"
+    assert open(os.path.join(D, "version.txt"), encoding="utf-8").read().strip() == "2026-11-23a"
 
 
 def main():

@@ -182,11 +182,12 @@ if (mid.getFullYear() !== 2026 || mid.getMonth() !== 10 || mid.getDate() !== 17 
   bad.push({ tk: "rollover", hit: "midnight", text: String(mid) });
 if (roll.countdownLabel(at) !== "Next chart in 8h 30m")
   bad.push({ tk: "rollover", hit: "label", text: roll.countdownLabel(at) });
-const icsSrc = ["nextRollover", "icsPad", "icsStampLocal", "icsStampUTC", "remindICS"].map(n => extractFunction(html, n)).join("\n");
+const icsSrc = ["nextEightAM", "icsPad", "icsStampLocal", "icsStampUTC", "remindICS"].map(n => extractFunction(html, n)).join("\n");
 const ics = new Function(icsSrc + "\nreturn remindICS;")()(at);
 if (!ics.includes("SUMMARY:CHARTED – new chart is up") || !ics.includes("URL:https://chartedgame.com") || !ics.includes("RRULE:FREQ=DAILY"))
   bad.push({ tk: "ics", hit: "body", text: ics });
-if (!/DTSTART:\d{8}T000000\r/.test(ics) || /DTSTART:[^\r\n]*Z/.test(ics))
+// 15:30 local is past 8:00, so the floating daily event starts tomorrow at 08:00. No Z.
+if (!/DTSTART:20261117T080000\r/.test(ics) || /DTSTART:[^\r\n]*Z/.test(ics))
   bad.push({ tk: "ics", hit: "start", text: ics });
 if (bad.length) {
   console.error(JSON.stringify(bad.slice(0, 8), null, 2));
